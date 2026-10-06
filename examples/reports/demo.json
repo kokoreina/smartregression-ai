@@ -1,0 +1,46 @@
+{
+  "schema_version": "1.0.0",
+  "report_id": "demo-price-rounding",
+  "data_kind": "demo",
+  "repository": "demo/shop-example (fictional)",
+  "commits": {
+    "schema_version": "1.0.0",
+    "base": "1111111111111111111111111111111111111111",
+    "target": "2222222222222222222222222222222222222222"
+  },
+  "analysis_status": "not_implemented",
+  "findings": [{
+    "id": "impact-1",
+    "component": {"path": "src/pricing.py", "symbol": "total", "change": "modified"},
+    "explanation": "Minh họa: thay đổi làm tròn tổng tiền có thể ảnh hưởng kiểm thử thanh toán. Đây là nhận định viết tay, không phải kết quả phân tích.",
+    "evidence_ids": ["evidence-1"]
+  }],
+  "evidence": [{
+    "id": "evidence-1",
+    "commit": "2222222222222222222222222222222222222222",
+    "path": "src/pricing.py",
+    "line_start": 12,
+    "line_end": 14,
+    "symbol": "total",
+    "excerpt": "return round(subtotal, 2)  # fictional example"
+  }],
+  "selection": {
+    "framework": "pytest (illustration only; MVP pending)",
+    "selected": [{
+      "test_id": "tests/test_pricing.py::test_total_rounding",
+      "reason": "Minh họa test kiểm tra quy tắc làm tròn.",
+      "evidence_ids": ["evidence-1"]
+    }],
+    "skipped": [{
+      "test_id": "tests/test_profile.py::test_display_name",
+      "reason": "Minh họa test ngoài phạm vi thay đổi; chưa xác minh tính an toàn.",
+      "evidence_ids": []
+    }],
+    "fallback_reason": null
+  },
+  "execution_status": "not_run",
+  "execution_results": [],
+  "analysis_duration_seconds": null,
+  "llm_cost_usd": null,
+  "notes": ["DEMO: dữ liệu viết tay, repo và commit giả định. Không có test nào được chạy."]
+}

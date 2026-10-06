@@ -1,0 +1,579 @@
+{
+  "components": {
+    "schemas": {
+      "AnalysisReport": {
+        "additionalProperties": false,
+        "properties": {
+          "analysis_duration_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Analysis Duration Seconds"
+          },
+          "analysis_status": {
+            "enum": [
+              "completed",
+              "partial",
+              "failed",
+              "not_implemented"
+            ],
+            "title": "Analysis Status",
+            "type": "string"
+          },
+          "commits": {
+            "$ref": "#/components/schemas/CommitPair"
+          },
+          "data_kind": {
+            "enum": [
+              "demo",
+              "real"
+            ],
+            "title": "Data Kind",
+            "type": "string"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceReference"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "execution_results": {
+            "items": {
+              "$ref": "#/components/schemas/ExecutionResult"
+            },
+            "title": "Execution Results",
+            "type": "array"
+          },
+          "execution_status": {
+            "enum": [
+              "not_run",
+              "completed",
+              "partial",
+              "error"
+            ],
+            "title": "Execution Status",
+            "type": "string"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/ImpactFinding"
+            },
+            "title": "Findings",
+            "type": "array"
+          },
+          "llm_cost_usd": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Llm Cost Usd"
+          },
+          "notes": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Notes",
+            "type": "array"
+          },
+          "report_id": {
+            "minLength": 1,
+            "title": "Report Id",
+            "type": "string"
+          },
+          "repository": {
+            "minLength": 1,
+            "title": "Repository",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "selection": {
+            "$ref": "#/components/schemas/TestSelection"
+          }
+        },
+        "required": [
+          "report_id",
+          "data_kind",
+          "repository",
+          "commits",
+          "analysis_status",
+          "findings",
+          "evidence",
+          "selection",
+          "execution_status",
+          "execution_results"
+        ],
+        "title": "AnalysisReport",
+        "type": "object"
+      },
+      "AnalysisRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "commits": {
+            "$ref": "#/components/schemas/CommitPair"
+          },
+          "repository": {
+            "minLength": 1,
+            "title": "Repository",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "repository",
+          "commits"
+        ],
+        "title": "AnalysisRequest",
+        "type": "object"
+      },
+      "ChangedComponent": {
+        "additionalProperties": false,
+        "properties": {
+          "change": {
+            "enum": [
+              "added",
+              "modified",
+              "deleted",
+              "renamed"
+            ],
+            "title": "Change",
+            "type": "string"
+          },
+          "path": {
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          },
+          "previous_path": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Previous Path"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Symbol"
+          }
+        },
+        "required": [
+          "path",
+          "change"
+        ],
+        "title": "ChangedComponent",
+        "type": "object"
+      },
+      "CommitPair": {
+        "additionalProperties": false,
+        "properties": {
+          "base": {
+            "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$",
+            "title": "Base",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "target": {
+            "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$",
+            "title": "Target",
+            "type": "string"
+          }
+        },
+        "required": [
+          "base",
+          "target"
+        ],
+        "title": "CommitPair",
+        "type": "object"
+      },
+      "ErrorResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "minLength": 1,
+            "title": "Code",
+            "type": "string"
+          },
+          "message": {
+            "minLength": 1,
+            "title": "Message",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "message"
+        ],
+        "title": "ErrorResponse",
+        "type": "object"
+      },
+      "EvidenceReference": {
+        "additionalProperties": false,
+        "properties": {
+          "commit": {
+            "pattern": "^([0-9a-f]{40}|[0-9a-f]{64})$",
+            "title": "Commit",
+            "type": "string"
+          },
+          "excerpt": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Excerpt"
+          },
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "line_end": {
+            "minimum": 1,
+            "title": "Line End",
+            "type": "integer"
+          },
+          "line_start": {
+            "minimum": 1,
+            "title": "Line Start",
+            "type": "integer"
+          },
+          "path": {
+            "minLength": 1,
+            "title": "Path",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "symbol": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Symbol"
+          }
+        },
+        "required": [
+          "id",
+          "commit",
+          "path",
+          "line_start",
+          "line_end"
+        ],
+        "title": "EvidenceReference",
+        "type": "object"
+      },
+      "ExecutionResult": {
+        "additionalProperties": false,
+        "properties": {
+          "detail": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Detail"
+          },
+          "duration_seconds": {
+            "anyOf": [
+              {
+                "minimum": 0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Duration Seconds"
+          },
+          "outcome": {
+            "enum": [
+              "passed",
+              "failed",
+              "skipped",
+              "error",
+              "not_run"
+            ],
+            "title": "Outcome",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "test_id": {
+            "minLength": 1,
+            "title": "Test Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "test_id",
+          "outcome"
+        ],
+        "title": "ExecutionResult",
+        "type": "object"
+      },
+      "HealthResponse": {
+        "additionalProperties": false,
+        "properties": {
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "scope": {
+            "const": "service_only",
+            "default": "service_only",
+            "title": "Scope",
+            "type": "string"
+          },
+          "service": {
+            "const": "smartregression-api",
+            "default": "smartregression-api",
+            "title": "Service",
+            "type": "string"
+          },
+          "status": {
+            "const": "ok",
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "HealthResponse",
+        "type": "object"
+      },
+      "ImpactFinding": {
+        "additionalProperties": false,
+        "properties": {
+          "component": {
+            "$ref": "#/components/schemas/ChangedComponent"
+          },
+          "evidence_ids": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "minItems": 1,
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "explanation": {
+            "minLength": 1,
+            "title": "Explanation",
+            "type": "string"
+          },
+          "id": {
+            "minLength": 1,
+            "title": "Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "component",
+          "explanation",
+          "evidence_ids"
+        ],
+        "title": "ImpactFinding",
+        "type": "object"
+      },
+      "TestDecision": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence_ids": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "title": "Evidence Ids",
+            "type": "array"
+          },
+          "reason": {
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "test_id": {
+            "minLength": 1,
+            "title": "Test Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "test_id",
+          "reason"
+        ],
+        "title": "TestDecision",
+        "type": "object"
+      },
+      "TestSelection": {
+        "additionalProperties": false,
+        "properties": {
+          "fallback_reason": {
+            "anyOf": [
+              {
+                "minLength": 1,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Fallback Reason"
+          },
+          "framework": {
+            "minLength": 1,
+            "title": "Framework",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "selected": {
+            "items": {
+              "$ref": "#/components/schemas/TestDecision"
+            },
+            "title": "Selected",
+            "type": "array"
+          },
+          "skipped": {
+            "items": {
+              "$ref": "#/components/schemas/TestDecision"
+            },
+            "title": "Skipped",
+            "type": "array"
+          }
+        },
+        "required": [
+          "framework",
+          "selected",
+          "skipped"
+        ],
+        "title": "TestSelection",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "SmartRegression AI",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health"
+      }
+    }
+  }
+}
