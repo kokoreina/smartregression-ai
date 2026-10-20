@@ -2,6 +2,9 @@
 
 Chưa gán tên người và không tạo CODEOWNERS giả. Nhóm tự thống nhất và luân phiên review.
 
+Phân công theo tên, task và dependency cho Sprint 1 được đề xuất trong
+[hướng dẫn phối hợp Sprint 1](sprint-1-team-guide.md); chưa phải quyết định nhóm đã duyệt.
+
 | Vùng | Trách nhiệm/đầu ra | Phối hợp |
 | --- | --- | --- |
 | 1. Git & code model | commit/diff, changed components, spike parser | 2, 3 |
