@@ -1,8 +1,11 @@
 # Kiến trúc bootstrap
 
 Một monorepo, một Python package src-layout, một frontend. Không microservices,
-Kubernetes, broker hoặc plugin framework. Ban đầu workspace trống; không có proposal
-để đối chiếu. Tài liệu mô tả phạm vi từ yêu cầu bootstrap, không thay thế proposal.
+Kubernetes, broker hoặc plugin framework. ADR bootstrap được viết trước khi tài liệu
+C1.SE26 được thêm vào workspace. Scope/kiến trúc cấp cao hiện được đối chiếu với các
+tài liệu đó; proposal ghi pending review và lựa chọn chưa chốt phải theo decision
+register. Trang này mô tả implementation bootstrap, không tuyên bố hệ thống mục tiêu
+đã triển khai.
 
 ```mermaid
 flowchart LR

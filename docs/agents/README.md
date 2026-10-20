@@ -8,6 +8,8 @@ nhiều profile theo task. Phân công người thật theo [module ownership](.
 Đọc [AGENTS gốc](../../AGENTS.md), chọn một profile chính và mở các rule được định
 tuyến; chỉ thêm profile khác khi task chạm boundary của họ. Mẫu dùng chung ở
 [task brief](../templates/task-brief.md) và [handoff](../templates/handoff.md).
+Skill tùy chọn được định tuyến trong root AGENTS và liệt kê tại
+[catalog](../../.agents/skills/README.md); skill bổ sung workflow, không thay profile/rule.
 
 | Profile | Dùng cho | Đầu ra chính |
 | --- | --- | --- |

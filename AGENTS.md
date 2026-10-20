@@ -36,15 +36,15 @@ MUST kiểm tra AGENTS.md áp dụng trong thư mục con trước khi sửa, kh
 | Task | Profile | Rule cần đọc |
 | --- | --- | --- |
 | Chia task, tích hợp, quyết định | [Coordinator](docs/agents/coordinator.md) | [00](docs/rules/00-governance.md), [01](docs/rules/01-architecture.md) |
-| API/application/schema/CLI | [Backend/Contracts](docs/agents/backend-contracts.md) | [02](docs/rules/02-coding-standards.md), [03](docs/rules/03-contracts-api.md), [06](docs/rules/06-testing-quality.md) |
+| API/application/schema/CLI | [Backend/Contracts](docs/agents/backend-contracts.md) + skill `api-contracts` when changing producer-consumer contracts | [02](docs/rules/02-coding-standards.md), [03](docs/rules/03-contracts-api.md), [06](docs/rules/06-testing-quality.md) |
 | Git/diff/symbol/evidence | [Change Impact](docs/agents/change-impact.md) | [01](docs/rules/01-architecture.md), [09](docs/rules/09-impact-selection.md), [06](docs/rules/06-testing-quality.md) |
 | Retrieval/index/prompt/provider | [RAG/LLM](docs/agents/rag-llm.md) | [04](docs/rules/04-data-storage.md), [08](docs/rules/08-llm-rag.md), [06](docs/rules/06-testing-quality.md) |
 | Inventory/selection/fallback | [Regression Selection](docs/agents/regression-selection.md) | [03](docs/rules/03-contracts-api.md), [09](docs/rules/09-impact-selection.md), [06](docs/rules/06-testing-quality.md) |
-| UI/report | [Frontend](docs/agents/frontend-dashboard.md) | [02](docs/rules/02-coding-standards.md), [03](docs/rules/03-contracts-api.md), [06](docs/rules/06-testing-quality.md) |
-| CI/runner/dependency | [DevOps/Runner](docs/agents/devops-runner.md) | [10](docs/rules/10-runner-security.md), [12](docs/rules/12-ci-dependencies.md), [06](docs/rules/06-testing-quality.md) |
-| Test/benchmark/evaluation | [QA/Research](docs/agents/qa-research.md) | [06](docs/rules/06-testing-quality.md), [11](docs/rules/11-research-evaluation.md) |
-| Review | [Reviewer](docs/agents/reviewer.md) | [05](docs/rules/05-git-pr.md), [14](docs/rules/14-enforcement.md) và rule của phần được review |
-| Bugfix nhỏ | Profile của module | Thêm [07](docs/rules/07-debugging-change-control.md) |
+| UI/report | [Frontend](docs/agents/frontend-dashboard.md); khi phù hợp mở skills `ui-design`, `accessibility-review`, `webapp-testing` | [02](docs/rules/02-coding-standards.md), [03](docs/rules/03-contracts-api.md), [06](docs/rules/06-testing-quality.md) |
+| CI/runner/dependency | [DevOps/Runner](docs/agents/devops-runner.md); skill `github-actions-hardening` khi review workflow | [10](docs/rules/10-runner-security.md), [12](docs/rules/12-ci-dependencies.md), [06](docs/rules/06-testing-quality.md) |
+| Test/benchmark/evaluation | [QA/Research](docs/agents/qa-research.md); khi phù hợp mở `ux-research`, `test-driven-development` hoặc `evaluation-integrity` | [06](docs/rules/06-testing-quality.md), [11](docs/rules/11-research-evaluation.md) |
+| Review | [Reviewer](docs/agents/reviewer.md); khi phù hợp mở `security-review` hoặc `github-actions-hardening` | [05](docs/rules/05-git-pr.md), [14](docs/rules/14-enforcement.md) và rule của phần được review |
+| Bugfix nhỏ | Profile của module; mở `systematic-debugging`, thêm `test-driven-development` nếu có regression test phù hợp | Thêm [07](docs/rules/07-debugging-change-control.md) |
 | Tài liệu/bàn giao/AI use | Coordinator hoặc Reviewer | [13](docs/rules/13-documentation-ai-use.md) |
 
 ## Cách nạp và giới hạn quyền
@@ -55,6 +55,10 @@ song song chỉ vì có profile. `docs/rules` là quy ước dự án, không m�
 công cụ tự nạp; agent MUST mở file được định tuyến. Không tạo AGENTS.override.md để
 âm thầm vô hiệu hóa quy tắc nhóm. Hướng dẫn repo không vượt chỉ dẫn cấp cao hơn hoặc
 quyền filesystem/GitHub/sandbox của công cụ. Xem [cách dùng](docs/development/agent-rules-setup.md).
+
+Skills theo task nằm trong [.agents/skills](.agents/skills/README.md). Chỉ mở skill
+khi trigger khớp; skill bổ sung cách làm, không thay thế AGENTS, rule, quyết định
+hoặc quyền công cụ. Mỗi skill ghi rõ nguồn tham khảo và giới hạn áp dụng.
 
 ## Code Review Rules
 
