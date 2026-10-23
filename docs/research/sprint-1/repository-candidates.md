@@ -204,17 +204,31 @@ Bất kỳ thành viên nào cũng có thể kiểm chứng lại các con số 
 ```python
 import urllib.request, json, re
 
+
 def check_repo(repo):
-    req = urllib.request.Request(f"https://api.github.com/repos/{repo}", headers={"User-Agent": "Mozilla/5.0"})
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}", headers={"User-Agent": "Mozilla/5.0"}
+    )
     r = json.loads(urllib.request.urlopen(req).read())
     # Lấy số trang commit cuối cùng
-    c_req = urllib.request.Request(f"https://api.github.com/repos/{repo}/commits?per_page=1", headers={"User-Agent": "Mozilla/5.0"})
+    c_req = urllib.request.Request(
+        f"https://api.github.com/repos/{repo}/commits?per_page=1",
+        headers={"User-Agent": "Mozilla/5.0"},
+    )
     link = urllib.request.urlopen(c_req).headers.get("Link", "")
     m = re.search(r'page=(\d+)>; rel="last"', link)
     commits = m.group(1) if m else "N/A"
-    print(f"[{repo}] Stars: {r['stargazers_count']} | Created: {r['created_at']} | Pushed: {r['pushed_at']} | License: {r.get('license',{}).get('spdx_id')} | Commits: {commits}")
+    print(
+        f"[{repo}] Stars: {r['stargazers_count']} | Created: {r['created_at']} | Pushed: {r['pushed_at']} | License: {r.get('license', {}).get('spdx_id')} | Commits: {commits}"
+    )
 
-for r in ["msiemens/tinydb", "andialbrecht/sqlparse", "marshmallow-code/marshmallow", "python-humanize/humanize"]:
+
+for r in [
+    "msiemens/tinydb",
+    "andialbrecht/sqlparse",
+    "marshmallow-code/marshmallow",
+    "python-humanize/humanize",
+]:
     check_repo(r)
 ```
 
