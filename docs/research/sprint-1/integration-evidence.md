@@ -185,3 +185,35 @@ Member-assigned tasks remain attributed to their original owners. New integratio
 assistance and experimental code are disclosed explicitly. Engineering artifacts
 for the scoped Sprint 1 spike are available, with remaining human/research/candidate
 runtime conditions visible rather than marked complete.
+
+## Final operator and GitHub verification
+
+The operator executed scripts/verify_sprint1.ps1 from
+D:/C1.SE26/Repo/var/sprint1-integration using the locked Python environment.
+var/sprint1-verification.json, observed 2026-10-24T09:23:37.205405Z, records exit 0
+for default pytest (no diagnostic fixture), Ruff check/format, contract check and
+Docker G1. The operator's actual output confirms 103 passed, one pre-existing
+Starlette/httpx deprecation warning. This resolves the earlier sandbox-only temp
+ACL blocker without changing repository tests or assertions.
+
+Final Docker artifact: var/g1/b1ba4f75c92c4df69e66c3ffcec0c65a/evidence.json.
+Base 24368fe35b008727cb72e831ecd81e70cf1e90c2; target
+ddaaa64541bdb40a1a7300deb77ebe2d02248d58. Complete inventory of two target IDs,
+selected tests/test_demo.py::test_ok, one passing call event, exit 0. Selection
+frozen at 2026-10-24T09:23:36.478614Z; run finished at 09:23:37.175113Z.
+Image sha256:e9a27e83629b105dec300effbf9da5eaefeddb9aea1d44425ca7c4496a00a6aa.
+Snapshot/inventory hashes match the successful owned-fixture mechanics run above.
+
+GitHub source CI on code commit 7126774f2507c8ddd3395b2f4d60171d643b4c56:
+[run 40081599594](https://github.com/kokoreina/smartregression-ai/actions/runs/40081599594),
+conclusion success. Its actual step results confirm locked backend setup, Ruff,
+pytest, CLI demo validation, npm ci, backend contract check, frontend generated
+contract check, lint, typecheck and production build all passed. This supplies
+clean CI evidence beyond the failed sandbox-local frontend installation. CI does
+not execute Docker G1; that evidence is the operator artifact, kept separate.
+
+Review boundary: [draft PR 8](https://github.com/kokoreina/smartregression-ai/pull/8),
+branch work/sprint-1-completion. Khanh's personal task branch remains separate and
+was merged through PR 6. The integration PR has not been merged or independently
+approved by this agent. Final evidence additions after code validation are
+documentation-only; no source/test/runtime dependency is changed by the ledger.
