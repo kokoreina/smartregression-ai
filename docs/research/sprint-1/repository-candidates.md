@@ -1,5 +1,11 @@
 # 1.03 — Danh sách Repository ứng viên (Candidate Repositories)
 
+**Cập nhật tích hợp 2026-10-24:** xem [candidate evidence](candidate-evidence-20261024.md)
+cho hai SHA/license đã đọc lại, hạn chế dependency, đề xuất chính/dự phòng và hiệu
+chỉnh dataset target. Python/pytest đã accepted; các câu D05 chưa chốt bên dưới
+thuộc snapshot draft cũ. Không diễn giải stars/contamination/50 pairs ở đây thành
+kết quả đã xác minh mới hoặc dataset đã được chấp nhận.
+
 **Trạng thái:** Draft — Đề xuất ứng viên, chờ kiểm chứng thực tế và nhóm duyệt D05  
 **Author:** Dang Dai Viet (Dataset, Dashboard & Evaluation)  
 **Reviewer đề xuất:** Do Ha An (Change Impact / Backend) & Nguyen Tan Huy (Research & Integration)  

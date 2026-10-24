@@ -17,6 +17,7 @@ Source: [protocol](../evaluation-protocol.md). Mock product tests are not benchm
 | --- | --- | --- | --- | --- |
 | Planned/dispatched reduction | null | null | null | not run |
 | Fault retention/missed fault rate | null | null | null | no adjudicated cohort |
+| Impact precision/recall (symbol and module strata separately) | null | null | null | no independent labels |
 | Time saving/overhead | null | null | null | not run |
 | Valid-ID/evidence/fallback rates | null | null | null | not run |
 | LLM usage/cost and indexing cost | null | null | null | not measured |

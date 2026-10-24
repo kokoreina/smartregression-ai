@@ -1,5 +1,10 @@
 # 1.10 Conservative selection and fallback policy
 
+Integration note 2026-10-24: [RAG scope](rag-scope.md) supplies the missing metadata/
+leakage design dependency. G1 guards validate snapshot/ID membership and distinct
+empty/error discovery on synthetic fixtures; this policy itself remains a proposed
+design, not a production selector or approved fallback decision.
+
 Prepared for Tran Hung Khanh, 2026-10-24. PB22 design deliverable, not a production
 selector implementation. Proposed reviewer: Pham Phan Hoang Huy. Sources:
 [rule 09](../../rules/09-impact-selection.md), [environment](test-environment.md),

@@ -1,5 +1,10 @@
 # Repository Screening Checklist — Task 1.02 / PB23
 
+**Cập nhật tích hợp 2026-10-24:** Python/pytest đã chốt ở ADR 0002; dataset target
+và kiểm chứng candidate xem [evidence mới](candidate-evidence-20261024.md).
+Các giả định pending D05 và target nguồn chưa xác minh bên dưới là snapshot cũ;
+không dùng chúng thay quyết định/evidence mới. Nội dung tác giả và review gốc giữ nguyên.
+
 **Trạng thái:** draft — chờ review của Nguyen Tan Huy.
 **Author:** Dang Dai Viet
 **AI hỗ trợ:** Antigravity IDE (Claude Sonnet 4.6 Thinking) hỗ trợ draft cấu trúc,
