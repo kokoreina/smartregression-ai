@@ -11,6 +11,11 @@ pyproject.toml và frontend/, hiện là D:\smart-regression-ai. Hai mức bằn
 Không có frontend test/e2e script, runner command, LLM benchmark command hoặc migration
 command đã được xác minh; không dùng tên lệnh phỏng đoán cho các module đó.
 
+**Bổ sung 2026-10-24:** đã có command cho **fixture-only G1** trong
+[harness README](../../scripts/g1/README.md); đây là spike tách khỏi production runner.
+Các kết quả lịch sử bên dưới giữ nguyên. Evidence mới và exact commands nằm ở
+[handoff tích hợp](../research/sprint-1/implementation-handoff-20261024.md).
+
 ## Runtime và nguồn
 
 [pyproject](../../pyproject.toml) yêu cầu Python >=3.14,<3.15;
