@@ -1,5 +1,11 @@
 # Hướng dẫn phối hợp nhóm — Sprint 1
 
+**Cập nhật 2026-10-24:** Nguyễn Tấn Huy đã chốt Python + pytest cho repository
+đầu vào theo [ADR 0002](../architecture/decisions/0002-python-pytest-input.md).
+Các câu pending về lựa chọn cặp công nghệ trong snapshot bên dưới được thay thế
+cho riêng điểm này; phiên bản input, implementation, G1 và phê duyệt phân công vẫn
+cần bằng chứng/quyết định riêng. Không coi lựa chọn này là hoàn thành Sprint 1.
+
 **Trạng thái: đề xuất để nhóm xác nhận; chưa phải phân công được phê duyệt.**
 Đối chiếu workspace ngày 2026-10-20. Tài liệu này chuẩn bị cách làm việc;
 không chứng minh Sprint 1 hoặc bất kỳ task nào đã hoàn thành.
