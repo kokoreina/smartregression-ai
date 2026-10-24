@@ -53,7 +53,7 @@ Hướng dẫn làm việc: [Agent Profiles](docs/agents/README.md),
 
 - Chỉ `/health` hoạt động; đây là liveness của API, không kiểm tra dependency.
 - Không có endpoint analyze, demo API, LLM call, clone repo hay chạy test đầu vào.
-- Fixture minh họa dùng pytest nodeid; **không chốt** ngôn ngữ/framework MVP.
+- Đầu vào MVP đã chốt **Python + pytest** theo [ADR 0002](docs/architecture/decisions/0002-python-pytest-input.md); phiên bản hỗ trợ và bằng chứng G1 còn pending.
 - Git/impact/retrieval/selection/evidence/evaluation chưa triển khai; runner chỉ là interface.
 - Database, vector store, LLM provider và giao thức worker còn pending sau spike.
 - Chi phí/thời gian chưa đo là `null`; test fail không đồng nghĩa phát hiện fault.

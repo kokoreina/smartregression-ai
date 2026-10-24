@@ -7,7 +7,7 @@ Không có thuật toán phân tích, provider, storage hay runner implementatio
 
 | Task nhỏ tiếp theo | Đầu ra | Tiêu chí chấp nhận |
 | --- | --- | --- |
-| 1. Technical spike ngôn ngữ/framework | ADR so sánh 2 ứng viên và fixture repo nhỏ cục bộ | Chứng minh parse diff, symbol mapping, test discovery trên mỗi ứng viên; nhóm chọn đúng một cặp MVP, ghi giới hạn |
+| 1. Technical spike Python/pytest | Fixture repo nhỏ và evidence cho cặp đã chọn theo [ADR 0002](../architecture/decisions/0002-python-pytest-input.md) | Chứng minh diff, symbol/dependency mapping, discovery và single-test execution cô lập; xác định phiên bản/plugin hỗ trợ, ghi giới hạn và trạng thái G1 |
 | 2. Git change adapter tối thiểu | Đọc hai commit từ repo cục bộ tạo ChangedComponent | Tests cho add/modify/delete/rename, commit không tồn tại; chỉ read-only, không clone hay execute |
 | 3. Validator test inventory | Interface discovery + kiểm tra stable IDs và fallback policy | Phát hiện ID không tồn tại/trùng, selected/skipped không giao; tests từ inventory cố định, không dùng outcomes |
 | 4. Evidence provenance | Resolver kiểm tra commit/file/line/symbol với fixture | Từ chối bằng chứng ngoài commit pair hoặc dòng không tồn tại; xử lý deleted file theo base commit |
