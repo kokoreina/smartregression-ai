@@ -25,6 +25,10 @@ adapters triển khai kết nối ngoài; composition root ở api/main.py hoặ
 Bootstrap chưa có orchestration analysis. API dùng application health; CLI dùng
 application report validation, không gắn nghiệp vụ vào route/argument parser.
 
+Sprint 1 bổ sung [G1 harness](../../scripts/g1/README.md) làm composition root riêng
+cho fixture: nối adapter Git, AST observations và Docker pytest spike. Đây không
+phải luồng request của API/CLI; không mở rộng input support production từ smoke này.
+
 Runner interface nằm tại core/execution/ports.py. Tương lai worker cô lập sẽ thực thi
 repository code với timeout/resource/network policy; không chạy trong API/dashboard.
 Một Git repository chứa nhiều executable entrypoint không có nghĩa chạy chung process.

@@ -1,5 +1,12 @@
 # 1.05 Test environment and execution constraints
 
+Integration evidence 2026-10-24: [G1 fixture harness](../../../scripts/g1/README.md)
+now exercises configuration and isolation with Python 3.14.3/pytest 9.1.1.
+See the [new handoff](implementation-handoff-20261024.md) for actual checks.
+ADR 0002 accepts Python/pytest input; pending D05 references below now apply only
+to supported versions/plugins and implementation. Original design defaults remain
+proposals for production; synthetic-fixture results do not validate candidate suites.
+
 Prepared for Tran Hung Khanh, 2026-10-24. Design deliverable for PB02; proposed
 reviewer: Do Ha An. This document does not implement a runner or select the
 production framework. Sources: [guide](../../development/sprint-1-team-guide.md),
