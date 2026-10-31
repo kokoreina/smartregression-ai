@@ -1,5 +1,30 @@
 # Lệnh đã đối chiếu với repository
 
+## Bổ sung Sprint 1 ngày 2026-10-31
+
+Các bảng 2026-10-06 bên dưới là lịch sử. Kết quả mới ở
+[handoff closeout](../research/sprint-1/closeout-handoff-20261031.md): backend cuối
+54 passed, Ruff lint/format và exporter check pass; main GitHub CI `e937f66` success
+được đọc lại, không phải CI cho diff local. Source/frontend không đổi trong phiên
+ngoài harness/tests riêng; không chạy lại frontend checks.
+
+Command mới đã chạy thật, cwd root:
+
+```powershell
+.venv/Scripts/python.exe -m pytest backend/tests/unit/test_candidate_spike.py -q -p no:cacheprovider --tb=short
+docker build --network=default -t smartregression-candidates:sprint1-20261031 -f scripts/candidates/Dockerfile scripts/candidates
+.venv/Scripts/python.exe scripts/candidates/run_candidates.py --candidate sqlparse --image sha256:61b7968ca478436ad158889e8bbe235e616380316f6efded3347cf8ada92809e --output var/candidate-sqlparse-20261031-final --full-suite
+.venv/Scripts/python.exe scripts/candidates/run_candidates.py --candidate tinydb --image sha256:61b7968ca478436ad158889e8bbe235e616380316f6efded3347cf8ada92809e --output var/candidate-tinydb-20261031-final --full-suite
+.venv/Scripts/python.exe scripts/g1/run_spike.py --image sha256:3cd7035210103639f0e52d72b96628a9ef22aea527e5b13f346117ee79cf88ad --output var/g1-closeout-20261031
+```
+
+Mọi output directory phải mới; image ID là local artifact identity, không hứa rebuild
+giống byte. Candidate commands dùng GitHub public source/gh và Docker Linux, không
+chạy input code trên host; [giới hạn](../../scripts/candidates/README.md). Schema/CLI
+không thay đổi. Không tái chạy command với output cũ rồi ghi đè evidence.
+
+## Snapshot bootstrap 2026-10-06
+
 Đối chiếu ngày 2026-10-06. Cwd của mọi lệnh dưới đây là **root monorepo** chứa
 pyproject.toml và frontend/, hiện là D:\smart-regression-ai. Hai mức bằng chứng:
 
