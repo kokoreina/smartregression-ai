@@ -43,10 +43,17 @@ metadata separate and propose a contract task before changing models/generated f
 
 ## Proposed decision table
 
+Correction 2026-10-31: Proposal v1.4 §12.6 distinguishes provider failure from
+invalid evidence affecting selection. The previous draft grouped both under
+dependency_modified; that was inconsistent with the proposal. The table below
+aligns the design with that source; it does not claim production policy approval
+or an implemented selector. See [closeout decisions](closeout-decisions.md).
+
 | Condition | Selection mode / action | Recorded reason |
 | --- | --- | --- |
 | Complete T, complete D/M, all proposed IDs and evidence valid | hybrid: use S | dependency / modified / validated LLM provenance |
-| LLM timeout, malformed output, invalid evidence or unknown L ID; D/M complete and valid | dependency_modified: discard the entire untrusted L contribution; use D ∪ M | llm_unavailable or invalid_llm_evidence; record rejected IDs safely |
+| LLM timeout or malformed output; D/M complete and valid and configured policy permits dependency-only fallback | dependency_modified: discard L; use D ∪ M; otherwise full_suite when feasible or stop | llm_unavailable; preserve the configured fallback decision |
+| Invalid evidence affecting selection or unknown L ID | reject L; full_suite if T is complete and execution is feasible; otherwise stop | invalid_llm_evidence / unknown_llm_test; never silently downgrade to D ∪ M |
 | D or M contains ID absent from T; mapping stale or wrong SHA | stop | invalid_required_mapping; do not erase required tests by intersection |
 | Parser/dependency analysis partial, unsupported production code, changed build/config/dependencies | full_suite if T complete and environment is executable; otherwise stop | incomplete_analysis / configuration_change |
 | Rename/delete cannot be mapped reliably | full_suite if T complete; otherwise stop | incomplete_change_mapping |
@@ -59,6 +66,12 @@ metadata separate and propose a contract task before changing models/generated f
 Any full-suite mode is conditional on a complete inventory and enforced runner
 limits. If a failed LLM leaves D ∪ M empty, the empty-selection rule upgrades the
 mode to full_suite. Production fallback acceptance remains a team decision.
+Snapshot/provenance and inventory validity are prerequisites: wrong repo/SHA or
+failed discovery always stops before considering a full-suite fallback. Budget
+exhaustion uses the configured valid fallback only if it can finish within hard
+limits; otherwise stop. A duplicate valid L ID is recorded and deduplicated;
+deduplication does not excuse invalid IDs or evidence. This precedence avoids
+choosing a permissive row when more than one condition applies.
 
 ## Evidence validation
 
@@ -86,11 +99,12 @@ evidence limitations from 1.06 must propagate as uncertainty, not invented lines
 | --- | --- |
 | D={a}, M={b}, L={c}, T={a,b,c,d} | selected={a,b,c}, not-selected={d}; L cannot remove a/b |
 | Duplicate L IDs, parameterized IDs | detect duplicates; preserve exact native identity |
-| L={unknown}, valid D/M | reject L; dependency_modified or empty-selection escalation |
+| L={unknown}, valid D/M | reject L; full suite if complete T and runnable; otherwise stop |
 | D={unknown} | stop; do not silently lose required coverage |
 | Valid empty T versus collection error | distinct no_tests versus discovery_failed |
 | Config changed, parser partial or rename mapping incomplete | full suite when feasible; otherwise stop with explicit reason |
-| Evidence points to future/wrong commit or unsupported lines | reject contribution or stop as invalid_snapshot according to table |
+| Evidence points to future/wrong commit | stop as invalid_snapshot |
+| Evidence has unsupported lines or does not support selection | full suite if complete T and runnable; otherwise stop |
 | Full fallback fails | execution error; no fault-retention/safety conclusion |
 
 Examples are design checks, not measured execution or benchmarks. Expected cases

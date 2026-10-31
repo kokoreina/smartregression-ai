@@ -7,6 +7,12 @@ thuộc snapshot draft cũ. Không diễn giải stars/contamination/50 pairs �
 kết quả đã xác minh mới hoặc dataset đã được chấp nhận.
 
 **Trạng thái:** Draft — Đề xuất ứng viên, chờ kiểm chứng thực tế và nhóm duyệt D05  
+
+**Trạng thái hiện hành 2026-10-31:** [candidate reproduction](candidate-reproduction.md)
+thay phần runtime/chính-dự phòng của snapshot bên dưới. Python/pytest đã accepted
+theo ADR 0002. [PR #4](https://github.com/kokoreina/smartregression-ai/pull/4) có
+approval `kokoreina`; approval của draft không đồng nghĩa candidate được nhận vào
+dataset. Số test-file cũ không là inventory count. Giữ hồ sơ cũ để truy vết.
 **Author:** Dang Dai Viet (Dataset, Dashboard & Evaluation)  
 **Reviewer đề xuất:** Do Ha An (Change Impact / Backend) & Nguyen Tan Huy (Research & Integration)  
 **Tài liệu cơ sở:**
@@ -244,7 +250,7 @@ for r in [
 
 File này được soạn thảo với sự hỗ trợ của Antigravity IDE:
 - **Phạm vi AI hỗ trợ:** Hỗ trợ chạy script truy vấn GitHub API để lấy dữ liệu số stars, created_at, pushed_at, commit count và permalink file LICENSE; hỗ trợ định dạng cấu trúc Markdown theo mẫu hồ sơ repo của Task 1.02.
-- **Phạm vi rà soát và kiểm soát của tác giả (Dang Dai Viet):** 
+- **Phạm vi rà soát và kiểm soát của tác giả (Dang Dai Viet):**
   - Tác giả đã kiểm tra thực tế, phát hiện và chỉ ra các điểm lệch số liệu, các khẳng định thiếu căn cứ về thời gian chạy test / độ ổn định nền tảng trong bản thảo trước.
   - Tác giả yêu cầu xóa bỏ toàn bộ kết luận "Nhận" quá sớm, chuyển sang "Đề xuất, chờ kiểm chứng", bổ sung phân tích về nguy cơ repo quá nhỏ đối với RTS, yêu cầu bổ sung commit range khả thi và ứng viên có quy mô test suite lớn hơn (`marshmallow`).
 - **Trạng thái review:** Bản draft này được hoàn thiện dựa trên phản hồi chi tiết của tác giả Dang Dai Viet; chưa có review độc lập của các thành viên khác trong nhóm tại thời điểm cập nhật file này.

@@ -74,7 +74,7 @@ hay kết quả đã đo. Thiếu context/parse/usage phải báo unknown; khôn
 | Chunk chứa instruction injection | Không thay quyền/policy; reject nếu đề xuất vi phạm validator |
 | Label/outcome file đổi tên thành docs | Loại theo provenance/ownership, không chỉ extension |
 | Retrieval rỗng hoặc quá budget | Ghi unavailable/truncated; không kết luận impact rỗng |
-| Unknown test ID/evidence sai | Bỏ L không tin cậy theo 1.10; không loại D/M |
+| Unknown test ID/evidence sai ảnh hưởng selection | Reject L; full-suite nếu inventory đầy đủ và thực thi được, nếu không thì stop theo 1.10; sai repo/SHA phải stop |
 | Parser/dependency thiếu | Conservative full-suite/stop theo policy, không safe/passed |
 
 Các dòng trên là acceptance cases thiết kế, chưa phải runtime tests cho RAG.

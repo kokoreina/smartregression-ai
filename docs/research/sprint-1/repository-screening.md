@@ -6,6 +6,12 @@ Các giả định pending D05 và target nguồn chưa xác minh bên dưới l
 không dùng chúng thay quyết định/evidence mới. Nội dung tác giả và review gốc giữ nguyên.
 
 **Trạng thái:** draft — chờ review của Nguyen Tan Huy.
+
+**Đối chiếu 2026-10-31:** [PR #2](https://github.com/kokoreina/smartregression-ai/pull/2)
+đã được `kokoreina` approve và merge. Đây là bằng chứng review bản gốc, không tự
+phê duyệt các thay đổi mới. Candidate/runtime hiện hành ở
+[candidate reproduction](candidate-reproduction.md); trạng thái sprint ở [review](review.md).
+Các câu pending/"chưa review" bên dưới thuộc snapshot tác giả năm 2026-10-24.
 **Author:** Dang Dai Viet
 **AI hỗ trợ:** Antigravity IDE (Claude Sonnet 4.6 Thinking) hỗ trợ draft cấu trúc,
 nội dung tiêu chí và phân loại lỗi.
@@ -245,7 +251,7 @@ notes:               <mô tả ngắn; ghi "chưa kiểm chứng" nếu chưa ve
 
 | Tập | Mục đích | Thời điểm khoá | Ghi chú |
 |---|---|---|---|
-| **pilot** | Thử quy trình screening, adjudication, và chạy end-to-end; phát hiện vấn đề sớm | Trước khi bắt đầu thu thập held-out | Có thể sửa protocol sau pilot nếu phát hiện vấn đề; không tune selector trên pilot |
+| **pilot** | Thử screening, adjudication, end-to-end và tuning | Khóa danh tính/split trước tuning; khóa prompt/policy sau pilot | Chỉ tuning trên pilot; không dùng held-out outcomes để tuning |
 | **held_out** | Evaluation cuối kỳ, so sánh baseline | Khoá ngay khi tách — **không mở lại** | Không dùng để debug, tune hoặc xem cho đến khi evaluation chính thức |
 
 **Quy trình chia tập (đề xuất):**
@@ -277,10 +283,10 @@ ghi "chưa kiểm chứng".*
 | URL | | | |
 | License (SPDX) | | <URL file LICENSE trong repo> | |
 | Số stars GitHub | | <URL trang GitHub> | |
-| Số commit (ước tính) | chưa kiểm chứng | git log --oneline | wc -l | |
-| Ngày commit đầu tiên | chưa kiểm chứng | git log --reverse --format="%ad" --date=short | head -1 | |
+| Số commit (ước tính) | chưa kiểm chứng | git log --oneline \| wc -l | |
+| Ngày commit đầu tiên | chưa kiểm chứng | git log --reverse --format="%ad" --date=short \| head -1 | |
 | Ngày commit gần nhất | chưa kiểm chứng | git log -1 --format="%ad" --date=short | |
-| Số file test tìm thấy | chưa kiểm chứng | find . -name "test_*.py" | wc -l | |
+| Số file test tìm thấy | chưa kiểm chứng | find . -name "test_*.py" \| wc -l | |
 | pytest collect OK? | Có / Không / Chưa thử | | |
 | Test IDs ổn định? | Có / Không / Chưa thử | | |
 | Có CI history? | Có / Không | | |

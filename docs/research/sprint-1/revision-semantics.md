@@ -1,5 +1,14 @@
 # Task 1.06 — Quy tắc xác định phiên bản phân tích
 
+**Đối chiếu 2026-10-31:** [PR #5](https://github.com/kokoreina/smartregression-ai/pull/5)
+đã được `kokoreina` approve và merge bản draft. [Git spike](git-diff-spike.md) sau đó
+triển khai subset hai full SHA. Bản gốc và bảng Q01–Q10 bên dưới giữ trạng thái đề
+xuất; approval PR không tự chấp nhận từng policy. Xem
+[đối chiếu Q01–Q10 hiện hành](closeout-decisions.md#revision-semantics) và
+[review](review.md) để phân biệt implementation, policy và điều kiện nghiệm thu.
+D05 đã chốt Python/pytest ở ADR 0002; các câu D05 pending dưới đây là snapshot cũ,
+chỉ còn áp dụng cho PR semantics/input versions/plugins ngoài quyết định đó.
+
 **Trạng thái: draft / proposed, chờ nhóm review.** Ngày soạn: 2026-10-24.
 Task thuộc PB03; owner ghi trong workbook là **Do Ha An**. Reviewer 1.06 được
 guide đề xuất là **Nguyen Tan Huy**, chưa có xác nhận review cho bản này. [S4] [S5]

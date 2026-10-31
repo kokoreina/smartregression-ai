@@ -77,7 +77,8 @@ F detected by selection under identical adjudication.
 | Fault retention | abs(F_S)/abs(F) | empty F -> N/A |
 | Missed fault rate | abs(F minus F_S)/abs(F) | same F/cohort; empty F -> N/A |
 | Time saving | (T_full-T_method)/T_full | zero T_full -> N/A; keep negative values |
-| Fallback rate | fallback runs / attempted selection runs | zero attempts -> N/A |
+| Evaluation fallback rate | fallback runs in accepted evaluated cohort / accepted evaluated runs | empty eligible cohort -> N/A; Proposal §11.5 |
+| Attempt-level fallback rate (diagnostic) | fallback attempts / attempted selection runs | zero attempts -> N/A; retain failures, never substitute for evaluation cohort |
 | Valid-ID rate | unique proposed IDs in I / unique proposed IDs | empty proposals -> N/A; duplicates separately |
 | Evidence correctness | rubric-confirmed references / reviewed references | no review/zero -> N/A |
 | Impact precision | predicted affected symbols matching independent labels / predicted affected symbols | empty prediction -> N/A |
@@ -98,6 +99,11 @@ excluded counts per metric, distributions and uncertainty. Statistical interval,
 repeat count and resampling unit must be chosen before runs, not after results.
 Proposed evidence rubric separates repo/SHA/path/range existence from semantic
 support; independent reviewers adjudicate disagreements with recorded reasons.
+Record supported, unsupported and insufficient separately. Semantic accuracy uses
+supported / all reviewed references, including insufficient; also report supported /
+(supported + unsupported) as a clearly labelled adjudicable-only diagnostic and the
+insufficient count. Reference validity is a separate ratio. Each denominator uses
+the same declared cohort; zero denominators are N/A.
 Impact labels use functions/methods as the primary unit and module-level changes
 as a separate stratum. Two humans label independently; unresolved disagreements
 remain uncertain and are excluded with reasons from eligible label denominators.
@@ -120,6 +126,13 @@ fallback and negative savings; not a metric implementation or benchmark.
 
 Use [report template](sprint-1/evaluation-report-template.md), retain exclusions,
 protocol deviations, replication commands and redacted artifact references.
+The [closeout decision register](sprint-1/closeout-decisions.md) identifies when each
+pending item is needed. Exact model/provider, monetary budget, experiment split,
+final sample size, intervals and model repeats must be frozen before their pilot/
+held-out stages; they are not runtime prerequisites for an offline design deliverable.
+Current candidate reproducibility observations are separate from method evaluation:
+[candidate reproduction](sprint-1/candidate-reproduction.md). No retention/accuracy/
+savings metric is inferred from those observations.
 Threats: sampling bias, flaky tests, small cohort, model nondeterminism, cache state,
 subjective rubric and indexing cost. No benchmark command/dataset/results supplied.
 Codex assisted draft/self-review; Huy must understand/verify before adoption and
