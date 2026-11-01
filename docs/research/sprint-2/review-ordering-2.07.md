@@ -246,13 +246,42 @@ Result:   112 passed in 1.86s  (toàn bộ unit suite)
 ```python
 ReviewOrder(
     candidates=(
-        ReviewCandidate(path="core/auth.py",     symbol=None,           tier=1, reason="directly changed (modified)"),
-        ReviewCandidate(path="core/storage.py",  symbol="Storage.load", tier=1, reason="directly changed (modified)"),
-        ReviewCandidate(path="core/storage.py",  symbol="Storage.save", tier=1, reason="directly changed (modified)"),
-        ReviewCandidate(path="api/login.py",     symbol=None,           tier=2, reason="directly imports changed path 'core/auth.py'"),
-        ReviewCandidate(path="api/profile.py",   symbol=None,           tier=2, reason="directly imports changed path 'core/auth.py'"),
-        ReviewCandidate(path="api/upload.py",    symbol=None,           tier=2, reason="directly imports changed path 'core/storage.py'"),
-        ReviewCandidate(path="web/app.py",       symbol=None,           tier=3, reason="transitively depends on 'api/login.py'"),
+        ReviewCandidate(
+            path="core/auth.py", symbol=None, tier=1, reason="directly changed (modified)"
+        ),
+        ReviewCandidate(
+            path="core/storage.py",
+            symbol="Storage.load",
+            tier=1,
+            reason="directly changed (modified)",
+        ),
+        ReviewCandidate(
+            path="core/storage.py",
+            symbol="Storage.save",
+            tier=1,
+            reason="directly changed (modified)",
+        ),
+        ReviewCandidate(
+            path="api/login.py",
+            symbol=None,
+            tier=2,
+            reason="directly imports changed path 'core/auth.py'",
+        ),
+        ReviewCandidate(
+            path="api/profile.py",
+            symbol=None,
+            tier=2,
+            reason="directly imports changed path 'core/auth.py'",
+        ),
+        ReviewCandidate(
+            path="api/upload.py",
+            symbol=None,
+            tier=2,
+            reason="directly imports changed path 'core/storage.py'",
+        ),
+        ReviewCandidate(
+            path="web/app.py", symbol=None, tier=3, reason="transitively depends on 'api/login.py'"
+        ),
     ),
     limitations=(),
     rule_version="2.07-v1",
