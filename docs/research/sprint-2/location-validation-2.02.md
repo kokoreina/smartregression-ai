@@ -55,7 +55,7 @@ Không clone repo ngoài, không chạy code đầu vào trong test.
 ### 2.1 Oracle line ranges (Fixture G — đọc thủ công)
 
 Source:
-```python
+```text
 class Outer:          # L1
     class Inner:      # L2
         def run(self):# L3
@@ -79,7 +79,7 @@ class Outer:          # L1
 ### 2.2 Fixture F — decorator shift
 
 Target source:
-```python
+```text
 import functools          # L1
                           # L2 (blank)
                           # L3 (blank)
