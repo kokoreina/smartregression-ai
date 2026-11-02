@@ -22,9 +22,10 @@ def test_graph_records_supported_edges_and_unresolved_imports():
         sources=SOURCES,
     )
 
-    assert tuple(
-        (edge.source.path, edge.target.path, edge.kind) for edge in graph.edges
-    ) == EXPECTED_SUPPORTED_EDGES
+    assert (
+        tuple((edge.source.path, edge.target.path, edge.kind) for edge in graph.edges)
+        == EXPECTED_SUPPORTED_EDGES
+    )
     assert {
         (item.source_path, item.reference, item.kind) for item in graph.unresolved
     } == EXPECTED_UNRESOLVED
@@ -171,10 +172,7 @@ def test_graph_order_is_deterministic():
 def test_dynamic_import_alias_is_unresolved_without_execution():
     sources = {
         "pkg/__init__.py": "",
-        "pkg/service.py": (
-            "from importlib import import_module\n"
-            "import_module('pkg.models')\n"
-        ),
+        "pkg/service.py": ("from importlib import import_module\nimport_module('pkg.models')\n"),
         "pkg/models.py": "",
     }
     graph = build_dependency_graph(repository=REPOSITORY, revision=REVISION, sources=sources)

@@ -245,11 +245,7 @@ def _dynamic_reference(
         if isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
             return node.args[0].value
         return "<dynamic>"
-    if (
-        isinstance(node.func, ast.Name)
-        and node.func.id in function_names
-        and node.args
-    ):
+    if isinstance(node.func, ast.Name) and node.func.id in function_names and node.args:
         if isinstance(node.args[0], ast.Constant) and isinstance(node.args[0].value, str):
             return node.args[0].value
         return "<dynamic>"
