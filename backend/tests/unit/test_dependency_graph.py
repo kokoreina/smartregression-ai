@@ -1,18 +1,18 @@
 import pytest
 
-from smartregression.core.impact.dependency_graph import (
-    DependencyGraph,
-    GraphEdge,
-    GraphNode,
-    build_dependency_graph,
-)
-
 from tests.fixtures.dependency_graph_cases import (
     EXPECTED_SUPPORTED_EDGES,
     EXPECTED_UNRESOLVED,
     REPOSITORY,
     REVISION,
     SOURCES,
+)
+
+from smartregression.core.impact.dependency_graph import (
+    DependencyGraph,
+    GraphEdge,
+    GraphNode,
+    build_dependency_graph,
 )
 
 
