@@ -11,6 +11,7 @@ from pathlib import Path, PurePosixPath
 
 from smartregression.adapters.bounded_process import bounded_command
 from smartregression.contracts.models import ChangedComponent
+from smartregression.core.git.snapshots import TreeEntry
 
 
 class LocalGit:
@@ -25,12 +26,14 @@ class LocalGit:
             GIT_CONFIG_GLOBAL=os.devnull,
             GIT_TERMINAL_PROMPT="0",
             GIT_NO_REPLACE_OBJECTS="1",
+            GIT_NO_LAZY_FETCH="1",
             GIT_OPTIONAL_LOCKS="0",
         )
         try:
             return bounded_command(
                 [
                     "git",
+                    "--no-lazy-fetch",
                     "-c",
                     "core.fsmonitor=false",
                     "-c",
@@ -46,6 +49,37 @@ class LocalGit:
             )
         except (OSError, subprocess.TimeoutExpired) as exc:
             raise ValueError("git_unavailable_or_timeout") from exc
+
+    def snapshot_entries(self, sha: str) -> tuple[TreeEntry, ...]:
+        """List ordinary blobs at a validated full SHA without checkout/filter hooks."""
+        self._commit(sha)
+        actual_root = Path(self._git("rev-parse", "--show-toplevel").decode().rstrip("\r\n"))
+        if actual_root.resolve() != self.repository:
+            raise ValueError("invalid_repository_root")
+        entries = []
+        for record in self._git("ls-tree", "--full-tree", "-r", "-l", "-z", sha).split(b"\0"):
+            if not record:
+                continue
+            metadata, path = record.split(b"\t", 1)
+            mode, kind, oid, size = metadata.split()
+            if kind != b"blob" or mode not in {b"100644", b"100755"}:
+                raise ValueError("unsupported_snapshot_entry")
+            if not size.isdigit():
+                raise ValueError("snapshot_objects_missing")
+            entries.append(
+                TreeEntry(
+                    path.decode("utf-8", errors="strict"), mode.decode(), oid.decode(), int(size)
+                )
+            )
+        return tuple(sorted(entries, key=lambda entry: entry.path))
+
+    def read_blob(self, oid: str, *, max_bytes: int) -> bytes:
+        if not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", oid):
+            raise ValueError("invalid_blob")
+        size = int(self._git("cat-file", "-s", oid))
+        if size > max_bytes:
+            raise ValueError("snapshot_limit")
+        return self._git("cat-file", "blob", oid)
 
     def _commit(self, sha: str) -> None:
         if not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", sha):
