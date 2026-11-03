@@ -8,13 +8,24 @@ version = "0.1.0"
 description = "Bootstrap contracts, API and CLI for SmartRegression AI"
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
-dependencies = ["fastapi>=0.119,<1", "pydantic>=2.12,<3", "uvicorn>=0.37,<1"]
+dependencies = [
+    "fastapi>=0.119,<1",
+    "psycopg[binary]>=3.3.7,<3.4",
+    "pydantic>=2.12,<3",
+    "sqlalchemy>=2.1.6,<2.2",
+    "uvicorn>=0.37,<1",
+]
 
 [project.scripts]
 smartregression = "smartregression.cli.main:main"
 
 [dependency-groups]
-dev = ["httpx>=0.28,<1", "pytest>=8.4,<10", "ruff>=0.14,<1"]
+dev = [
+    "alembic>=1.20.1,<1.21",
+    "httpx>=0.28,<1",
+    "pytest>=8.4,<10",
+    "ruff>=0.14,<1",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["backend/src/smartregression"]
