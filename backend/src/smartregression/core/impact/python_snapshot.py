@@ -3,6 +3,7 @@
 import ast
 from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Literal
 
 
 @dataclass(frozen=True)
@@ -10,6 +11,7 @@ class Symbol:
     name: str
     start: int
     end: int
+    kind: Literal["class", "function", "method"] = "function"
 
 
 @dataclass(frozen=True)
@@ -30,12 +32,18 @@ def inspect_python(source: str) -> PythonSnapshot:
     imports = set()
     limitations = {"import_observations_only_not_complete_dependency_graph"}
 
-    def visit(node: ast.AST, scope: str = "") -> None:
+    def visit(node: ast.AST, scope: str = "", parent_kind: str = "module") -> None:
         if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
             name = scope + node.name
             start = min([node.lineno] + [d.lineno for d in node.decorator_list])
-            symbols.append(Symbol(name, start, node.end_lineno or node.lineno))
+            kind = (
+                "class"
+                if isinstance(node, ast.ClassDef)
+                else ("method" if parent_kind == "class" else "function")
+            )
+            symbols.append(Symbol(name, start, node.end_lineno or node.lineno, kind))
             scope = name + "."
+            parent_kind = kind
         if isinstance(node, ast.Import):
             imports.update(n.name for n in node.names)
         if isinstance(node, ast.ImportFrom):
@@ -53,7 +61,7 @@ def inspect_python(source: str) -> PythonSnapshot:
         ):
             limitations.add("dynamic_import")
         for child in ast.iter_child_nodes(node):
-            visit(child, scope)
+            visit(child, scope, parent_kind)
 
     try:
         visit(tree)
