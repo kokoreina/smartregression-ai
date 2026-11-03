@@ -1,5 +1,23 @@
 # Lệnh đã đối chiếu với repository
 
+## Bổ sung task 2.13 ngày 2026-11-03
+
+CLI có `analyze`: shared read-only flow snapshots → changes → target import graph,
+xuất v2 report, các producer thiếu có status rõ. [Hướng dẫn và kết quả thực](task-2.13.md)
+ghi checkout/môi trường, authorization, limits, output và phần chờ.
+
+```powershell
+uv run smartregression analyze --help
+uv run python scripts/demo_analysis.py --output var/demo-2.13-new
+```
+
+Commands đã đối chiếu với entrypoint/script; actual run dùng Python executable và
+PYTHONPATH của checkout như handoff. Demo output directory phải mới, parent có sẵn;
+script chỉ tạo fixture sở hữu mới, không chạy Python của input. Script exit 0 xác
+nhận CLI thin=1, failure=2, empty=1 đúng kỳ vọng; không phải full pipeline completed.
+`validate-report` exit 0 chỉ nghĩa schema hợp lệ. Git cần hỗ trợ `--no-lazy-fetch`;
+local đã dùng portable Git tương thích, giữ protection và không đổi Git hệ thống.
+
 ## Bổ sung Sprint 1 ngày 2026-10-31
 
 Các bảng 2026-10-06 bên dưới là lịch sử. Kết quả mới ở
