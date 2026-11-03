@@ -1,0 +1,7 @@
+{
+  "repository": "docker.io/library/postgres",
+  "observed_tag": "17",
+  "observed_date": "2026-11-03",
+  "index_digest": "sha256:3b0cda93be7c8dba2ed484d19393d93845dc3dafb88973e248ba8e6d99d784e1",
+  "linux_amd64_image": "postgres@sha256:0b81cec82228160abfa753aeaad0609b709eb26eeb950f2e404ad2326e1cc370"
+}
