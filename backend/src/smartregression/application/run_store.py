@@ -1,4 +1,4 @@
-"""Run/report metadata port for 2.20. No database implementation or workflow wiring.
+"""Run/report metadata preparation and port, independent of infrastructure imports.
 
 The caller owns repository authorization, trusted snapshot acquisition and exclusive
 report publication. These values describe a write; they do not prove persistence or
@@ -6,13 +6,20 @@ artifact availability. SQL schema/constraints/adapter acceptance remain separate
 """
 
 import hashlib
+import json
+import math
 import re
 from dataclasses import asdict, dataclass, field
 from typing import Literal, Protocol
 
 from pydantic import ValidationError
 
-from smartregression.contracts.stages import RunIdentity, StageAnalysisReport, StageStatus
+from smartregression.contracts.stages import (
+    RunIdentity,
+    StageAnalysisReport,
+    StageResult,
+    StageStatus,
+)
 from smartregression.core.git.snapshots import (
     SnapshotLimits,
     SnapshotManifest,
@@ -170,7 +177,7 @@ class SnapshotMetadata:
 
 @dataclass(frozen=True)
 class RunReportWrite:
-    """Prepared immutable values for the future SQL adapter, not a public report DTO.
+    """Prepared immutable values for the SQL adapter, not a public report DTO.
 
     JSON bytes are canonical metadata only; no report body/source is stored here.
     An adapter must accept values prepared/revalidated at the application boundary,
@@ -296,3 +303,129 @@ def _snapshot_metadata(
     if set(found) != required:
         raise RunMetadataError()
     return tuple(found[key] for key in sorted(found))
+
+
+def validate_run_report_write(write: RunReportWrite) -> RunReportWrite:
+    """Revalidate prepared metadata at the SQL boundary; no source/file verification.
+
+    Direct dataclass construction/replacement must not bypass preparation. This
+    detaches mutable Pydantic identity values and requires canonical bounded bytes.
+    """
+    try:
+        if not isinstance(write, RunReportWrite):
+            raise RunMetadataError()
+        identity = RunIdentity.model_validate_json(write.identity.model_dump_json())
+        if identity != write.identity:
+            raise RunMetadataError()
+        _metadata_id(identity.run_id)
+        _metadata_id(write.report_id)
+        if write.data_kind not in {"demo", "real"}:
+            raise RunMetadataError()
+        artifact = ReportArtifact(
+            write.artifact.artifact_id,
+            write.artifact.storage_key,
+            write.artifact.sha256,
+            write.artifact.size_bytes,
+        )
+        if len(artifact.storage_key.encode()) > 2048:
+            raise RunMetadataError()
+        if type(write.configuration_json) is not bytes or len(write.configuration_json) > 65536:
+            raise RunMetadataError()
+        config = json.loads(write.configuration_json)
+        if set(config) != {
+            "application_version",
+            "comparison_mode",
+            "snapshot_limits",
+            "python_source_limit_bytes",
+            "graph_policy",
+            "producer_versions",
+        }:
+            raise RunMetadataError()
+        rebuilt = RunConfiguration(
+            config["application_version"],
+            SnapshotLimits(**config["snapshot_limits"]),
+            config["python_source_limit_bytes"],
+            tuple(config["producer_versions"].items()),
+            config["graph_policy"],
+            config["comparison_mode"],
+        )
+        if (
+            rebuilt.canonical_bytes() != write.configuration_json
+            or rebuilt.comparison_mode != identity.comparison_mode
+        ):
+            raise RunMetadataError()
+        if type(write.stage_summary_json) is not bytes or len(write.stage_summary_json) > 262144:
+            raise RunMetadataError()
+        summary = json.loads(write.stage_summary_json)
+        if set(summary) != _STAGES or canonical_json(summary) != write.stage_summary_json:
+            raise RunMetadataError()
+        statuses = set()
+        for value in summary.values():
+            if set(value) != {"status", "reason", "error_code", "limitations"}:
+                raise RunMetadataError()
+            result = StageResult(
+                **value, data={} if value["status"] in {"completed", "partial"} else None
+            )
+            if result.model_dump(mode="json", exclude={"data"}) != value:
+                raise RunMetadataError()
+            statuses.add(result.status)
+        aggregate = (
+            "completed"
+            if statuses == {"completed"}
+            else "partial"
+            if statuses & {"completed", "partial"}
+            else "failed"
+            if "failed" in statuses
+            else "not_run"
+            if "not_run" in statuses
+            else "not_implemented"
+        )
+        if aggregate != write.analysis_status:
+            raise RunMetadataError()
+        for measurement in (write.analysis_duration_seconds, write.llm_cost_usd):
+            if measurement is not None and (
+                type(measurement) not in {int, float}
+                or not math.isfinite(measurement)
+                or measurement < 0
+            ):
+                raise RunMetadataError()
+        if type(write.snapshots) is not tuple or any(
+            not isinstance(s, SnapshotMetadata) for s in write.snapshots
+        ):
+            raise RunMetadataError()
+        manifests = tuple(
+            SnapshotManifest(
+                s.repository_id,
+                s.commit_sha,
+                (),
+                s.snapshot_id,
+                s.manifest_version,
+                s.materializer_version,
+            )
+            for s in write.snapshots
+        )
+        snapshots = _snapshot_metadata(identity, manifests)
+        if snapshots != write.snapshots:
+            raise RunMetadataError()
+    except (
+        ValueError,
+        TypeError,
+        KeyError,
+        AttributeError,
+        UnicodeError,
+        RecursionError,
+        OverflowError,
+    ):
+        raise RunMetadataError() from None
+    return RunReportWrite(
+        identity,
+        write.report_id,
+        write.data_kind,
+        write.configuration_json,
+        write.stage_summary_json,
+        snapshots,
+        artifact,
+        write.analysis_status,
+        write.analysis_duration_seconds,
+        write.llm_cost_usd,
+    )

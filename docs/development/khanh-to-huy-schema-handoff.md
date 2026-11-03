@@ -1,5 +1,9 @@
 # KH to H1 schema handoff for task 2.20
 
+Update 2026-11-03: after this schema handoff, user assigned KH the run/report
+adapter as well. See [adapter completion](task-2.20-adapter.md) for current code
+and verification; the original handoff below preserves its earlier scope.
+
 Owner: Trần Hùng Khánh. Consumer: Nguyễn Tấn Huy. Date: 2026-11-03.
 Base main: `62d5045b00a52a76a7b37e023bf4d9bb6600c654` (H1 2.20-B).
 Branch: `feat/khanh-task-2.20-migrations`. User authorized publishing the branch

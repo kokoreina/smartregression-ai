@@ -26,7 +26,7 @@ To rerun only the DB work when other checks already have sufficient evidence:
 & 'D:\C1.SE26\Repo-Sprint2-Khanh-2.20\scripts\storage\verify.ps1' -DatabaseOnly
 ```
 
-The 25 PostgreSQL tests are opt-in. Default pytest skips them without the harness
+The 40 PostgreSQL tests are opt-in. Default pytest skips them without the harness
 context; those skips are not PostgreSQL acceptance. Fixtures check the exact labelled
 container, published loopback port, dedicated DB name and PostgreSQL major version.
 The observed server is 17.11; a mutable tag is never treated as an image digest.
@@ -78,11 +78,12 @@ consumers. Never overwrite the source as a diagnostic shortcut.
 
 The harness demonstrates a **quiescent synthetic foundation recovery drill**:
 a fresh DB upgrades to head, then a real DEMO report/file is prepared through H1's
-metadata boundary and inserted with explicit fixture SQL. All writers stop before
+metadata boundary and stored through BoundRunReportStore. All writers stop before
 dumping. The fixed schema restores into a second fresh DB; the fixture artifact
 tree copies to a new root. Exact rows, artifact digest/size/bytes and restored
 catalog references are compared. Nullable measurements and partial report status
-survive. This is fixture setup, not H1's production RunReportStore adapter.
+survive. Repository provisioning remains labelled fixture setup; run/report
+metadata save uses the same adapter supplied for application callers.
 
 The dump uses `--no-owner --no-acl`. Operational recovery must provision/reapply and
 verify owner/runtime privileges separately. This is not a live distributed backup

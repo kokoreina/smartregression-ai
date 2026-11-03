@@ -1,22 +1,16 @@
 """Quiescent, task-owned report/file fixture for the backup/restore drill.
 
-This is direct foundation test setup, not H1's production RunReportStore adapter.
+Fixture publication/provisioning is explicit; metadata uses the actual bound SQL adapter.
 """
 
 import hashlib
-import json
 import os
 from pathlib import Path
 
 from sqlalchemy import Connection
 
-from smartregression.adapters.storage.schema import (
-    analysis_runs,
-    artifacts,
-    repositories,
-    run_reports,
-    snapshots,
-)
+from smartregression.adapters.storage.run_store import BoundRunReportStore
+from smartregression.adapters.storage.schema import repositories
 from smartregression.application.analysis import aggregate_status
 from smartregression.application.run_store import (
     ReportArtifact,
@@ -77,58 +71,5 @@ def seed_recovery_fixture(connection: Connection, artifact_root: Path) -> dict:
     connection.execute(
         repositories.insert().values(repository_id=identity.repository_id, source_kind="local")
     )
-    connection.execute(
-        snapshots.insert(),
-        [
-            {
-                "repository_id": s.repository_id,
-                "commit_sha": s.commit_sha,
-                "snapshot_id": s.snapshot_id,
-                "manifest_version": s.manifest_version,
-                "materializer_version": s.materializer_version,
-            }
-            for s in write.snapshots
-        ],
-    )
-    connection.execute(
-        analysis_runs.insert().values(
-            repository_id=identity.repository_id,
-            run_id=identity.run_id,
-            base_sha=identity.base.commit,
-            target_sha=identity.target.commit,
-            base_snapshot_id=identity.base.snapshot_id,
-            target_snapshot_id=identity.target.snapshot_id,
-            comparison_mode=identity.comparison_mode,
-            data_kind=write.data_kind,
-            configuration=json.loads(write.configuration_json),
-            configuration_sha256=write.configuration_sha256,
-        )
-    )
-    connection.execute(
-        artifacts.insert().values(
-            repository_id=identity.repository_id,
-            run_id=identity.run_id,
-            artifact_id=artifact.artifact_id,
-            storage_key=artifact.storage_key,
-            kind="report_json",
-            sha256=artifact.sha256,
-            size_bytes=artifact.size_bytes,
-            media_type="application/json",
-            schema_version="2.0.0",
-            access_class="repository",
-        )
-    )
-    connection.execute(
-        run_reports.insert().values(
-            repository_id=identity.repository_id,
-            run_id=identity.run_id,
-            report_id=write.report_id,
-            artifact_id=artifact.artifact_id,
-            schema_version="2.0.0",
-            analysis_status=write.analysis_status,
-            stage_summary=json.loads(write.stage_summary_json),
-            analysis_duration_seconds=write.analysis_duration_seconds,
-            llm_cost_usd=write.llm_cost_usd,
-        )
-    )
+    BoundRunReportStore(connection).save(write)
     return {"storage_key": artifact.storage_key, "sha256": artifact.sha256, "size_bytes": len(raw)}

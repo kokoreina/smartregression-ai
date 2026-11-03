@@ -1,10 +1,19 @@
-# PostgreSQL foundation — task 2.20-B
+# PostgreSQL foundation task 2.20
 
 PostgreSQL và P1/P2/P4 đã được nhóm chốt; nguồn tại
 [checkpoint](../../../../../docs/development/task-2.20-checkpoint.md) và
 [decision register](../../../../../docs/development/decision-register.md).
 Stack synchronous SQLAlchemy Core + psycopg binary; Alembic thuộc dev dependencies
-dành cho migration operator. Chưa có schema, migrations hay durable run/report adapter.
+dành cho migration operator. Đã có schema 5 bảng, hai migrations và adapter run/report.
+User giao KH hoàn thiện adapter sau phần schema; xem
+[bàn giao adapter](../../../../../docs/development/task-2.20-adapter.md).
+
+- `schema`: Core Table objects repositories/snapshots/analysis_runs/artifacts/run_reports.
+- `run_store.PostgresRunReportStore`: một transaction ghi immutable metadata; exact
+  retry no-op, khác nội dung conflict. `BoundRunReportStore` dùng transaction caller.
+- `report_publication.ReportFiles` và `application.persistence.persist_report`:
+  publish file nguyên vẹn trước DB, giữ file khi DB lỗi/ack không rõ; read kiểm
+  digest/size/report identity. Root artifact được cấp rõ, không links/junctions.
 
 - `config.load_database_settings`: explicit backend configuration, runtime/migration
   credential riêng. Remote mặc định `sslmode=verify-full`; chỉ hỗ trợ query `sslmode`
@@ -28,8 +37,9 @@ Application port/preparation ở `application/run_store.py` không import DB lib
 Report bytes nằm ngoài DB; descriptor/supplied bytes không chứng minh file đã publish
 hoặc caller có quyền repository. Không suy completed từ metadata/bundle.
 
-KH sở hữu schema/Table metadata, Alembic environment/revisions và shared DB fixtures.
-H1 bổ sung adapter sau handoff KH. Vector backend, EvidenceBundle adapter 2.05,
-artifact-root publication, workflow wiring và full report loader còn ngoài slice này.
-Chi tiết inputs/ownership, checks thực và pending:
+KH sở hữu schema/migrations/DB fixtures và đã nhận bàn giao phần adapter từ H1 theo
+user. PostgreSQL thật đạt 40 tests, gồm adapter/recovery; task handoff tách bằng chứng
+local khỏi CI/human acceptance. Vector backend, EvidenceBundle 2.05, inventory
+domain persistence, workflow default DB wiring và history catalog reader còn riêng.
+Lịch sử phần H1 ban đầu:
 [handoff 2.20-B](../../../../../docs/development/task-2.20-b.md).

@@ -1,5 +1,10 @@
 # Task 2.20 C schema migrations and PostgreSQL checks
 
+Follow-up: user handed the adapter slice from H1 to KH on 2026-11-03. The adapter
+and publication use case are now implemented on this same branch; current
+verification is in [adapter handoff](task-2.20-adapter.md). Historical schema
+verification and the original writer split below are retained for traceability.
+
 Date: 2026-11-03. Owner: Trần Hùng Khánh. Branch:
 `feat/khanh-task-2.20-migrations`, based on main `62d5045` (merged H1 2.20-B).
 Checkout: `D:\C1.SE26\Repo-Sprint2-Khanh-2.20`. The separate inventory checkout
