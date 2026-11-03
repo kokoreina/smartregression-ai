@@ -1,4 +1,11 @@
-# Contract v1.0.0
+# Contracts
+
+Legacy contract **v1.0.0** bên dưới được giữ nguyên. Sprint 2 có thêm
+[stage reports v2.0.0](stage-reports.md), không bắt buộc selection/execution.
+Canonical v2 source ở `backend/src/smartregression/contracts/stages.py`;
+application/CLI validation nhận cả hai versions, frontend demo vẫn dùng v1.
+
+## Legacy contract v1.0.0
 
 Nguồn chuẩn: backend/src/smartregression/contracts/models.py. Mỗi model có
 schema_version mặc định 1.0.0, từ chối phiên bản khác và unknown fields. Demo root ghi
@@ -35,7 +42,8 @@ Export chứa API paths thật và schema của contract chưa có route. Không
 contracts/generated/openapi.json hoặc frontend/src/types/generated.ts. Cả hai được
 đưa vào version control, so sánh deterministic ngay cả khi chưa git init.
 Breaking change phải tăng schema version và mô tả migration; additive change cũng
-review consumer do extra fields bị từ chối. Chưa có chính sách hỗ trợ nhiều version.
+review consumer do extra fields bị từ chối. Reader application hiện nhận cả legacy
+v1 và stage report v2 theo [compatibility policy](stage-reports.md#version-và-consumers).
 TypeScript không thay thế runtime validation: fixture tin cậy nhờ exporter/CI;
 khi thêm upload/API report thật phải validate đầu vào trước khi hiển thị.
 

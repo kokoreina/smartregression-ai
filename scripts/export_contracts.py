@@ -13,6 +13,7 @@ from smartregression.contracts.models import (
     AnalysisRequest,
     ErrorResponse,
 )
+from smartregression.contracts.stages import EvidenceBundle, StageAnalysisReport
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,7 +24,16 @@ def main() -> int:
     args = parser.parse_args()
     schema = create_app().openapi()
     _, models = models_json_schema(
-        [(model, "validation") for model in (AnalysisReport, AnalysisRequest, ErrorResponse)],
+        [
+            (model, "validation")
+            for model in (
+                AnalysisReport,
+                AnalysisRequest,
+                ErrorResponse,
+                StageAnalysisReport,
+                EvidenceBundle,
+            )
+        ],
         ref_template="#/components/schemas/{model}",
     )
     schema.setdefault("components", {}).setdefault("schemas", {}).update(models["$defs"])
@@ -33,6 +43,10 @@ def main() -> int:
     demo = validate_report_json((ROOT / "examples/reports/demo.json").read_text("utf-8"))
     if demo.data_kind != "demo":
         raise ValueError("the demo fixture must be explicitly marked demo")
+    for example in sorted((ROOT / "examples/reports").glob("stage-report.*.json")):
+        report = validate_report_json(example.read_text("utf-8"))
+        if not isinstance(report, StageAnalysisReport) or report.data_kind != "demo":
+            raise ValueError("stage examples must be explicitly marked v2 demo")
     if args.check:
         if not target.exists() or target.read_text("utf-8") != content:
             print("Schema is stale: uv run python scripts/export_contracts.py")
