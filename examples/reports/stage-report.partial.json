@@ -1,0 +1,282 @@
+{
+  "schema_version": "2.0.0",
+  "report_id": "example-report",
+  "data_kind": "demo",
+  "identity": {
+    "repository_id": "repo-1",
+    "run_id": "run-1",
+    "base": {
+      "repository_id": "repo-1",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "snapshot_id": "aeb0d68c983e68210e0dfa12764baf8fa8e128719d88f6445dc7465d28645b2b"
+    },
+    "target": {
+      "repository_id": "repo-1",
+      "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+    },
+    "comparison_mode": "direct_two_tree"
+  },
+  "analysis_status": "partial",
+  "stages": {
+    "snapshots": {
+      "status": "completed",
+      "data": {
+        "base": {
+          "repository_id": "repo-1",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "snapshot_id": "aeb0d68c983e68210e0dfa12764baf8fa8e128719d88f6445dc7465d28645b2b"
+        },
+        "target": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        }
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "changes": {
+      "status": "completed",
+      "data": {
+        "components": [
+          {
+            "id": "a45679b93a2de23da6dfdd54d34b3b64811fb1a538d782d6b28a45a537408603",
+            "path": "a.py",
+            "previous_path": null,
+            "kind": "file",
+            "symbol": null,
+            "change": "modified",
+            "base_location": null,
+            "target_location": null,
+            "reason": "git_diff"
+          },
+          {
+            "id": "087f2fa90e374d70fdaf309118ba9e7b86fac2b8785def87650a04b1c5c2bbfd",
+            "path": "a.py",
+            "previous_path": null,
+            "kind": "module",
+            "symbol": null,
+            "change": "modified",
+            "base_location": {
+              "line_start": 1,
+              "line_end": 2
+            },
+            "target_location": {
+              "line_start": 1,
+              "line_end": 2
+            },
+            "reason": "content_changed"
+          },
+          {
+            "id": "795e6bb0c35d5ec6bf0ef6b8941075dfd06f38808537a14a0eba6ffe2a9b2c5d",
+            "path": "a.py",
+            "previous_path": null,
+            "kind": "function",
+            "symbol": "f",
+            "change": "modified",
+            "base_location": {
+              "line_start": 1,
+              "line_end": 2
+            },
+            "target_location": {
+              "line_start": 1,
+              "line_end": 2
+            },
+            "reason": "content_changed"
+          }
+        ],
+        "files": [
+          {
+            "path": "a.py",
+            "status": "completed",
+            "limitations": []
+          }
+        ]
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "graph": {
+      "status": "completed",
+      "data": {
+        "snapshot": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        },
+        "edge_direction": "importer_to_importee",
+        "nodes": [
+          "a.py",
+          "b.py",
+          "c.py"
+        ],
+        "edges": [
+          {
+            "source": "b.py",
+            "target": "a.py",
+            "kind": "absolute_import"
+          },
+          {
+            "source": "c.py",
+            "target": "b.py",
+            "kind": "absolute_import"
+          }
+        ],
+        "unresolved": []
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "impact": {
+      "status": "completed",
+      "data": {
+        "snapshot": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        },
+        "candidates": [
+          {
+            "id": "candidate",
+            "path": "b.py",
+            "symbol": null,
+            "relationship": "direct",
+            "changed_component_id": "795e6bb0c35d5ec6bf0ef6b8941075dfd06f38808537a14a0eba6ffe2a9b2c5d",
+            "path_ids": [
+              "path-1"
+            ],
+            "evidence_ids": [
+              "e-base",
+              "e-target"
+            ],
+            "explanation": null
+          }
+        ],
+        "paths": [
+          {
+            "id": "path-1",
+            "changed_component_id": "795e6bb0c35d5ec6bf0ef6b8941075dfd06f38808537a14a0eba6ffe2a9b2c5d",
+            "nodes": [
+              "b.py",
+              "a.py"
+            ]
+          }
+        ]
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "inventory": {
+      "status": "not_implemented",
+      "data": null,
+      "reason": "producer_unavailable",
+      "limitations": [],
+      "error_code": null
+    },
+    "retrieval": {
+      "status": "not_implemented",
+      "data": null,
+      "reason": "producer_unavailable",
+      "limitations": [],
+      "error_code": null
+    },
+    "evidence": {
+      "status": "partial",
+      "data": {
+        "items": [
+          {
+            "id": "e-base",
+            "snapshot": {
+              "repository_id": "repo-1",
+              "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "snapshot_id": "aeb0d68c983e68210e0dfa12764baf8fa8e128719d88f6445dc7465d28645b2b"
+            },
+            "path": "a.py",
+            "location": {
+              "line_start": 1,
+              "line_end": 2
+            },
+            "symbol": null,
+            "excerpt": null,
+            "resolution": "unverified",
+            "support": "unverified",
+            "verification_reason": null
+          },
+          {
+            "id": "e-target",
+            "snapshot": {
+              "repository_id": "repo-1",
+              "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+            },
+            "path": "a.py",
+            "location": {
+              "line_start": 1,
+              "line_end": 2
+            },
+            "symbol": null,
+            "excerpt": null,
+            "resolution": "unverified",
+            "support": "unverified",
+            "verification_reason": null
+          }
+        ]
+      },
+      "reason": null,
+      "limitations": [
+        {
+          "code": "not_verified",
+          "path": null
+        }
+      ],
+      "error_code": null
+    },
+    "review_ordering": {
+      "status": "completed",
+      "data": {
+        "snapshot": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        },
+        "rule_version": "2.07-v1",
+        "candidates": [
+          {
+            "path": "a.py",
+            "symbol": null,
+            "tier": 1,
+            "reason": "directly changed (modified)"
+          },
+          {
+            "path": "a.py",
+            "symbol": "f",
+            "tier": 1,
+            "reason": "directly changed (modified)"
+          },
+          {
+            "path": "b.py",
+            "symbol": null,
+            "tier": 2,
+            "reason": "directly imports changed path 'a.py'"
+          },
+          {
+            "path": "c.py",
+            "symbol": null,
+            "tier": 3,
+            "reason": "transitively depends on 'b.py'"
+          }
+        ]
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    }
+  },
+  "analysis_duration_seconds": null,
+  "llm_cost_usd": null
+}

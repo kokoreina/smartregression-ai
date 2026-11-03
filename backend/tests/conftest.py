@@ -14,3 +14,8 @@ def demo_path() -> Path:
 @pytest.fixture
 def demo_data(demo_path: Path) -> dict:
     return json.loads(demo_path.read_text(encoding="utf-8"))
+
+
+@pytest.fixture
+def stage_artifacts() -> dict:
+    return json.loads((ROOT / "examples/reports/stage-report.partial.json").read_text("utf-8"))

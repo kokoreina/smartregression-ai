@@ -1,0 +1,145 @@
+{
+  "schema_version": "2.0.0",
+  "report_id": "empty-contract-example",
+  "data_kind": "demo",
+  "identity": {
+    "repository_id": "repo-1",
+    "run_id": "run-1",
+    "base": {
+      "repository_id": "repo-1",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "snapshot_id": "aeb0d68c983e68210e0dfa12764baf8fa8e128719d88f6445dc7465d28645b2b"
+    },
+    "target": {
+      "repository_id": "repo-1",
+      "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+    },
+    "comparison_mode": "direct_two_tree"
+  },
+  "analysis_status": "completed",
+  "stages": {
+    "snapshots": {
+      "status": "completed",
+      "data": {
+        "base": {
+          "repository_id": "repo-1",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "snapshot_id": "aeb0d68c983e68210e0dfa12764baf8fa8e128719d88f6445dc7465d28645b2b"
+        },
+        "target": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        }
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "changes": {
+      "status": "completed",
+      "data": {
+        "components": [],
+        "files": []
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "graph": {
+      "status": "completed",
+      "data": {
+        "snapshot": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        },
+        "edge_direction": "importer_to_importee",
+        "nodes": [],
+        "edges": [],
+        "unresolved": []
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "impact": {
+      "status": "completed",
+      "data": {
+        "snapshot": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        },
+        "candidates": [],
+        "paths": []
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "inventory": {
+      "status": "completed",
+      "data": {
+        "snapshot": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        },
+        "framework": "pytest",
+        "test_ids": [],
+        "completeness": "complete"
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "retrieval": {
+      "status": "completed",
+      "data": {
+        "sources": [
+          {
+            "snapshot": {
+              "repository_id": "repo-1",
+              "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+            },
+            "index_id": "example-index",
+            "configuration_id": "example-config"
+          }
+        ],
+        "items": []
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "evidence": {
+      "status": "completed",
+      "data": {
+        "items": []
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    },
+    "review_ordering": {
+      "status": "completed",
+      "data": {
+        "snapshot": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        },
+        "rule_version": "2.07-v1",
+        "candidates": []
+      },
+      "reason": null,
+      "limitations": [],
+      "error_code": null
+    }
+  },
+  "analysis_duration_seconds": null,
+  "llm_cost_usd": null
+}

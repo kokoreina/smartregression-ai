@@ -1,0 +1,81 @@
+{
+  "schema_version": "2.0.0",
+  "report_id": "example-report",
+  "data_kind": "demo",
+  "identity": {
+    "repository_id": "repo-1",
+    "run_id": "run-1",
+    "base": {
+      "repository_id": "repo-1",
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "snapshot_id": null
+    },
+    "target": {
+      "repository_id": "repo-1",
+      "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "snapshot_id": null
+    },
+    "comparison_mode": "direct_two_tree"
+  },
+  "analysis_status": "failed",
+  "stages": {
+    "snapshots": {
+      "status": "failed",
+      "data": null,
+      "reason": null,
+      "limitations": [],
+      "error_code": "snapshot_objects_missing"
+    },
+    "changes": {
+      "status": "not_run",
+      "data": null,
+      "reason": "prerequisite_failed",
+      "limitations": [],
+      "error_code": null
+    },
+    "graph": {
+      "status": "not_implemented",
+      "data": null,
+      "reason": "producer_unavailable",
+      "limitations": [],
+      "error_code": null
+    },
+    "impact": {
+      "status": "not_implemented",
+      "data": null,
+      "reason": "producer_unavailable",
+      "limitations": [],
+      "error_code": null
+    },
+    "inventory": {
+      "status": "not_implemented",
+      "data": null,
+      "reason": "producer_unavailable",
+      "limitations": [],
+      "error_code": null
+    },
+    "retrieval": {
+      "status": "not_implemented",
+      "data": null,
+      "reason": "producer_unavailable",
+      "limitations": [],
+      "error_code": null
+    },
+    "evidence": {
+      "status": "not_implemented",
+      "data": null,
+      "reason": "producer_unavailable",
+      "limitations": [],
+      "error_code": null
+    },
+    "review_ordering": {
+      "status": "not_implemented",
+      "data": null,
+      "reason": "producer_unavailable",
+      "limitations": [],
+      "error_code": null
+    }
+  },
+  "analysis_duration_seconds": null,
+  "llm_cost_usd": null
+}
