@@ -9,8 +9,11 @@ from pathlib import Path
 from pydantic import ValidationError
 
 from smartregression.adapters.git_local import LocalGit
+from smartregression.adapters.snapshot_store import materialize_pair
 from smartregression.application.changed_components import identify_changes
 from smartregression.application.reports import validate_report_json
+from smartregression.application.snapshots import RepositoryAuthorization, prepare_snapshots
+from smartregression.core.git.snapshots import pair_manifest
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -24,7 +27,51 @@ def main(argv: list[str] | None = None) -> int:
     changed.add_argument("--repository", type=Path, required=True)
     changed.add_argument("--base", required=True)
     changed.add_argument("--target", required=True)
+    snapshot = commands.add_parser("prepare-snapshots", help="Prepare an authorized local SHA pair")
+    snapshot.add_argument("--repository", type=Path, required=True)
+    snapshot.add_argument("--repository-id", required=True)
+    snapshot.add_argument("--authorized-root", type=Path, required=True)
+    snapshot.add_argument("--base", required=True)
+    snapshot.add_argument("--target", required=True)
+    snapshot.add_argument("--output", type=Path, required=True)
     args = parser.parse_args(argv)
+    if args.command == "prepare-snapshots":
+        try:
+            reader = LocalGit(args.repository)
+            pair = prepare_snapshots(
+                reader,
+                authorization=RepositoryAuthorization(args.repository_id, args.authorized_root),
+                repository_id=args.repository_id,
+                base=args.base,
+                target=args.target,
+            )
+            materialize_pair(pair, args.output, source_repository=reader.repository)
+        except OSError, UnicodeError:
+            print("Snapshot preparation failed: snapshot_io_error", file=sys.stderr)
+            return 2
+        except ValueError as exc:
+            codes = {
+                "unauthorized_repository",
+                "invalid_commit",
+                "invalid_repository_root",
+                "unsupported_snapshot_entry",
+                "unsafe_snapshot_path",
+                "snapshot_path_collision",
+                "snapshot_limit",
+                "snapshot_objects_missing",
+                "snapshot_mismatch",
+                "snapshot_destination_exists",
+                "snapshot_destination_inside_source",
+                "snapshot_parent_missing",
+                "unsafe_snapshot_destination",
+                "git_unavailable_or_timeout",
+                "output_limit",
+            }
+            code = str(exc) if str(exc) in codes else "snapshot_preparation_failed"
+            print(f"Snapshot preparation failed: {code}", file=sys.stderr)
+            return 2
+        print(json.dumps(pair_manifest(pair), indent=2, ensure_ascii=True))
+        return 0
     if args.command == "changed-components":
         try:
             reader = LocalGit(args.repository)
