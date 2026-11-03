@@ -58,7 +58,11 @@ Hướng dẫn làm việc: [Agent Profiles](docs/agents/README.md),
   API/dashboard. Retrieval/selection/evaluation và runner production vẫn chưa triển khai.
 - Database, vector store, LLM provider và giao thức worker còn pending sau spike.
 - Chi phí/thời gian chưa đo là `null`; test fail không đồng nghĩa phát hiện fault.
-- Đây không phải sản phẩm production-ready; chưa deploy hoặc chạy CI trên GitHub.
+- Đây không phải sản phẩm production-ready; chưa deploy. Source CI của main
+  `e937f66` đã chạy thành công trên GitHub; không xác minh thay đổi local mới.
+- Sprint 1 có [candidate reproduction](docs/research/sprint-1/candidate-reproduction.md)
+  trên hai snapshot Python/pytest trong Docker; xem [review hiện hành](docs/research/sprint-1/review.md)
+  cho phạm vi nghiệm thu local, G1 và phần còn pending.
 
 ## Cấu trúc
 

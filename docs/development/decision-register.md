@@ -24,6 +24,12 @@ thay thế, phải giữ liên kết cũ/mới. Không xóa lịch sử để l�
 | D09 | Dataset/license/baselines/cohort/fault adjudication/ngân sách/ngưỡng | Mục tiêu trong proposal; protocol/run evidence pending | Proposal v1.4 và [evaluation outline](../research/evaluation-protocol.md); mục tiêu không phải kết quả thực nghiệm | Chưa xác định |
 | D10 | Chia 5 vùng công việc | proposed | [module ownership](module-ownership.md); chín profiles là chín vai trò, chưa gán người | Nhóm cần phân công |
 | D11 | Bộ hướng dẫn và định tuyến profile/rule | accepted cho nhiệm vụ tài liệu này | Yêu cầu người dùng; [AGENTS](../../AGENTS.md), [governance](../rules/00-governance.md); không cấp quyền tools hay bật enforcement | Người dùng yêu cầu; chưa có phê duyệt mentor |
+| D12 | Hoàn thiện local Sprint 1 theo research foundation + technical spike, task 1.01–1.12/G1; workbook chỉ đọc; không commit/push/merge/deploy | accepted cho scope nhiệm vụ 2026-10-31; không phải sprint acceptance | Brief user hiện hành được tóm tắt ở [closeout decisions](../research/sprint-1/closeout-decisions.md); [review](../research/sprint-1/review.md) là trạng thái bàn giao | Người dùng trong phiên hiện hành; không suy tên/quyền mentor |
+
+D05/D07/D09 giữ lịch sử ở bảng. Evidence mới và các điểm quyết định còn lại được
+phân loại theo mốc cần chốt trong [closeout decisions](../research/sprint-1/closeout-decisions.md).
+Các PR đã merge có review thực; CI main `e937f66` được quan sát success trên GitHub
+ngày 2026-10-31. Không suy CI đó xác minh thay đổi local mới hoặc toàn bộ gate G1.
 
 ## Mâu thuẫn/điểm cần phân biệt
 

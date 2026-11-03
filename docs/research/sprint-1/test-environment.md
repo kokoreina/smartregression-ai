@@ -1,5 +1,12 @@
 # 1.05 Test environment and execution constraints
 
+Current 2026-10-31: [two-candidate harness](../../../scripts/candidates/README.md)
+and [observations](candidate-reproduction.md) now verify build/discovery/execution
+for the fixed sqlparse/TinyDB snapshots. They use 512 MiB and 64 MiB tmpfs; the
+synthetic G1 uses its original 256 MiB/16 MiB limits. Neither is a universal input
+version/plugin policy. Python/pytest choice is accepted under ADR 0002; contrary
+phrases in the original design below describe its earlier decision state.
+
 Integration evidence 2026-10-24: [G1 fixture harness](../../../scripts/g1/README.md)
 now exercises configuration and isolation with Python 3.14.3/pytest 9.1.1.
 See the [new handoff](implementation-handoff-20261024.md) for actual checks.

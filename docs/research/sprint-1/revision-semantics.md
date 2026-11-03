@@ -1,18 +1,14 @@
 # Task 1.06 — Quy tắc xác định phiên bản phân tích
 
-**Trạng thái: accepted — hoàn thành đặc tả task 1.06.** Cập nhật: 2026-10-26.
-Nguồn chốt baseline: user xác nhận trong chat ngày 2026-10-26:
-“oke ták 6 đã chốt rồi hãy push và gửi request vào nhóm main giúp tôi”.
-Đây là xác nhận do user truyền đạt; không tự điền tên người quyết định, ngày
-họp trước đó hoặc phê duyệt mentor khi chưa có bằng chứng riêng.
-Task thuộc PB03; owner trong workbook là **Do Ha An**. [S4]
+**Trạng thái: accepted về đặc tả task 1.06**, theo xác nhận A01 được ghi nhận ngày 2026-10-26. Task thuộc PB03; owner là **Do Ha An**. [S4]
 
-Bản đầu đã được GitHub user **kokoreina** review `APPROVED` trong [PR #5][R1]
-và merge vào `main`; không còn đúng khi mô tả tài liệu này là chưa từng được review.
-Review không có nội dung kết luận riêng cho các câu hỏi semantics. Handoff của
-[PR #9][R2] trước đó vẫn ghi PR policy pending. Xác nhận của user ngày 2026-10-26
-đóng phần pending về baseline thiết kế 1.06; không thay đổi lịch sử hai PR đó
-hoặc nhận rằng PR/ref resolver đã được triển khai.
+Bản đầu đã được `kokoreina` review APPROVED trong [PR #5][R1] và merge vào main. Review này áp dụng cho bản đầu; các cập nhật sau đó cần được đối chiếu riêng.
+
+Xác nhận A01 chốt baseline thiết kế revision semantics, được mô tả tại mục 10. Việc chốt đặc tả không đồng nghĩa với nghiệm thu implementation, G1 hoặc toàn bộ Sprint 1.
+
+**Đối chiếu implementation ngày 2026-10-31:** Git spike đã triển khai direct diff giữa hai full SHA. PR/ref resolver và các khả năng ngoài phạm vi spike vẫn cần được triển khai, kiểm chứng và nghiệm thu riêng.
+
+Xem [đối chiếu Q01–Q10](closeout-decisions.md#revision-semantics) và [review Sprint 1](review.md) để đối chiếu các giới hạn implementation và điều kiện nghiệm thu.
 
 Tài liệu trả lời ba câu hỏi: so sánh commit nào với commit nào, giữ kết quả đúng
 phiên bản khi PR thay đổi ra sao, và đọc bằng chứng ở phiên bản nào. Đây là đầu

@@ -1,5 +1,13 @@
 # Hướng dẫn phối hợp nhóm — Sprint 1
 
+**Trạng thái hiện hành 2026-10-31:** user đã giao hoàn thiện theo baseline
+"Research foundation + technical spike", task 1.01–1.12/G1. Đây là scope nhiệm vụ
+kỹ thuật, không phải xác nhận phân công/capacity hay nghiệm thu của mentor.
+Xem [review hiện hành](../research/sprint-1/review.md) và
+[quyết định/điểm chốt](../research/sprint-1/closeout-decisions.md). Các bảng kế hoạch
+và mô tả "chưa được tạo/chưa triển khai" bên dưới giữ làm snapshot 2026-10-20;
+không dùng chúng làm trạng thái implementation mới.
+
 **Cập nhật 2026-10-24:** Nguyễn Tấn Huy đã chốt Python + pytest cho repository
 đầu vào theo [ADR 0002](../architecture/decisions/0002-python-pytest-input.md).
 Các câu pending về lựa chọn cặp công nghệ trong snapshot bên dưới được thay thế

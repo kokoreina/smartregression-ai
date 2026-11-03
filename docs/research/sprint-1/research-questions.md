@@ -1,8 +1,8 @@
 # 1.01 - Research questions
 
 Draft by Nguyen Tan Huy; proposed reviewer: Dang Dai Viet. Scope comes from the
-[Sprint guide](../../development/sprint-1-team-guide.md). No measured results or
-externally verified research citations. Offline task; literature verification pending.
+[Sprint guide](../../development/sprint-1-team-guide.md). No measured research results.
+Primary literature verification update is linked below.
 
 | RQ | Comparison | Measures |
 | --- | --- | --- |
@@ -10,6 +10,7 @@ externally verified research citations. Offline task; literature verification pe
 | RQ2 | Retain independently verified faults detected by full suite? | Fault retention, missed faults |
 | RQ3 | Explanations tied to correct snapshot and supporting evidence? | Evidence validity and semantic correctness |
 | RQ4 | Contribution of retrieval? | Paired hybrid versus hybrid no-RAG, quality/cost/fallback |
+| RQ5 | Correctly identify affected functions/methods? | Impact precision/recall against independent labels, not dependency reachability |
 
 ## Proposed baselines (not implemented or approved)
 
@@ -41,7 +42,9 @@ from selector/retrieval. Count overhead including analysis and validation.
 Threats: small repository cohort, survivorship bias, flaky tests, cache/warm-start,
 model nondeterminism, subjective evidence rubric and omitted indexing costs.
 
-Pending: Viet supplies screening/license/candidates; An/Khanh supply language,
-framework and dependency evidence; Pham Phan Hoang Huy supplies RAG boundaries;
-Huy coordinates team decisions on sample size, budget, repeats and rubric.
-External literature must be verified in a later network-authorized task.
+Pending: Viet supplies candidate reproducibility/cohort evidence; An/Khanh supply
+input-version/plugin and dependency support evidence. Python/pytest is accepted
+by ADR 0002. The new RAG scope awaits owner/reviewer feedback; Huy coordinates
+team decisions on sample size, budget, repeats and rubric.
+Primary literature was checked in the network-authorized integration task:
+[research sources](research-sources-20261024.md). This does not validate our method.
