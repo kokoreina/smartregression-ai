@@ -1,0 +1,220 @@
+# Task 2.13 — Incremental application workflow, CLI và demo
+
+## Task và trạng thái
+
+Nguồn: [team guide 2.13](sprint-2-team-guide.md#task-213),
+`Sprint 2 Backlog!B127:Z131` trong [workbook](../../C1.SE26_DOCUMENTS/SmartRegression_AI_Scrum_Project_Aligned_v1.4.xlsx),
+và [bàn giao 2.14](task-2.14.md#213--có-thể-bắt-đầu). Workbook chỉ đọc, không đổi.
+
+- H1: Nguyễn Tấn Huy, 12h theo backlog. Human reviewer/acceptance còn pending.
+- Checkout: `D:\smart-regression-ai\var\main-review-20261103`.
+- Nhánh local: `feat/sprint-2-2.13-workflow`, base `115c7c4756a4d4e41b240876043ede0f0ee3b244`.
+- Fetch origin và `gh pr view 20` xác nhận PR 2.14 đã merge vào commit trên.
+  Đây là main quan sát lúc bắt đầu, không tự bảo đảm remote chưa đổi sau đó.
+- Scope implementation ban đầu: code/tests/docs/self-review, không commit/push/merge.
+  Sau bàn giao, user giao commit/push và mở PR để thành viên review/merge; quyền
+  mới áp dụng cho phần thin workflow 2.13 này, không tự approve hoặc merge.
+- Checkout gốc và các file untracked có sẵn được giữ nguyên. Không sửa algorithms
+  của AN/H2/VI, contract/generated artifacts, dependency hoặc lockfile.
+
+Profiles: Backend/Contracts, Coordinator; Change Impact cho frozen-source bridge.
+Rules 00/01/02/03/06/09/13; 05/07 cho Git/bàn giao và debugging.
+Skills: api-contracts, test-driven-development, security-review,
+systematic-debugging; spreadsheets chỉ để đọc backlog.
+
+## Behavior và files
+
+Trước đây các CLI producer tách rời, chưa xuất một run report từ shared workflow.
+Nay có `analyze` gọi application và xuất canonical `StageAnalysisReport` v2.
+Không thêm API endpoint, UI, lựa chọn/chạy tests đầu vào hoặc LLM call.
+
+| File | Trách nhiệm |
+| --- | --- |
+| [application/analysis.py](../../backend/src/smartregression/application/analysis.py) | Validate request, authorization/acquisition, UUID run/report, stage orchestration, aggregation và exit policy |
+| [application/frozen_reader.py](../../backend/src/smartregression/application/frozen_reader.py) | Existing change producer đọc verified frozen bytes; đối chiếu mọi phía thay đổi của diff với manifest |
+| [composition.py](../../backend/src/smartregression/composition.py) | Nối LocalGit vào use case; application không import adapter |
+| [cli/main.py](../../backend/src/smartregression/cli/main.py) | Parse flags, gọi composition/application, validate trước output, diagnostics đã redacted |
+| [adapters/report_output.py](../../backend/src/smartregression/adapters/report_output.py) | Xuất JSON hoàn chỉnh, exclusive atomic link; không overwrite hoặc ghi vào input repo |
+| [demo_analysis.py](../../scripts/demo_analysis.py) | Tạo repo fixture mới và chạy ba scenario qua CLI subprocess; giữ command/config/identity/exit |
+
+Contract/schema v1/v2 giữ nguyên; legacy commands vẫn có tests. API vẫn chỉ health;
+frontend demo v1 không nhận report v2 tự động. Unknown measurements giữ null.
+
+### Source identity và dependency
+
+Local operator truyền binding `--repository-id` + `--authorized-root`; root phải
+trùng repository thực, không phải prefix cho phép mọi repo con. Đây là CLI trust
+boundary cho người dùng local, chưa phải authentication/authorization của dịch vụ.
+Repository ID là opaque ID, không lấy path/URL làm ID. Chỉ nhận full lowercase
+SHA-1/SHA-256, direct two-tree; không resolve branch/moving refs hoặc merge-base.
+
+`prepare_snapshots` lấy bytes từ Git blobs có giới hạn; workflow kiểm repo/commit,
+source root và hash qua `identity_from_snapshots`. Snapshots ở RAM, không bắt buộc
+materialize filesystem. Diff dùng cùng SHA pair; bridge kiểm old/new delta coverage
+theo blob/mode, kể cả rename rồi tái sử dụng đường dẫn cũ. Parser chỉ đọc frozen bytes.
+Graph đọc toàn bộ Python target snapshot, importer → importee; không phải call graph.
+Deleted/base spans vẫn nằm trong changes, không bị chuyển thành target evidence.
+
+| Stage | Tích hợp/kiểm chứng | Dependency/giới hạn |
+| --- | --- | --- |
+| snapshots | Có, Git thật + hash validation | Acquisition lỗi chưa đủ identity trả request error, không bịa report |
+| changes | Có, real producer 2.01 | Frozen pair + pinned diff; parse/file limitations giữ nguyên |
+| graph | Có, real producer 2.03 | Target snapshot; có thể tiếp tục khi changes fail vì nguồn độc lập |
+| impact | `not_implemented` | Chờ actual producer 2.04 |
+| inventory | `not_implemented` | Chờ isolated 2.08/09; không chạy collect trên host |
+| retrieval | `not_implemented` | Chờ 2.10–12 và provenance/config |
+| evidence | `not_implemented` | Chờ source/support verifier 2.06 |
+| review_ordering | `not_run` | `producer_review_pending`; `dependency_failed` nếu changes/graph fail |
+
+Reconfirmed trên source base: `_resolve_from_import` chỉ lấy `node.names[0]`
+cho `from . import a, b`, raw review API còn executable-seed gap như bàn giao 2.14.
+Không sửa producer ngoài scope. Workflow nhận diện cú pháp alias bị ảnh hưởng,
+giữ graph observations nhưng gắn `graph_relative_alias_omission` theo path và partial.
+Unresolved imports vẫn có reference/reason của producer. Ordering bị chặn chờ
+producer fixes/semantics review; không tự coi projection 2.14 là human approval.
+
+Graph parse/UTF-8/binary/source-limit failure không bị silently skip thành graph
+hoàn chỉnh. Failed stage không có success payload. Unexpected exceptions ở CLI
+trả lỗi đã redacted, không báo empty success. Không đọc/import/execute input Python,
+không install/discover tests, gửi source ra ngoài hoặc thêm persistence giả.
+
+## CLI, output và exit codes
+
+```powershell
+uv run smartregression analyze --help
+uv run smartregression analyze --repository D:/authorized/repo --repository-id repo-1 --authorized-root D:/authorized/repo --base <FULL_BASE_SHA> --target <FULL_TARGET_SHA> --output D:/artifacts/new-report.json
+```
+
+Dòng thứ hai là template: thay SHA/path đã được phép, không phải command đã chạy.
+Omit `--output` để JSON ra stdout; diagnostics ra stderr. Fixture phải thêm
+`--data-kind demo`; label là caller-declared, không phải certification dữ liệu thật.
+
+| Exit | Nghĩa của `analyze` |
+| --- | --- |
+| 0 | Report completed, không stage failed; thin flow hiện chưa đạt mức này |
+| 1 | Report incomplete/partial, không stage failed; downstream thiếu vẫn nonzero |
+| 2 | Stage failed, request/authorization/acquisition/internal/output/schema error; đọc code/stages |
+
+Aggregate `partial` có thể chứa graph failed vì snapshots/changes đã có dữ liệu;
+exit vẫn là 2. `validate-report` exit 0 chỉ xác nhận tài liệu hợp schema, kể cả
+report failed/partial; không thay analysis acceptance hoặc safety verdict.
+
+Output file có parent sẵn, ở ngoài input repo; chặn symlink/junction trong ancestry.
+Ghi tempfile trong cùng parent, flush/fsync, publish bằng exclusive hard link rồi
+xóa tempfile thuộc run. Existing/concurrent destination không bị overwrite; lỗi
+publish không để lại JSON dở dang. Filesystem không hỗ trợ hard link sẽ báo I/O
+failure, không fallback sang overwrite. Parent phải do operator kiểm soát; không
+tuyên bố chống attacker đồng thời thay directory hoặc crash-durable directory fsync.
+Cleanup failure sau publish vẫn trả failure; inspect artifact trước retry.
+
+JSON artifacts không phải PostgreSQL durable persistence. Không thêm DB/tooling,
+job system hoặc store fake vào production. Bundle load không suy ra report completed.
+
+## Reproduction đã chạy
+
+Cwd: checkout nêu trên. Python 3.14.3 từ venv checkout gốc, `PYTHONPATH` trỏ source
+checkout này, `PYTHONDONTWRITEBYTECODE=1`. Không claim clean dependency install.
+
+Git hệ thống 2.44.0.windows.1 vẫn không hỗ trợ `--no-lazy-fetch`. Dùng MinGit
+2.56.0.windows.4 chính thức từ git-for-windows, chỉ prepend PATH trong từng process,
+không thay Git hệ thống/config, không bỏ protection:
+
+- Archive URL: `https://github.com/git-for-windows/git/releases/download/v2.56.0.windows.4/MinGit-2.56.0.4-64-bit.zip`.
+- SHA256 archive quan sát: `e3bf78351fe777fba47ddee5950082f8a98bb0f02604fdc7ba3ee2cb68ffa877`.
+- Local executable: `D:/smart-regression-ai/var/task-2.13-tools/mingit/cmd/git.exe`.
+- Thành viên có Git tương thích không cần dùng đường dẫn tool local này.
+
+```powershell
+$env:PYTHONPATH = 'D:/smart-regression-ai/var/main-review-20261103/backend/src'
+$env:PYTHONDONTWRITEBYTECODE = '1'
+$env:PATH = 'D:/smart-regression-ai/var/task-2.13-tools/mingit/cmd;' + $env:PATH
+D:/smart-regression-ai/.venv/Scripts/python.exe scripts/demo_analysis.py --output D:/smart-regression-ai/var/task-2.13-demo-20261103
+D:/smart-regression-ai/.venv/Scripts/python.exe -m smartregression.cli.main validate-report D:/smart-regression-ai/var/task-2.13-demo-20261103/thin.json
+D:/smart-regression-ai/.venv/Scripts/python.exe -m smartregression.cli.main analyze --help
+```
+
+Đã quan sát script exit 0, validator exit 0, help exit 0. Script tự assert CLI
+thin=1, failure=2, empty=1; exit 0 của script nghĩa reproduction đúng kỳ vọng,
+không có nghĩa toàn pipeline completed. Output directory phải mới cho lần tiếp.
+Portable command: `uv run python scripts/demo_analysis.py --output var/demo-2.13-new`.
+
+Local artifacts: `D:/smart-regression-ai/var/task-2.13-demo-20261103/` gồm
+`thin.json`, `failure.json`, `empty.json`, từng stderr và `reproduction.json`
+ghi exact CLI commands, config, Git/Python, SHA, hashes/run IDs và statuses.
+Đây là actual workflow output trên DEMO fixture tự sở hữu, không chỉnh JSON tay.
+Input working tree bị cố tình làm bẩn, vẫn đọc committed snapshots. Không execute
+Python của fixture. Script không được dùng để sửa repository có sẵn.
+
+Đã chạy lại script phiên bản cuối với `--output
+D:/smart-regression-ai/var/task-2.13-demo-final-20261103` (exit 0), validate
+`failure.json` (exit 0) và so hai lượt: toàn bộ stage payloads/identity snapshots
+giống nhau, run IDs khác nhau. Retry cùng output directory bị từ chối exit 2;
+không ghi đè. Các artifacts phiên bản cuối nằm ở directory `demo-final` này.
+
+## Kiểm chứng và self-review
+
+Test-first: lần đầu collect fail vì thiếu application.analysis; regression rename
+source-path reuse quan sát failed trước sửa, sau sửa focused suite pass.
+Lần chạy sandbox gặp WinError 5 tại basetemp, chạy lại elevated với directory mới;
+không skip tests hay bỏ protection để né lỗi môi trường.
+
+| Lệnh tại checkout (Python/PATH như trên) | Kết quả quan sát |
+| --- | --- |
+| `python -m pytest backend/tests/unit/test_analysis_workflow.py backend/tests/unit/test_report_output.py backend/tests/integration/test_analysis_cli.py -q -p no:cacheprovider --basetemp D:/smart-regression-ai/var/task-2.13-focused3 --tb=short` | 29 passed (trước thêm junction regression) |
+| `python -m pytest backend/tests/unit/test_report_output.py -q -p no:cacheprovider --basetemp D:/smart-regression-ai/var/task-2.13-output-final --tb=short` | 4 passed, gồm actual Windows junction |
+| `python -m pytest backend/tests -q -p no:cacheprovider --basetemp D:/smart-regression-ai/var/task-2.13-backend-final --tb=short` | **313 passed, 1 skipped, 1 warning**, exit 0; 38.32s |
+| `python scripts/export_contracts.py --check` | Pass, exit 0 |
+| `npm.cmd --prefix frontend run contracts:check` | Pass, exit 0 |
+| `npm.cmd --prefix frontend run typecheck` | Pass, exit 0 |
+| `python -m ruff check backend scripts` | Pass |
+| `python -m ruff format --check backend scripts` | Pass, 70 files |
+| `git diff --check` + kiểm local Markdown links/fences của tài liệu đổi | Pass |
+
+Tests workflow unit dùng acquisition doubles nhưng actual frozen hashing/change/graph
+producers. Git integration chạy LocalGit thật, CLI function/subprocess, dirty tree,
+delete/rename/same revision, partial/failure, output/validation/exception behavior.
+Output tests kiểm actual concurrent writers và junction; fake I/O failure được ghi
+rõ. Tests 2.13 không thay campaign đầy đủ 2.19 hoặc PostgreSQL/runner isolation tests.
+
+Security self-review: request → authorization → bounded Git blobs → frozen bridge
+→ pure producers → validated report → exclusive output. Không shell interpolation,
+input execution, raw source/exception logging hoặc unexpected overwrite. Đây là
+self-review cùng phiên, không independent security approval.
+
+Skip là POSIX FIFO test cũ không áp dụng Windows; warning Starlette/httpx cũ không
+bị suppress. Full gate đã chạy với portable Git, không chỉ lấy focused subset hoặc
+kết quả 2.14. Không chạy PostgreSQL/Docker/browser, CI cho diff này, remote candidate
+hoặc clean install. API/UI không đổi. Frontend checks dùng node_modules junction
+có sẵn từ phiên 2.14 và hai lockfile trùng nhau, không claim install sạch.
+
+## Acceptance và tiếp nối
+
+| AC | Trạng thái kỹ thuật |
+| --- | --- |
+| Thin shared application flow + CLI calls application | Đạt với snapshots/changes/graph thật |
+| Honest stages, revision-bound report, không giả selection/execution | Đạt trên fixtures/tests |
+| Reproducible smoke/demo + commands/config/results | Đạt với artifacts local và script |
+| Tích hợp toàn bộ các stage Sprint 2 khi sẵn sàng | Pending dependencies và producer review |
+| Human review/acceptance | Pending; không tự gán reviewer đã approve |
+
+- VI/2.18: dùng v2 loader/runtime validation; hiển thị DEMO, stage errors và
+  identity/base-target/spans. Thin=partial khác failure=partial+graph failed;
+  report validity không phải evidence/support verification. Không ép frontend v1.
+- KH/AN/2.19: dùng shared use case/CLI boundary; mở rộng wrong repo/SHA, invalid
+  evidence, stale index, unknown native IDs và failed discovery khi producer có.
+  Existing smoke tests không đóng thay task cross-module này.
+- H2/VI: sửa/review graph alias và ordering semantics tại task gốc; tiếp đó nối
+  ordering_inputs/review_result kèm dependency/status regression, không đổi v2 shape.
+- 2.04/2.08–12: thay đúng unavailable stage bằng actual producer, pin identity/config;
+  bổ sung integration, status/exit và smoke evidence trước nghiệm thu.
+- 2.20/2.05: PostgreSQL đã được nhóm chọn, tooling/migrations checkpoint vẫn riêng.
+  Nối durable store sau khi có, lưu run/config/status/limitations ngoài domain bundle.
+- 2.06: source resolution và conclusion support phải kiểm chứng thực, không nâng
+  unverified bằng JSON validation. 2.13 không tự làm evidence verifier.
+
+AI disclosure: OpenAI Codex hỗ trợ thiết kế, code/tests, debugging, docs và
+self-review trong phiên này. Đã đối chiếu Proposal v1.4 Appendix C/D; chữ ký cũ
+không phê duyệt thay đổi này. Agent đã chạy các checks ghi thực ở đây; Tấn Huy và
+nhóm vẫn cần đọc/hiểu/review implementation trước nghiệm thu. Không bịa tỉ lệ
+đóng góp, approval hoặc mentor acceptance. Không để service local chạy; artifacts,
+test directories và MinGit portable còn trong var bị ignore.

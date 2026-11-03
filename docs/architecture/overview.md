@@ -22,8 +22,11 @@ flowchart LR
 
 Core không phụ thuộc entrypoint/SDK provider. Application dùng interface của core,
 adapters triển khai kết nối ngoài; composition root ở api/main.py hoặc cli/main.py.
-Bootstrap chưa có orchestration analysis. API dùng application health; CLI dùng
-application report validation, không gắn nghiệp vụ vào route/argument parser.
+API dùng application health. [Task 2.13](../development/task-2.13.md) thêm CLI
+`analyze` qua `composition.py` → shared application → frozen snapshots/changes/graph,
+xuất stage report v2; downstream chưa triển khai giữ status rõ. Đây là read-only
+local flow, không thêm analyze endpoint, input execution hoặc DB persistence.
+CLI validation vẫn gọi application, không gắn nghiệp vụ vào argument parser.
 
 Sprint 1 bổ sung [G1 harness](../../scripts/g1/README.md) làm composition root riêng
 cho fixture: nối adapter Git, AST observations và Docker pytest spike. Đây không

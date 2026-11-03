@@ -30,6 +30,7 @@ Dashboard tải fixture cục bộ, vẫn xem được DEMO khi API ngắt kết
 ```sh
 uv run smartregression --help
 uv run smartregression validate-report examples/reports/demo.json
+uv run smartregression analyze --help
 uv run ruff check .
 uv run ruff format --check .
 uv run pytest
@@ -43,6 +44,10 @@ npm --prefix frontend run contracts:check
 Xem [setup Windows/Linux/macOS](docs/development/setup.md),
 [kiến trúc](docs/architecture/overview.md), [contract](docs/contracts/README.md),
 [backlog](docs/backlog/bootstrap.md) và [kiểm chứng](docs/development/verification.md).
+
+Sprint 2 có [read-only analysis CLI và reproducible demo](docs/development/task-2.13.md):
+snapshots → changes → target import graph → stage report v2. Các producer downstream
+chưa có được ghi rõ; thin flow trả exit 1, không báo pipeline đã hoàn tất.
 
 Hướng dẫn làm việc: [Agent Profiles](docs/agents/README.md),
 [Project Rules](docs/rules/README.md), [bắt đầu task với Codex](docs/development/agent-rules-setup.md),
