@@ -86,6 +86,28 @@ def test_default_never_loads_settings_or_creates_engine(wiring):
     assert events == writes == []
 
 
+def test_graph_failure_scope_survives_publication_read_and_storage_summary(wiring):
+    kwargs, source, _, writes = wiring
+    source.before["unchanged.py"] = b"def private_broken(\n"
+    source.after["unchanged.py"] = b"def private_broken(\n"
+    report = composition.analyze_local(**kwargs)
+    write = writes[0]
+    restored = ReportFiles(kwargs["artifact_root"], source_repository=source.repository).read(
+        write.artifact, expected_identity=report.identity, expected_report_id=report.report_id
+    )
+    summary = json.loads(write.stage_summary_json)
+    expected = [{"code": "python_parse_failed", "path": "unchanged.py"}]
+    assert restored.stages.graph.status == "failed"
+    assert [item.model_dump() for item in restored.stages.graph.limitations] == expected
+    assert summary["graph"]["limitations"] == expected
+    assert summary["graph"]["error_code"] == "python_parse_failed"
+    assert restored.stages.inventory.status == "not_run"
+    assert restored.stages.inventory.reason == "inventory_collector_not_configured"
+    assert summary["inventory"]["status"] == "not_run"
+    assert summary["inventory"]["reason"] == "inventory_collector_not_configured"
+    assert "private" not in restored.model_dump_json()
+
+
 @pytest.mark.parametrize("error", [RunStorageError, RunConflict])
 def test_store_failure_disposes_engine_and_keeps_complete_orphan(wiring, monkeypatch, error):
     kwargs, source, events, _ = wiring

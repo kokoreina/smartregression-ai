@@ -81,9 +81,12 @@ def test_thin_flow_uses_real_producers_and_honest_statuses(tmp_path):
     )
     assert [(e.source, e.target) for e in report.stages.graph.data.edges] == [("b.py", "a.py")]
     assert report.stages.graph.data.snapshot == report.identity.target
-    for name in ("impact", "inventory", "retrieval", "evidence"):
+    for name in ("impact", "retrieval", "evidence"):
         assert getattr(report.stages, name).status == "not_implemented"
         assert getattr(report.stages, name).data is None
+    assert report.stages.inventory.status == "not_run"
+    assert report.stages.inventory.reason == "inventory_collector_not_configured"
+    assert report.stages.inventory.data is None
     assert report.stages.review_ordering.status == "not_run"
     assert report.analysis_status == "partial"
     assert analysis_exit_code(report) == 1
@@ -237,6 +240,35 @@ def test_partial_parsing_retained_and_graph_failure_not_success(tmp_path):
     assert report.stages.changes.data.files[0].limitations == ["python_parse_failed"]
     assert report.stages.graph.status == "failed"
     assert analysis_exit_code(report) == 2
+
+
+@pytest.mark.parametrize(
+    ("content", "code"),
+    [
+        (b"def private_broken(\n", "python_parse_failed"),
+        (b"\xffprivate-source", "python_source_not_utf8"),
+        (b"\0private-source", "binary_source"),
+        (b"#" + b"x" * 256_000, "source_limit"),
+    ],
+    ids=["parse", "encoding", "binary", "limit"],
+)
+def test_unchanged_graph_source_failure_retains_path_outside_diff(tmp_path, content, code):
+    source = Source(
+        tmp_path,
+        {"ok.py": b"x = 1\n", "unchanged.py": content},
+        {"ok.py": b"x = 2\n", "unchanged.py": content},
+    )
+    report = run(source)
+    assert [f.path for f in report.stages.changes.data.files] == ["ok.py"]
+    assert report.stages.changes.status == "completed"
+    graph = report.stages.graph
+    assert graph.status == "failed"
+    assert graph.error_code == code
+    assert [(issue.code, issue.path) for issue in graph.limitations] == [(code, "unchanged.py")]
+    assert graph.data is None  # A validated source prefix is not an accepted graph.
+    assert report.analysis_status == "partial"
+    assert analysis_exit_code(report) == 2
+    assert "private" not in report.model_dump_json()
 
 
 def test_graph_unresolved_import_and_known_alias_gap_are_explicit(tmp_path):
