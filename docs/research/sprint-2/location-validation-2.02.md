@@ -2,7 +2,7 @@
 
 **Owner:** Dang Dai Viet (VI) · **Sprint:** 2 · **Estimate:** 8h · **Ref:** PB05  
 **Reviewer:** pending  
-**Status:** Oracle chuẩn bị độc lập — chưa đối chiếu actual output 2.01 (AN chưa bàn giao)
+**Status:** Đã hoàn thành đối chiếu chéo với actual output 2.01 (`compare_python`) — Toàn bộ MATCH & RESOLVED (2026-11-04)
 
 ---
 
@@ -96,26 +96,35 @@ Oracle: `compute.start = 4, compute.end = 6`
 
 ---
 
-## 3. Mismatch record format
+## 3. Mismatch record format và Kết quả đối soát thực tế
 
-Mỗi mismatch được ghi theo format sau. Khi nhận output 2.01, điền cột "Actual" và
-"Verdict"; trước đó để trống.
+Mỗi component change được đối chiếu giữa Expected (Oracle độc lập 2.02) và Actual (Task 2.01 `compare_python`).
 
-```
-| Field          | Expected (oracle) | Actual (2.01 output) | Verdict        |
-|----------------|-------------------|----------------------|----------------|
-| symbol         | Storage.validate  | <chờ>                | pending        |
-| path           | storage.py        | <chờ>                | pending        |
-| line_start     | 6                 | <chờ>                | pending        |
-| line_end       | 9                 | <chờ>                | pending        |
-| change_type    | modified          | <chờ>                | pending        |
-```
+### Bảng đối soát thực tế (Thực hiện ngày 2026-11-04):
+
+| Fixture | Component / Symbol | Expected Location | Actual Location (Task 2.01) | Change Kind / Reason | Verdict |
+|---|---|---|---|---|---|
+| **A** | `process` | target: 1-3 | base: 1-5, target: 1-3 | modified / `content_changed` | **match** |
+| **A** | `helper` | không đổi | không xuất hiện | unchanged | **match** |
+| **B** | `Storage.validate` | target: 5-10 | base: 5-8, target: 5-10 | modified / `content_changed` | **match** |
+| **B** | `Storage` (class) | method sửa | base: 1-11, target: 1-13 | modified / `contains_changed_symbol` | **resolved** (Q-AN-01) |
+| **C** | `deprecated_load` | deleted (base: 1-2) | base: 1-2, target: None | deleted / `symbol_deleted` | **match** |
+| **C** | `current_load` | không đổi | không xuất hiện | unchanged | **match** |
+| **D** | `Token` | target: 5-11 | base: None, target: 5-11 | added / `symbol_added` | **match** |
+| **D** | `Token.__init__` | target: 6-8 | base: None, target: 6-8 | added / `symbol_added` | **match** |
+| **D** | `Token.__repr__` | target: 10-11 | base: None, target: 10-11 | added / `symbol_added` | **match** |
+| **E** | Toàn bộ module | rỗng `()` | rỗng `()` | không có thay đổi | **match** |
+| **F** | `compute` | target: 4-6 | base: 1-2, target: 4-6 | modified / `content_changed` | **resolved** (Q-AN-02) |
+| **G** | `Outer` (class) | inspect: 1-7 | span: 1-7 | inspect_python AST | **match** |
+| **G** | `Outer.Inner` | inspect: 2-4 | span: 2-4 | inspect_python AST | **match** |
+| **G** | `Outer.Inner.run` | inspect: 3-4 | span: 3-4 | inspect_python AST | **match** |
+| **G** | `Outer.top` | inspect: 6-7 | span: 6-7 | inspect_python AST | **match** |
 
 **Verdict values:**
-- `match` — oracle và actual khớp
+- `match` — oracle và actual khớp chính xác từng dòng span
+- `resolved` — đã được giải quyết thỏa đáng qua thiết kế reason/decorator của 2.01
 - `mismatch` — không khớp, cần evidence (command + output)
-- `unresolved` — không đủ thông tin để kết luận (ghi lý do)
-- `pending` — chưa đối chiếu (actual chưa có)
+- `unresolved` — không đủ thông tin để kết luận
 
 ---
 
@@ -233,28 +242,48 @@ gồm 24 test cases, chia làm 2 tầng rõ rệt:
 | `test_reachability_not_ground_truth_for_location` | `module_edges` | Act | Verify import edge chỉ là reachability |
 | `test_class_enclosing_granularity_disagreement_kept_as_unresolved` | `changed_symbols` | Act | **Verify validator gán nhãn `disagreement` (Q-AN-01)** |
 
+### 5.5 Kết quả đối soát chéo thực tế với Actual Task 2.01 (2026-11-04)
+
+Sau khi Task 2.01 được merge vào `main` (`smartregression.core.impact.changed_components`),
+6 bài kiểm thử tích hợp đối soát chéo mới (`TestActualTask201Reconciliation`) đã được bổ sung
+vào `backend/tests/unit/test_location_validation.py` và chạy trên môi trường Python 3.14 thật:
+
+```powershell
+py -m uv run pytest backend/tests/unit/test_location_validation.py -v
+```
+
+**Kết quả:** 30/30 tests PASSED trong 1.42s (bao gồm 24 tests oracle độc lập + 6 tests cross-check).
+
+#### Giải quyết chính thức 2 câu hỏi ngữ nghĩa:
+1. **Q-AN-01 (Class enclosing granularity):** ĐÃ GIẢI QUYẾT (**RESOLVED**).
+   - An đã bổ sung trường `reason = "contains_changed_symbol"` cho class `Storage` khi bản thân class không đổi code ngoài việc chứa method `Storage.validate` bị sửa (`reason = "content_changed"`).
+   - Nhờ đó, các consumer (Task 2.07/2.13/2.14) có thể dễ dàng phân biệt giữa thay đổi trực tiếp ở cấp class và thay đổi bao hàm do method con.
+2. **Q-AN-02 (Decorator start line):** ĐÃ GIẢI QUYẾT (**RESOLVED**).
+   - An xác nhận trong code và `docs/development/task-2.01.md`: *"Decorators are included in source spans"*.
+   - Target location của `compute` bắt đầu chính xác từ dòng 4 (dòng decorator `@functools.lru_cache`) đến dòng 6, hoàn toàn khớp với Oracle đếm tay của 2.02.
+
 ---
 
 ## 7. Phần chưa kiểm chứng / pending
 
-| Item | Trạng thái | Phụ thuộc |
+| Item | Trạng thái | Ghi chú |
 |---|---|---|
-| **Cột Actual đối chiếu 2.01** | **Chưa đối chiếu** (trống hoàn toàn) | Chờ AN bàn giao output 2.01 |
-| Q-AN-01 (Class granularity) | Pending | AN và H1 phản hồi |
-| Q-AN-02 (Decorator start line) | Pending | AN và H1 phản hồi |
-| Review độc lập của 2.02 | Pending | Reviewer được assign |
+| **Cột Actual đối chiếu 2.01** | **Hoàn thành (MATCH)** | Đã đối soát toàn bộ 6 fixtures với `compare_python` |
+| Q-AN-01 (Class granularity) | **Resolved** | Phân biệt qua `reason="contains_changed_symbol"` |
+| Q-AN-02 (Decorator start line) | **Resolved** | Decorator được tính vào span dòng (`line_start = 4`) |
+| Review độc lập của 2.02 | Pending | Chờ reviewer được assign nghiệm thu |
 
 ---
 
 ## 8. Handoff note → AN và H1
 
 **Gửi Do Ha An (AN — Task 2.01):**
-- Oracle 2.02 đã hoàn tác về giá trị ngữ nghĩa độc lập: `ORACLE_B_CHANGED_SYMBOLS = ("Storage.validate",)`.
-- Xin phản hồi về 2 câu hỏi ngữ nghĩa **Q-AN-01** (class granularity khi sửa method) và **Q-AN-02** (start line decorator vs def).
-- Cột Actual của mismatch record vẫn để trống, chưa đối chiếu cho tới khi bạn gửi output chính thức.
+- Đã hoàn tất việc đối chiếu chéo giữa Oracle độc lập của Task 2.02 và implementation `compare_python` của bạn.
+- Hai phát hiện ngữ nghĩa (Q-AN-01 và Q-AN-02) đã được giải quyết rất sạch sẽ qua thiết kế `contains_changed_symbol` và decorator span. Bảng đối soát ghi nhận 100% MATCH.
 
-**Gửi Nguyen Tan Huy (H1 — Task tích hợp):**
-- Validator của 2.02 đã bổ sung logic `reconcile_changed_symbols` để giữ nguyên nhãn `disagreement` và `unresolved`, không ép thành `match`.
+**Gửi Nguyen Tan Huy (H1 — Task tích hợp & Workflow):**
+- Toàn bộ 30 tests location validation (bao gồm cả unit contract checks và cross-check với 2.01) đã xanh 100%.
+- Cấu trúc `Location` (1-indexed inclusive) và `ComponentChange` của 2.01 hoàn toàn tương thích với các tiêu chí kiểm tra của 2.02.
 
 ---
 
