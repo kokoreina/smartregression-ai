@@ -1,5 +1,10 @@
 # Task 2.13 — Incremental application workflow, CLI và demo
 
+Follow-up [2.17](task-2.17.md): inventory producer đã có nhưng chưa cấu hình collector
+được ghi `not_run`/`inventory_collector_not_configured`; graph source failure giữ path
+trong stage limitations. Các kết quả kiểm chứng lịch sử bên dưới giữ theo baseline
+của từng phiên, không phải kết quả chạy lại cho follow-up này.
+
 <a id="persistence-wiring"></a>
 
 ## Persistence wiring follow-up — 2026-11-04

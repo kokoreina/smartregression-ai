@@ -88,6 +88,14 @@ def _error_code(exc: ValueError, fallback: str) -> str:
     return str(exc) if str(exc) in _SAFE_ERRORS else fallback
 
 
+class _GraphSourceError(ValueError):
+    """A safe reason and frozen target path, without raw source/exception text."""
+
+    def __init__(self, code: str, path: str) -> None:
+        super().__init__(code)
+        self.issue = StageIssue(code=code, path=path)
+
+
 def _graph_sources(pair: SnapshotPair) -> tuple[dict[str, str], list[StageIssue]]:
     sources = {}
     limitations = []
@@ -95,17 +103,20 @@ def _graph_sources(pair: SnapshotPair) -> tuple[dict[str, str], list[StageIssue]
         if not entry.path.endswith(".py"):
             continue
         if len(content) > MAX_PYTHON_SOURCE_BYTES:
-            raise ValueError("source_limit")
+            raise _GraphSourceError("source_limit", entry.path)
         if b"\0" in content:
-            raise ValueError("binary_source")
-        source = content.decode("utf-8", errors="strict")
+            raise _GraphSourceError("binary_source", entry.path)
+        try:
+            source = content.decode("utf-8", errors="strict")
+        except UnicodeError as exc:
+            raise _GraphSourceError("python_source_not_utf8", entry.path) from exc
         sources[entry.path] = source
         # The baseline producer drops aliases after the first in this syntax.
         # Preserve observations, disclose the omission; do not fix H2's algorithm here.
         try:
             tree = ast.parse(source)
         except (SyntaxError, RecursionError, ValueError) as exc:
-            raise ValueError("python_parse_failed") from exc
+            raise _GraphSourceError("python_parse_failed", entry.path) from exc
         if any(
             isinstance(n, ast.ImportFrom) and n.level and n.module is None and len(n.names) > 1
             for n in ast.walk(tree)
@@ -213,6 +224,10 @@ def analyze_execution(
             graph = StageResult(
                 status="partial", data=graph.data, limitations=[*graph.limitations, *limitations]
             )
+    except _GraphSourceError as exc:
+        # Do not publish a graph from the validated prefix of a failed snapshot.
+        # The issue identifies the first rejected target file, including unchanged files.
+        graph = StageResult(status="failed", error_code=str(exc), limitations=[exc.issue])
     except UnicodeError:
         graph = StageResult(status="failed", error_code="python_source_not_utf8")
     except ValueError as exc:
@@ -229,7 +244,7 @@ def analyze_execution(
         inventory=(
             collect_inventory(pair.target, identity, inventory_collector)
             if inventory_collector is not None
-            else absent()
+            else StageResult(status="not_run", reason="inventory_collector_not_configured")
         ),
         retrieval=absent(),
         evidence=absent(),
