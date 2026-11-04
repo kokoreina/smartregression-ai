@@ -88,8 +88,8 @@ class RunConfiguration:
     """Allowlisted actual execution settings, supplied by the trusted caller.
 
     Unknown versions stay None. No arbitrary options/DSN/source/outcome dictionaries.
-    This records declared settings; it cannot prove a producer used them. Workflow
-    capture of actual settings belongs to the later 2.13 integration.
+    The analysis workflow captures these from its execution; independently supplied
+    settings still cannot prove that a producer used them.
     """
 
     application_version: str | None

@@ -1,5 +1,43 @@
 # Lệnh đã đối chiếu với repository
 
+## Bổ sung task 2.13 persistence wiring ngày 2026-11-04
+
+CLI đã có `analyze --persist --artifact-root <EXISTING_AUTHORIZED_ROOT>`.
+Hai flags phải đi cùng nhau và không kết hợp `--output`. Actual config/acquisition
+manifests theo cùng execution; không auto-migrate/provision repository. Setup và
+exit/orphan semantics ở [PostgreSQL setup](postgresql-setup.md#opt-in-cli-analysis-persistence),
+bằng chứng/giới hạn ở [handoff 2.13](task-2.13.md#persistence-wiring).
+
+Cwd `D:\smart-regression-ai\var\main-review-20261103`, main baseline `f1dbe2d`.
+Python executable `D:/smart-regression-ai/var/task-2.20-b-venv/Scripts/python.exe`,
+PYTHONPATH trỏ `backend/src`, PYTHONDONTWRITEBYTECODE=1, PYTHONIOENCODING=utf-8;
+Git portable prepend từ `D:/smart-regression-ai/var/task-2.13-tools/mingit/cmd`.
+Tái dùng environment locked có sẵn, không claim clean install.
+
+Các commands dưới đã chạy bằng executable trên:
+
+```powershell
+python -m pytest backend/tests -q -p no:cacheprovider --tb=short --basetemp D:/smart-regression-ai/var/task-2.13-persist-full-2
+python scripts/storage/run_checks.py
+python scripts/demo_analysis.py --output D:/smart-regression-ai/var/task-2.13-persist-default-demo
+python -m smartregression.cli.main analyze --help
+python scripts/export_contracts.py --check
+```
+
+Full backend **430 passed, 44 skipped**, 1 existing Starlette/httpx warning.
+Dedicated PostgreSQL 17.11 **43 passed**, fresh migrations/recovery/file digest/
+catalog/owned-container cleanup pass. Default skips không thay DB acceptance.
+DB workflow cases gọi actual CLI main in-process, inject settings factory cho test
+loopback exception; không claim production TLS-enabled subprocess acceptance.
+Non-DB demo với runtime URL invalid cố ý exit 0, thin=1/failure=2/empty=1.
+Các output directories thuộc lần chạy này, không ghi đè để chạy lại.
+
+Ruff check/format, frontend contracts:check/typecheck và diff/docs checks pass.
+Không đổi public schema/generated artifacts, dependency/lockfile hoặc UI; không
+chạy browser/CI hoặc product/frontend build mới cho scope này. Không commit artifacts,
+dump hoặc credentials. Wrapper portable `scripts/storage/verify.ps1` vẫn yêu cầu
+`.venv` của checkout; phiên này gọi run_checks.py bằng venv thực có sẵn.
+
 ## Bổ sung task 2.20-B ngày 2026-11-03
 
 H1 đã triển khai local config/connection/application metadata boundary, chưa có

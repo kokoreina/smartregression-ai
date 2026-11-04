@@ -5,6 +5,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
+MAX_PYTHON_SOURCE_BYTES = 256_000
+
 
 @dataclass(frozen=True)
 class Symbol:
@@ -22,7 +24,7 @@ class PythonSnapshot:
 
 
 def inspect_python(source: str) -> PythonSnapshot:
-    if len(source.encode("utf-8")) > 256_000:
+    if len(source.encode("utf-8")) > MAX_PYTHON_SOURCE_BYTES:
         raise ValueError("source_limit")
     try:
         tree = ast.parse(source)

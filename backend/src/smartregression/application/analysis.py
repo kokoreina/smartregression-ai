@@ -1,6 +1,7 @@
 """Incremental read-only analysis. Missing producers remain explicit in v2 reports."""
 
 import ast
+from dataclasses import dataclass
 from typing import Literal, Protocol
 from uuid import uuid4
 
@@ -8,6 +9,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from smartregression.application.changed_components import identify_changes
 from smartregression.application.frozen_reader import DiffSource, FrozenReader
+from smartregression.application.run_store import RunConfiguration
 from smartregression.application.snapshots import (
     RepositoryAuthorization,
     SnapshotSource,
@@ -28,8 +30,9 @@ from smartregression.contracts.stages import (
     StageResult,
     StageStatus,
 )
-from smartregression.core.git.snapshots import SnapshotLimits, SnapshotPair
+from smartregression.core.git.snapshots import SnapshotLimits, SnapshotManifest, SnapshotPair
 from smartregression.core.impact.dependency_graph import build_dependency_graph
+from smartregression.core.impact.python_snapshot import MAX_PYTHON_SOURCE_BYTES
 
 _SAFE_ERRORS = frozenset(
     {
@@ -71,6 +74,15 @@ class AnalysisSource(SnapshotSource, DiffSource, Protocol):
     pass
 
 
+@dataclass(frozen=True)
+class AnalysisExecution:
+    """Trusted acquisition metadata from one execution, never a public report format."""
+
+    report: StageAnalysisReport
+    configuration: RunConfiguration
+    snapshot_manifests: tuple[SnapshotManifest, ...]
+
+
 def _error_code(exc: ValueError, fallback: str) -> str:
     return str(exc) if str(exc) in _SAFE_ERRORS else fallback
 
@@ -81,7 +93,7 @@ def _graph_sources(pair: SnapshotPair) -> tuple[dict[str, str], list[StageIssue]
     for entry, content in zip(pair.target.manifest.files, pair.target.contents, strict=True):
         if not entry.path.endswith(".py"):
             continue
-        if len(content) > 256_000:
+        if len(content) > MAX_PYTHON_SOURCE_BYTES:
             raise ValueError("source_limit")
         if b"\0" in content:
             raise ValueError("binary_source")
@@ -111,6 +123,28 @@ def analyze(
     data_kind: Literal["demo", "real"] = "real",
     limits: SnapshotLimits | None = None,
 ) -> StageAnalysisReport:
+    """Compatibility boundary for callers that only need the canonical report."""
+    return analyze_execution(
+        source,
+        authorization=authorization,
+        repository_id=repository_id,
+        base=base,
+        target=target,
+        data_kind=data_kind,
+        limits=limits,
+    ).report
+
+
+def analyze_execution(
+    source: AnalysisSource,
+    *,
+    authorization: RepositoryAuthorization,
+    repository_id: str,
+    base: str,
+    target: str,
+    data_kind: Literal["demo", "real"] = "real",
+    limits: SnapshotLimits | None = None,
+) -> AnalysisExecution:
     """Authorize and freeze once, then call existing producers on that exact pair.
 
     Local CLI authorization is the operator's explicit ID/path binding, not a
@@ -123,6 +157,7 @@ def analyze(
         TypeAdapter(Literal["demo", "real"]).validate_python(data_kind)
     except ValidationError as exc:
         raise AnalysisError("invalid_analysis_request") from exc
+    limits = limits or SnapshotLimits()
     try:
         pair = prepare_snapshots(
             source,
@@ -147,13 +182,13 @@ def analyze(
     except ValueError as exc:
         raise AnalysisError(_error_code(exc, "snapshot_acquisition_failed")) from exc
 
+    change_version = None
     try:
-        changes = changes_result(
-            identify_changes(
-                FrozenReader(pair, source), repository=repository_id, base=base, target=target
-            ),
-            identity,
+        observations = identify_changes(
+            FrozenReader(pair, source), repository=repository_id, base=base, target=target
         )
+        changes = changes_result(observations, identity)
+        change_version = observations.schema_version
     except OSError, UnicodeError:
         changes = StageResult(status="failed", error_code="change_analysis_io_error")
     except ValueError as exc:
@@ -208,7 +243,20 @@ def analyze(
         analysis_status=aggregate_status(stages),
         stages=stages,
     )
-    return StageAnalysisReport.model_validate_json(report.model_dump_json())
+    return AnalysisExecution(
+        report=StageAnalysisReport.model_validate_json(report.model_dump_json()),
+        configuration=RunConfiguration(
+            application_version=None,
+            snapshot_limits=limits,
+            python_source_limit_bytes=MAX_PYTHON_SOURCE_BYTES,
+            producer_versions=(
+                ("snapshots", pair.target.manifest.schema_version),
+                ("changes", change_version),
+                ("graph", None),
+            ),
+        ),
+        snapshot_manifests=(pair.base.manifest, pair.target.manifest),
+    )
 
 
 def aggregate_status(stages: AnalysisStages) -> StageStatus:

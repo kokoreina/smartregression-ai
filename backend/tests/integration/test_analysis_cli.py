@@ -120,7 +120,19 @@ def test_cli_subprocess_help_and_machine_json(analysis_repo):
     assert help_result.returncode == 0
     assert "--authorized-root" in help_result.stdout
     result = subprocess.run(
-        [sys.executable, "-m", "smartregression.cli.main", *args(analysis_repo)],
+        [
+            sys.executable,
+            "-c",
+            """
+import sys
+from smartregression.cli.main import main
+code = main()
+assert 'sqlalchemy' not in sys.modules
+assert 'psycopg' not in sys.modules
+raise SystemExit(code)
+""",
+            *args(analysis_repo),
+        ],
         capture_output=True,
         text=True,
     )
@@ -150,6 +162,100 @@ def test_same_revision_and_output_io_failure(analysis_repo, tmp_path, capsys):
     assert report.stages.changes.data.components == []
     assert main(args(analysis_repo, "--output", tmp_path / "missing/report.json")) == 2
     assert capsys.readouterr().out == ""
+
+
+def test_default_analysis_and_health_ignore_invalid_database_settings(
+    analysis_repo, capsys, monkeypatch
+):
+    from fastapi.testclient import TestClient
+
+    from smartregression.api.main import create_app
+
+    monkeypatch.setenv("SMARTREGRESSION_DATABASE_URL", "invalid-private-url")
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("Default analysis/health must not initialize persistence")
+
+    monkeypatch.setattr("smartregression.adapters.storage.config.load_database_settings", forbidden)
+    monkeypatch.setattr("smartregression.adapters.storage.connection.database_engine", forbidden)
+    assert main(args(analysis_repo)) == 1
+    assert (
+        StageAnalysisReport.model_validate_json(capsys.readouterr().out).analysis_status
+        == "partial"
+    )
+    with TestClient(create_app()) as client:
+        assert client.get("/health").status_code == 200
+
+
+@pytest.mark.parametrize("combination", ["missing_root", "root_without_persist", "output"])
+def test_persistence_arguments_rejected_before_acquisition(
+    analysis_repo, tmp_path, capsys, monkeypatch, combination
+):
+    import importlib
+
+    module = importlib.import_module("smartregression.cli.main")
+
+    def forbidden(**kwargs):
+        pytest.fail("Invalid persistence arguments must not analyze or publish")
+
+    monkeypatch.setattr(module, "analyze_local", forbidden)
+    extra = {
+        "missing_root": ["--persist"],
+        "root_without_persist": ["--artifact-root", tmp_path],
+        "output": ["--persist", "--artifact-root", tmp_path, "--output", tmp_path / "out.json"],
+    }[combination]
+    assert main(args(analysis_repo, *extra)) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "invalid_persistence_arguments" in captured.err
+    assert not (tmp_path / "out.json").exists()
+
+
+@pytest.mark.parametrize("configured", [False, True])
+def test_persistence_configuration_failure_is_safe(
+    analysis_repo, tmp_path, capsys, monkeypatch, configured
+):
+    monkeypatch.delenv("SMARTREGRESSION_DATABASE_URL", raising=False)
+    # Runtime must never fall back to migration credentials.
+    monkeypatch.setenv("SMARTREGRESSION_MIGRATION_DATABASE_URL", "private-migration-url")
+    if configured:
+        monkeypatch.setenv("SMARTREGRESSION_DATABASE_URL", "private-invalid-runtime-url")
+    artifact_root = tmp_path / "artifacts"
+    artifact_root.mkdir()
+    assert main(args(analysis_repo, "--persist", "--artifact-root", artifact_root)) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "database_configuration_invalid" in captured.err
+    assert "private-" not in captured.err
+    assert list(artifact_root.iterdir()) == []
+
+
+@pytest.mark.parametrize(
+    "code", ["run_storage_failed", "run_storage_conflict", "run_metadata_invalid"]
+)
+def test_persistence_failure_never_emits_success(
+    analysis_repo, tmp_path, capsys, monkeypatch, code
+):
+    import importlib
+
+    from smartregression.application.run_store import RunConflict, RunMetadataError, RunStorageError
+
+    errors = {
+        "run_storage_failed": RunStorageError,
+        "run_storage_conflict": RunConflict,
+        "run_metadata_invalid": RunMetadataError,
+    }
+    module = importlib.import_module("smartregression.cli.main")
+
+    def fail(**kwargs):
+        raise errors[code]()
+
+    monkeypatch.setattr(module, "analyze_local", fail)
+    assert main(args(analysis_repo, "--persist", "--artifact-root", tmp_path)) == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert f"Persistence failed: {code}" in captured.err
+    assert "Persistence saved" not in captured.err
 
 
 def test_unexpected_exception_and_bad_serialized_report_fail_safely(

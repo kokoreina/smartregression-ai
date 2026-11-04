@@ -11,9 +11,11 @@ from pydantic import ValidationError
 from smartregression.adapters.git_local import LocalGit
 from smartregression.adapters.report_output import report_destination, write_report
 from smartregression.adapters.snapshot_store import materialize_pair
+from smartregression.adapters.storage.errors import DatabaseConfigurationError
 from smartregression.application.analysis import AnalysisError, analysis_exit_code
 from smartregression.application.changed_components import identify_changes
 from smartregression.application.reports import validate_report_json
+from smartregression.application.run_store import RunMetadataError, RunStorageError
 from smartregression.application.snapshots import RepositoryAuthorization, prepare_snapshots
 from smartregression.composition import analyze_local
 from smartregression.contracts.stages import StageAnalysisReport
@@ -22,6 +24,10 @@ from smartregression.core.git.snapshots import pair_manifest
 
 def _analyze(args: argparse.Namespace) -> int:
     try:
+        if (args.persist != (args.artifact_root is not None)) or (
+            args.persist and args.output is not None
+        ):
+            raise ValueError("invalid_persistence_arguments")
         if args.output is not None:
             report_destination(args.output, args.repository)
         report = analyze_local(
@@ -31,6 +37,7 @@ def _analyze(args: argparse.Namespace) -> int:
             base=args.base,
             target=args.target,
             data_kind=args.data_kind,
+            artifact_root=args.artifact_root,
         )
         # Revalidate nested mutable values at the serialization boundary.
         report = StageAnalysisReport.model_validate_json(report.model_dump_json())
@@ -40,6 +47,9 @@ def _analyze(args: argparse.Namespace) -> int:
         else:
             write_report(args.output, document, repository=args.repository)
         code = analysis_exit_code(report)
+    except (DatabaseConfigurationError, RunMetadataError, RunStorageError) as exc:
+        print(f"Persistence failed: {exc.code}", file=sys.stderr)
+        return 2
     except AnalysisError as exc:
         print(f"Analysis failed: {exc.code}", file=sys.stderr)
         return 2
@@ -47,7 +57,12 @@ def _analyze(args: argparse.Namespace) -> int:
         print("Analysis failed: report_validation_failed", file=sys.stderr)
         return 2
     except ValueError as exc:
-        safe = {"output_exists", "output_inside_repository", "unsafe_output_path"}
+        safe = {
+            "output_exists",
+            "output_inside_repository",
+            "unsafe_output_path",
+            "invalid_persistence_arguments",
+        }
         code = str(exc) if str(exc) in safe else "analysis_failed"
         print(f"Analysis failed: {code}", file=sys.stderr)
         return 2
@@ -63,6 +78,11 @@ def _analyze(args: argparse.Namespace) -> int:
         f"Analysis [{report.data_kind.upper()}]: {report.analysis_status}; exit={code}",
         file=sys.stderr,
     )
+    if args.persist:
+        print(
+            f"Persistence saved: run={report.identity.run_id}; report={report.report_id}",
+            file=sys.stderr,
+        )
     return code
 
 
@@ -92,6 +112,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     analysis.add_argument(
         "--output", type=Path, help="New JSON file outside input repo; default stdout"
+    )
+    analysis.add_argument(
+        "--persist", action="store_true", help="Publish report and save metadata to PostgreSQL"
+    )
+    analysis.add_argument(
+        "--artifact-root",
+        type=Path,
+        help="Existing artifact root outside input repo; requires --persist, excludes --output",
     )
     changed = commands.add_parser(
         "changed-components", help="Identify changes between two Git SHAs"
