@@ -106,6 +106,47 @@ def test_repeat_business_payload_stable_but_run_ids_fresh(tmp_path):
     assert a.report_id != b.report_id
 
 
+def test_execution_retains_acquired_manifests_and_actual_settings(tmp_path, monkeypatch):
+    import smartregression.application.analysis as workflow
+    from smartregression.core.git.snapshots import SnapshotLimits
+
+    acquired = []
+    actual = workflow.prepare_snapshots
+
+    def capture(*args, **kwargs):
+        pair = actual(*args, **kwargs)
+        acquired.append(pair)
+        return pair
+
+    monkeypatch.setattr(workflow, "prepare_snapshots", capture)
+    source = Source(tmp_path)
+    limits = SnapshotLimits(max_files=12, max_file_bytes=5000, max_total_bytes=60000)
+    execution = workflow.analyze_execution(
+        source,
+        authorization=RepositoryAuthorization("fixture", tmp_path),
+        repository_id="fixture",
+        base=BASE,
+        target=TARGET,
+        limits=limits,
+        data_kind="demo",
+    )
+    assert len(acquired) == 1
+    assert source.calls == [BASE, TARGET]
+    assert execution.snapshot_manifests == (acquired[0].base.manifest, acquired[0].target.manifest)
+    assert execution.configuration.snapshot_limits == limits
+    assert execution.configuration.python_source_limit_bytes == 256000
+    assert execution.configuration.graph_policy == "target_imports"
+    assert dict(execution.configuration.producer_versions) == {
+        "snapshots": "snapshot/1",
+        "changes": "changed-components/1",
+        "graph": None,
+    }
+    assert execution.configuration.application_version is None
+    assert execution.report.identity.target.snapshot_id == acquired[0].target.manifest.snapshot_id
+    assert "configuration" not in execution.report.model_dump()
+    assert "snapshot_manifests" not in execution.report.model_dump()
+
+
 @pytest.mark.parametrize("repository_id", ["other", "D:/secret/repo", "bad id"])
 def test_invalid_identity_or_authorization_before_source_read(tmp_path, repository_id):
     source = Source(tmp_path)

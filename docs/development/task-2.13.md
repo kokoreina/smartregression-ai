@@ -1,5 +1,150 @@
 # Task 2.13 — Incremental application workflow, CLI và demo
 
+<a id="persistence-wiring"></a>
+
+## Persistence wiring follow-up — 2026-11-04
+
+### Phạm vi, baseline và interface
+
+- Main fetch: `f1dbe2da629da9b008f76cac43fdcf3882f46109`, đã merge NativeTestId.
+- Checkout `D:\smart-regression-ai\var\main-review-20261103`, branch
+  `feat/sprint-2-2.13-report-persistence`. Checkout gốc và công việc có sẵn giữ nguyên.
+- Task chỉ nối run/report persistence, không làm EvidenceStore/P3, inventory,
+  retrieval, new endpoint/UI hoặc migrations. Scope implementation ban đầu không
+  commit/push; sau bàn giao user giao commit/push và mở PR để nhóm review/merge.
+  Không tự approve/merge vào main; kiểm chứng ở dưới là bằng chứng local, CI riêng.
+- Profiles/rules/skills theo Backend/Contracts, rules 01/02/03/04/06/07/12/13;
+  api-contracts, test-driven-development, security-review, systematic-debugging.
+  Không sub-agent hoặc xem open PR.
+
+`application.analysis.analyze_execution` trả internal `AnalysisExecution` gồm validated
+report, `RunConfiguration` và tuple manifests của chính SnapshotPair đã acquire.
+Không acquire lại hoặc dựng manifests từ report identity. Không đưa config/manifests
+vào public report, không giữ source contents trong execution result. `analyze` giữ
+return type report cho callers cũ bằng compatibility wrapper, không có orchestration
+thứ hai. `composition.analyze_local` vẫn trả report; optional `artifact_root` bật
+persistence và nối adapters tại composition root.
+
+Snapshot limits được resolve một lần, dùng cho acquisition và config. Source limit
+256000 bytes được lấy từ cùng constant `MAX_PYTHON_SOURCE_BYTES` tại Python snapshot
+parser; FrozenReader và graph gate tái sử dụng, không thay threshold/thuật toán.
+Snapshot/materializer versions đến từ acquisition manifests, changes version đến
+từ actual producer result. Graph/application version chưa có provenance đáng tin
+thì null; không lấy installed package version khác checkout hoặc tự bịa version.
+Graph policy target_imports/direct_two_tree được giữ theo execution hiện có.
+
+Tái dùng `persist_report`, `ReportFiles`, `PostgresRunReportStore`, settings/engine
+lifecycle của foundation. DB infrastructure chỉ import trong nhánh opt-in để default
+CLI/help không nạp SQLAlchemy/psycopg. Không đổi contract v1/v2, generated artifacts,
+stack/dependencies/lockfiles/schema/migrations hoặc thuật toán của thành viên khác.
+
+### CLI và prerequisites
+
+[Setup/vận hành](postgresql-setup.md#opt-in-cli-analysis-persistence) mô tả provision
+repository, runtime credentials, artifact root, exit codes và orphan policy.
+
+```powershell
+uv run smartregression analyze --help
+uv run smartregression analyze --repository D:/authorized/repo --repository-id repo-1 --authorized-root D:/authorized/repo --base <FULL_BASE_SHA> --target <FULL_TARGET_SHA> --persist --artifact-root D:/authorized-artifacts
+```
+
+Dòng thứ hai là template, không phải actual run với các placeholders này. Root phải
+tồn tại, do operator kiểm soát và disjoint source. `--artifact-root` yêu cầu
+`--persist`; hai flags không dùng với `--output`. Invalid combinations được reject
+trước acquisition/publication. Runtime load settings không fallback credentials
+migration, không tự migrate/provision hoặc nới TLS.
+
+Report file có storage key `<run_id>/<report_id>.json`; artifact ID lấy report ID
+trong artifact namespace. JSON stdout chỉ xuất sau save thành công; stderr giữ
+analysis status và thông báo `Persistence saved`. Analysis exit 1/2 vẫn được giữ
+cho incomplete/stage-failed report đã lưu. Storage/config/metadata errors dùng
+`Persistence failed: <safe_code>`, exit 2, không JSON/success giả hoặc DSN/SQL echo.
+
+File publish trước SQL; publication failure không gọi save. SQL failure rollback
+metadata, giữ complete orphan file để reconciliation; ambiguous commit không được
+tự delete/retry. New analyze tạo identity mới, không phải retry. Exact retry được
+test bằng giữ nguyên captured execution qua composition, không phân tích lại.
+Không có distributed transaction, CLI resume hay GC mới.
+
+### Kiểm chứng thực tế
+
+Cwd là checkout trên, Windows/Python 3.14.3. Dùng Python/Ruff của
+`D:/smart-regression-ai/var/task-2.20-b-venv/Scripts`, PYTHONPATH trỏ `backend/src`
+checkout, PYTHONDONTWRITEBYTECODE=1, PYTHONIOENCODING=utf-8. Git portable được prepend
+từ `D:/smart-regression-ai/var/task-2.13-tools/mingit/cmd`. Node 22.14.0/npm 10.9.2 và
+dependency junction có sẵn; không claim clean install.
+
+- Test-first CLI persistence: 5 failed do chưa có flags/semantics cần triển khai.
+- Focused workflow/CLI đầu: 33 passed; thêm composition/failure tests: 44 passed.
+- Full backend lần đầu: 429 passed, 1 failed, 44 skipped; existing subprocess guard
+  phát hiện eager DB import từ composition. Đã sửa bằng imports trong opt-in branch,
+  giữ nguyên guard và bổ sung subprocess analyze thực kiểm không nạp DB libraries.
+- Focused import/lifecycle/CLI sau fix: 42 passed, 1 existing Starlette/httpx warning.
+- `python scripts/storage/run_checks.py`: **43 passed** trên PostgreSQL 17.11,
+  16.33s; migrations/fresh head/backup-restore/catalog+artifact digest và cleanup pass.
+  Evidence local ignored:
+  `var/storage-verification-d91f1f5526aa40a18d772595599dfa48/evidence.json`.
+- Image pinned: `postgres@sha256:0b81cec82228160abfa753aeaad0609b709eb26eeb950f2e404ad2326e1cc370`.
+  Harness chỉ xóa đúng container có label do nó tạo, không dùng DB/shared volumes.
+- Ba DB cases mới kiểm actual CLI main/composition, Git acquisition/dirty-tree
+  isolation, file publication/reload, runtime SQL, config/manifests, partial/failed
+  stages, exact retry/conflict và unprovisioned repository. Chỉ settings factory được
+  inject cho explicit harness loopback exception; production TLS không đổi. Đây là
+  CLI main in-process acceptance, không claim TLS-enabled subprocess run thực.
+- `python scripts/demo_analysis.py --output D:/smart-regression-ai/var/task-2.13-persist-default-demo`
+  với runtime DB environment invalid cố ý: exit 0, thin=1/failure=2/empty=1 đúng kỳ vọng.
+  Git fixture tự sở hữu; không chạy Python đầu vào. Analysis vẫn incomplete.
+- Ruff check/format và exporter --check pass; frontend contracts:check/typecheck pass.
+  `analyze --help` hiển thị flags mới. Không đổi UI nên không browser acceptance.
+
+- Full backend final:
+  `python -m pytest backend/tests -q -p no:cacheprovider --tb=short --basetemp D:/smart-regression-ai/var/task-2.13-persist-full-2`
+  → **430 passed, 44 skipped**, 1 existing warning, exit 0, 123.58s. 44 skips gồm
+  43 opt-in DB tests và POSIX FIFO trên Windows; DB tests đã chạy riêng ở trên.
+- `git diff --check` và local links/anchors/fences của các Markdown đã đổi: pass.
+
+Scope này sẵn sàng review về implementation/acceptance cục bộ. CI của diff mới và
+independent human review chưa có; không suy toàn bộ task 2.13 hoặc sprint hoàn thành.
+
+### Kiểm chứng trước xuất bản sau tích hợp main
+
+User giao push/mở PR. Fetch mới thấy main `64d343b` đã merge inventory 2.08/2.09
+và potential impact 2.04. Merge vào nhánh task, giữ collector hook mới của KH và
+forward `inventory_collector` qua compatibility wrapper tới execution; không tự
+bật discovery trong CLI. Giữ cả hai phần verified-commands khi giải quyết conflict.
+
+- Backend với basetemp `D:/smart-regression-ai/var/task-2.13-persist-publish-main`:
+  **549 passed, 75 skipped**, 1 existing warning, exit 0, 248.59s; collector compatibility
+  tests trên main đều pass. 75 skips gồm 74 opt-in DB/candidate cases và POSIX FIFO.
+- PostgreSQL harness sau merge: **72 passed, 2 skipped**, 48.23s; hai skip là real
+  candidate-to-DB checks yêu cầu inventory harness riêng, không phải report persistence.
+  Revision head `20261104_03`, fresh migration/recovery/backup-restore/artifact catalog
+  và exact owned-container cleanup pass. Evidence local ignored:
+  `var/storage-verification-0aa218893c5f4d04b130babb801745c5/evidence.json`.
+- Lần harness đầu của bước publish dừng trước tạo container vì Docker engine tắt;
+  không dùng làm code failure/success evidence. Khởi động Docker Desktop nền, chạy
+  lại bằng container mới và đạt kết quả trên; không nới gate hoặc đổi database target.
+- Ruff lint/format (219 files), exporter --check, frontend contracts:check/typecheck
+  và diff checks sau merge pass. Kết quả implementation baseline phía trên là lịch sử.
+
+### Bàn giao và giới hạn
+
+Operator thực hiện prerequisites trong setup trước khi dùng persistence trên target
+được phép. KH/AN có thể tái sử dụng boundary tests cho 2.19; các fixture/fakes trong
+unit tests không thay acceptance DB. H1 tiếp tục P3/2.05 và integration producer khi
+có handoff; task 2.13 toàn phần vẫn pending các stage còn thiếu và human acceptance.
+
+OpenAI Codex hỗ trợ implementation/tests/docs/debugging/self-review. Đã đối chiếu
+Proposal Appendix C/D trong cùng chuỗi công việc; nhóm cần đọc/hiểu/review trước
+nghiệm thu. Không suy independent approval hoặc assistance percentage. Docker Desktop
+được mở để chạy verification; container test đã được harness xóa, không có DB service
+do task để lại. Không tự tắt Docker Desktop của người dùng.
+
+---
+
+Các phần dưới là handoff thin workflow ban đầu; trạng thái “chưa có persistence”
+thuộc baseline lịch sử, đã được follow-up phía trên bổ sung.
+
 ## Task và trạng thái
 
 Nguồn: [team guide 2.13](sprint-2-team-guide.md#task-213),

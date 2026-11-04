@@ -4,6 +4,7 @@ from typing import Protocol
 
 from smartregression.contracts.models import ChangedComponent
 from smartregression.core.git.snapshots import SnapshotPair
+from smartregression.core.impact.python_snapshot import MAX_PYTHON_SOURCE_BYTES
 
 
 class DiffSource(Protocol):
@@ -75,7 +76,7 @@ class FrozenReader:
         if entry is None:
             raise ValueError("missing_snapshot_path")
         _, content = entry
-        if len(content) > 256_000:
+        if len(content) > MAX_PYTHON_SOURCE_BYTES:
             raise ValueError("source_limit")
         if b"\0" in content:
             raise ValueError("binary_source")
