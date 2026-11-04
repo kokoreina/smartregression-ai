@@ -146,7 +146,7 @@ def test_execution_retains_acquired_manifests_and_actual_settings(tmp_path, monk
         "snapshots": "snapshot/1",
         "changes": "changed-components/1",
         "graph": None,
-        "impact": None,
+        "impact": "bounded-static-impact/1",
         "evidence": "frozen-static-evidence/1",
         "review_ordering": execution.report.stages.review_ordering.data.rule_version,
     }

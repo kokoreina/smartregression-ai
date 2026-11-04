@@ -38,7 +38,7 @@ def test_partial_graph_limits_propagate_through_impact_and_evidence(tmp_path):
 def test_unexpected_impact_failure_is_not_a_completed_empty_report(tmp_path, monkeypatch):
     import smartregression.application.analysis as workflow
 
-    def fail(*args):
+    def fail(*args, **kwargs):
         raise ValueError("private source must be redacted")
 
     monkeypatch.setattr(workflow, "build_potential_impact", fail)
