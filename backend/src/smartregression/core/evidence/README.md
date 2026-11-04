@@ -1,4 +1,6 @@
-# Evidence — chưa triển khai
+# Evidence — frozen-source verification
 
-Xác minh provenance commit/file/line/symbol và gắn evidence với findings/selection.
-Contract hiện chỉ kiểm tra cấu trúc và reference consistency, chưa kiểm chứng code thật.
+`resolution.py` kiểm vị trí source/span/symbol trên bytes do application cung cấp.
+Application `evidence.py` hash-check frozen snapshots và kiểm deterministic static
+impact claims; source resolved không tự chứng minh conclusion support.
+Xem [handoff 2.06](../../../../../docs/development/task-2.06.md).

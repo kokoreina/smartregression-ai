@@ -1,5 +1,12 @@
 # Sprint 2 team guide — SmartRegression AI
 
+> H1 implementation/audit update 2026-11-04:
+> [Prompt-7 acceptance audit](sprint-2-h1-acceptance-audit.md) distinguishes fetched
+> main from the verified PR stack #36–39 plus audit. Storage, backend evidence and
+> compound integration have actual tests; review/merge remain pending. The audit
+> also records confirmed VI upload-validation/run-ID findings and retrieval/collector
+> dependencies; do not mark whole Sprint 2 Done from backend checks.
+
 Ngày đối chiếu: **2026-10-31**. Mục tiêu: **Change impact + dependency analysis +
 RAG retrieval core**. Đây là hướng dẫn thực thi kế hoạch hiện hành; task scope,
 phân bổ giờ và reviewer trong workbook vẫn là **proposed**, chưa phải cam kết

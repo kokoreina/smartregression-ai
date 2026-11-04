@@ -131,7 +131,8 @@ def test_no_diff_is_not_no_impact_when_unchanged_target_source_fails(scope_repo,
         ("python_parse_failed", "unchanged.py"),
     ]
     assert report.stages.review_ordering.reason == "dependency_failed"
-    assert report.stages.impact.status == "not_implemented"
+    assert report.stages.impact.status == "not_run"
+    assert report.stages.impact.reason == "dependency_failed"
     assert report.analysis_status == "partial"
     assert "private_broken" not in output.read_text("utf-8")
     assert main(["validate-report", str(output)]) == 0  # Valid report, failed analysis.
