@@ -1,5 +1,14 @@
 # Lệnh đã đối chiếu với repository
 
+## Task 2.05 evidence storage — 2026-11-04
+
+[Handoff 2.05](task-2.05.md) records actual commands/environment/results: backend
+582 passed/91 skipped (before two additional opt-in DB cases), dedicated PostgreSQL
+90 passed/2 candidate-only skips, fresh head `20261104_04`, exact DB/artifact restore
+and evidence reload validation. Ruff/export/diff passed. Existing harness command
+`python scripts/storage/run_checks.py` uses the locked Python environment and
+dedicated owned container, never an external DSN. No automatic runtime migration.
+
 ## Xuất bản 2.13 sau tích hợp main ngày 2026-11-04
 
 Main `64d343b` đã có inventory/domain migration mới và potential impact. Nhánh 2.13

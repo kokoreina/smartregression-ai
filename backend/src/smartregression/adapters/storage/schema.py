@@ -1,4 +1,4 @@
-"""PostgreSQL foundation plus accepted task 2.08/2.09 inventory domain.
+"""PostgreSQL foundation plus accepted inventory and immutable evidence domains.
 
 No connections or create_all side effects. H1's adapters import these Table objects;
 versioned migrations contain frozen DDL rather than importing evolving metadata.
@@ -225,6 +225,26 @@ run_reports = sa.Table(
         for column in ("analysis_duration_seconds", "llm_cost_usd")
     ],
 )
+
+evidence_bundles = sa.Table(
+    "evidence_bundles",
+    metadata,
+    sa.Column("repository_id", sa.Text, primary_key=True),
+    sa.Column("run_id", sa.Text, primary_key=True),
+    sa.Column("bundle_format", sa.Text, nullable=False),
+    sa.Column("payload", sa.LargeBinary, nullable=False),
+    sa.Column("payload_sha256", sa.Text, nullable=False),
+    _created(),
+    _fk(
+        ["repository_id", "run_id"],
+        ["analysis_runs.repository_id", "analysis_runs.run_id"],
+        "fk_evidence_run",
+    ),
+    _check("length(bundle_format) BETWEEN 1 AND 128", "ck_evidence_format"),
+    _check("octet_length(payload) BETWEEN 1 AND 2097152", "ck_evidence_size"),
+    _check(f"payload_sha256 ~ '{_DIGEST}'", "ck_evidence_digest"),
+)
+
 
 test_inventories = sa.Table(
     "test_inventories",

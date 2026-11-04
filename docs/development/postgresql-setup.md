@@ -48,9 +48,10 @@ uv run alembic upgrade head
 uv run alembic current
 ```
 
-Expected head after inventory integration is `20261104_03`. Revision one creates
+Expected head after P3 evidence integration is `20261104_04`. Revision one creates
 repositories/snapshots/runs; revision two creates artifact/report catalog; revision
-three adds inventory/test-case tables. Reapplying head changes no data.
+three adds inventory/test-case tables; revision four adds bounded immutable
+evidence_bundles. Reapplying head changes no data.
 Unexpected objects, conflicting revisions or a shared/unknown target must be
 investigated; do not stamp/drop/reset to bypass errors. Offline DDL review needs
 neither credentials nor a connection:
@@ -60,7 +61,8 @@ uv run alembic upgrade head --sql
 ```
 
 Runtime uses `SMARTREGRESSION_DATABASE_URL`, a separate role with schema USAGE and
-SELECT/INSERT on the five application tables, not table ownership, DDL, UPDATE/DELETE
+SELECT/INSERT on the required foundation/domain tables (including evidence_bundles
+for 2.05), not table ownership, DDL, UPDATE/DELETE
 or Alembic version access. Provisioning roles/grants on existing infrastructure is
 an explicitly authorized operator action. Migrations do not create accounts or
 change shared-server permissions. A provisioned row does not authorize users to
