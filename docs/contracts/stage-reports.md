@@ -1,5 +1,11 @@
 # Stage reports v2.0.0
 
+> Follow-up accepted 2026-11-04: [quyết định inventory 2.08/2.09](../development/task-2.08-2.09-decisions.md)
+> yêu cầu giữ nguyên native pytest IDs. Source hiện vẫn dùng `Text` có trim cho
+> `InventoryPayload.test_ids`; H1 phối hợp KH triển khai `NativeTestId` riêng,
+> rà compatibility/version và regenerate theo rule 03. Đây là quyết định cần làm,
+> không phải claim contract code/types đã đổi. Không sửa global `Text`.
+
 Nguồn chuẩn: [stages.py](../../backend/src/smartregression/contracts/stages.py).
 Compatibility/handoff: [task 2.14](../development/task-2.14.md).
 Report phân tích theo stage không có selection, execution hoặc fault labels.
