@@ -19,6 +19,8 @@ from smartregression.contracts.models import Commit, Text
 
 Digest = Annotated[str, StringConstraints(pattern=r"^[0-9a-f]{64}$")]
 Code = Annotated[str, StringConstraints(pattern=r"^[a-z][a-z0-9_]*$")]
+# Framework IDs are opaque; metadata Text normalization would change their identity.
+NativeTestId = Annotated[str, StringConstraints(strict=True, strip_whitespace=False, min_length=1)]
 StageStatus = Literal["not_implemented", "not_run", "completed", "partial", "failed"]
 
 
@@ -284,7 +286,7 @@ class EvidencePayload(StageValue):
 class InventoryPayload(StageValue):
     snapshot: SnapshotIdentity
     framework: Literal["pytest"]
-    test_ids: list[Text]
+    test_ids: list[NativeTestId]
     completeness: Literal["complete", "partial"]
 
     @model_validator(mode="after")

@@ -120,6 +120,12 @@ tài liệu này**. Trước merge code phải ghi compatibility/version strateg
 Không bịa hồi phục IDs đã bị trim trong dữ liệu cũ; recollect từ snapshot/profile
 nếu cần dữ liệu native chính xác. Public schema version cụ thể phụ thuộc rà consumers.
 
+Cập nhật implementation follow-up 2.14 ngày 2026-11-04: H1 đã sửa cục bộ
+`InventoryPayload.test_ids` sang `NativeTestId`, giữ root v2.0.0 với yêu cầu nâng cấp
+reader cũ như [compatibility note](../contracts/stage-reports.md#native-test-ids).
+[Handoff và checks thực tế](task-2.14.md#native-test-id-follow-up) tách khỏi quyết định
+accepted ở trên; chưa suy commit/merge, collector hoặc DB acceptance từ thay đổi này.
+
 ## 6. PostgreSQL domain design
 
 KH sở hữu hai bảng `test_inventories`, `test_cases` và migration tiếp nối Alembic

@@ -8,7 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from smartregression.application.reports import validate_report_json
-from smartregression.contracts.stages import EvidenceBundle, StageAnalysisReport
+from smartregression.contracts.stages import EvidenceBundle, InventoryPayload, StageAnalysisReport
 
 
 def empty_report() -> dict:
@@ -325,6 +325,66 @@ def test_target_inventory_and_revision_bound_retrieval(stage: str) -> None:
     snapshot["commit"] = "c" * 40
     with pytest.raises(ValidationError):
         StageAnalysisReport.model_validate(data)
+
+
+@pytest.mark.parametrize(
+    "native_ids",
+    [
+        [
+            " tests/test_a.py::test_f[value] \t",
+            "tests/test_a.py::test_f[ space inside ]",
+            "tests/test_a.py::test_f[\u00e9]",
+            "tests/test_a.py::test_f[e\u0301]",
+            "tests/test_a.py::test_f[Case]",
+            "tests/test_a.py::test_f[case]",
+            "tests\\test_a.py::test_f[\\path::value]",
+            "tests/test_a.py::test_f[" + "\u00e9" * 300 + "]",
+        ],
+        ["tests/test_a.py::test_f", "tests/test_a.py::test_f "],
+        [" \t"],
+    ],
+)
+def test_inventory_native_ids_survive_report_round_trip(native_ids: list[str]) -> None:
+    data = empty_report()
+    data["report_id"] = " example-report "  # Metadata Text keeps its existing policy.
+    data["stages"]["inventory"] = {
+        "status": "completed",
+        "data": {
+            "snapshot": data["identity"]["target"],
+            "framework": "pytest",
+            "test_ids": native_ids,
+            "completeness": "complete",
+        },
+    }
+    data["analysis_status"] = "partial"
+    report = validate_report_json(json.dumps(data, ensure_ascii=False))
+    assert isinstance(report, StageAnalysisReport)
+    assert report.stages.inventory.data.test_ids == native_ids
+    assert report.report_id == "example-report"
+    restored = validate_report_json(report.model_dump_json())
+    assert isinstance(restored, StageAnalysisReport)
+    assert restored.stages.inventory.data.test_ids == native_ids
+
+
+@pytest.mark.parametrize("native_id", ["", None, 1, True, b"tests/test_a.py::test_f", [], {}])
+def test_inventory_native_ids_require_nonempty_strings(native_id: object) -> None:
+    with pytest.raises(ValidationError):
+        InventoryPayload.model_validate(
+            {
+                "snapshot": empty_report()["identity"]["target"],
+                "framework": "pytest",
+                "test_ids": [native_id],
+                "completeness": "complete",
+            }
+        )
+
+
+def test_legacy_native_id_trimming_is_unchanged(demo_data: dict) -> None:
+    original = demo_data["selection"]["selected"][0]["test_id"]
+    demo_data["selection"]["selected"][0]["test_id"] = f" {original}\t"
+    report = validate_report_json(json.dumps(demo_data))
+    assert report.schema_version == "1.0.0"
+    assert report.selection.selected[0].test_id == original
 
 
 @pytest.mark.parametrize("status", ["not_run", "not_implemented", "failed", "partial", "completed"])

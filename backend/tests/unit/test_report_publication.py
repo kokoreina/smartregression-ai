@@ -31,18 +31,27 @@ def publish(tmp_path: Path, stage_artifacts, fail=False):
 
 
 def test_publication_retry_and_read_validate_bytes_and_identity(tmp_path, stage_artifacts):
+    native_ids = [" tests/test_a.py::test_f \t", "tests/test_a.py::test_f[" + "\u00e9" * 300 + "]"]
+    stage_artifacts["stages"]["inventory"] = {
+        "status": "completed",
+        "data": {
+            "snapshot": stage_artifacts["identity"]["target"],
+            "framework": "pytest",
+            "test_ids": native_ids,
+            "completeness": "complete",
+        },
+    }
     files, args, kwargs, store = publish(tmp_path, stage_artifacts)
     for _ in range(2):
         write = persist_report(
             files, store, artifact_id="file-1", storage_key="reports/1.json", **kwargs
         )
     assert len(store.writes) == 2
-    assert (
-        files.read(
-            write.artifact, expected_identity=write.identity, expected_report_id=write.report_id
-        )
-        == args["report"]
+    restored = files.read(
+        write.artifact, expected_identity=write.identity, expected_report_id=write.report_id
     )
+    assert restored == args["report"]
+    assert restored.stages.inventory.data.test_ids == native_ids
     raw = (files.root / "reports/1.json").read_bytes()
     assert hashlib.sha256(raw).hexdigest() == write.artifact.sha256
 
