@@ -99,8 +99,8 @@ def test_forged_completed_result_cannot_hide_collection_error():
 def test_native_ids_are_not_silently_trimmed_by_canonical_text():
     target, identity = context()
     result = collect_inventory(target, identity, Collector([" test_one "], 0))
-    assert result.status == "failed"
-    assert result.error_code == "native_test_id_normalization"
+    assert result.status == "completed"
+    assert result.data.test_ids == [" test_one "]
 
 
 def test_untrusted_exception_is_not_echoed():

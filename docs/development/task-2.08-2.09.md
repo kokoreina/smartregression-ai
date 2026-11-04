@@ -1,5 +1,9 @@
 # Tasks 2.08 and 2.09 target inventory integration
 
+**Update 2026-11-04:** [Current implementation and acceptance handoff](task-2.08-2.09-completion.md)
+supersedes the historical pending decisions, per-ID cap and missing adapters below.
+The following is the historical 2026-11-03 delivery, not the current status.
+
 Date: 2026-11-03. Local branch `feat/khanh-task-2.08-2.09-inventory` starts from
 main `321c1cbc816f56ed5d50345a69e8314e1129fb2b`. The earlier independent work was
 preserved when switching branches. After verification, the user authorized commit

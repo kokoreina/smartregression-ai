@@ -1,12 +1,22 @@
-# PostgreSQL foundation task 2.20
+# PostgreSQL foundation và inventory 2.08/2.09
 
 PostgreSQL và P1/P2/P4 đã được nhóm chốt; nguồn tại
 [checkpoint](../../../../../docs/development/task-2.20-checkpoint.md) và
 [decision register](../../../../../docs/development/decision-register.md).
 Stack synchronous SQLAlchemy Core + psycopg binary; Alembic thuộc dev dependencies
-dành cho migration operator. Đã có schema 5 bảng, hai migrations và adapter run/report.
+dành cho migration operator. Foundation 2.20 có năm bảng và hai migrations; domain
+inventory nối thêm hai bảng và revision `20261104_03`, không sửa foundation revisions.
 User giao KH hoàn thiện adapter sau phần schema; xem
 [bàn giao adapter](../../../../../docs/development/task-2.20-adapter.md).
+
+- `inventory_store.PostgresInventoryStore` / `BoundInventoryStore`: frozen inventory
+  theo repository/run/target/config; exact retry no-op, changed payload conflict;
+  header/cases ghi atomic, load revalidate native IDs/order/count/status/digests.
+- `schema.test_inventories` / `test_cases`: scoped FKs, state/presence checks,
+  digest technical key và deferred count/order/byte constraints. Runtime thêm quyền
+  SELECT/INSERT domain; không cần UPDATE/DELETE/DDL. Xem
+  [inventory handoff](../../../../../docs/development/task-2.08-2.09-completion.md)
+  và [runtime evidence](../../../../../docs/research/sprint-2/inventory-verification-20261104.md).
 
 - `schema`: Core Table objects repositories/snapshots/analysis_runs/artifacts/run_reports.
 - `run_store.PostgresRunReportStore`: một transaction ghi immutable metadata; exact
@@ -39,7 +49,7 @@ hoặc caller có quyền repository. Không suy completed từ metadata/bundle.
 
 KH sở hữu schema/migrations/DB fixtures và đã nhận bàn giao phần adapter từ H1 theo
 user. PostgreSQL thật đạt 40 tests, gồm adapter/recovery; task handoff tách bằng chứng
-local khỏi CI/human acceptance. Vector backend, EvidenceBundle 2.05, inventory
-domain persistence, workflow default DB wiring và history catalog reader còn riêng.
+local khỏi CI/human acceptance. Vector backend, EvidenceBundle 2.05,
+workflow default DB wiring và history catalog reader còn riêng.
 Lịch sử phần H1 ban đầu:
 [handoff 2.20-B](../../../../../docs/development/task-2.20-b.md).

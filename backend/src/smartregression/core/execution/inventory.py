@@ -2,7 +2,7 @@
 
 No collection or dispatch happens here. A trusted isolated adapter must supply
 identity and controller termination independently of untrusted worker output.
-Public serialization, persistence and status mapping await task 2.14.
+Canonical projection and persistence live in application/adapters.
 """
 
 import re
@@ -13,9 +13,8 @@ from typing import Literal
 DiscoveryStatus = Literal["complete", "empty", "partial", "failed", "timeout"]
 Termination = Literal["exited", "timeout", "output_limit", "infrastructure_error"]
 
-# Local parser safeguards, not an accepted input-repository execution policy.
+# Bounded parser safeguards; the candidate transport also caps encoded output.
 MAX_TESTS = 10_000
-MAX_ID_BYTES = 8192
 MAX_INVENTORY_BYTES = 512 * 1024
 
 
@@ -61,18 +60,21 @@ class DiscoveryResult:
     exit_code: int | None
     collection_finished: bool
     collection_errors: int | None
+    checkpoint_valid: bool = False
 
 
-def _parse_payload(payload: object) -> tuple[tuple[str, ...], int, bool, int]:
-    if type(payload) is not dict or set(payload) != {
+def _parse_payload(payload: object) -> tuple[tuple[str, ...], int, bool, int, bool]:
+    required = {
         "ids",
         "exit_code",
         "collection_finished",
         "collection_errors",
-    }:
+    }
+    if type(payload) is not dict or set(payload) not in (required, required | {"checkpoint_valid"}):
         raise InventoryValidationError("invalid_collection_payload")
     ids, code = payload["ids"], payload["exit_code"]
     finished, errors = payload["collection_finished"], payload["collection_errors"]
+    checkpoint = payload.get("checkpoint_valid", False)
     if (
         type(ids) is not list
         or type(code) is not int
@@ -80,6 +82,7 @@ def _parse_payload(payload: object) -> tuple[tuple[str, ...], int, bool, int]:
         or type(finished) is not bool
         or type(errors) is not int
         or errors < 0
+        or type(checkpoint) is not bool
     ):
         raise InventoryValidationError("invalid_collection_payload")
     if len(ids) > MAX_TESTS:
@@ -87,16 +90,20 @@ def _parse_payload(payload: object) -> tuple[tuple[str, ...], int, bool, int]:
     seen: set[str] = set()
     total = 0
     for test_id in ids:
-        if not _valid_text(test_id):
+        if (
+            not isinstance(test_id, str)
+            or not test_id
+            or any(unicodedata.category(char) in {"Cc", "Cs"} for char in test_id)
+        ):
             raise InventoryValidationError("invalid_collection_payload")
         size = len(test_id.encode("utf-8"))
         total += size
-        if size > MAX_ID_BYTES or total > MAX_INVENTORY_BYTES:
+        if total > MAX_INVENTORY_BYTES:
             raise InventoryValidationError("inventory_limit")
         if test_id in seen:
             raise InventoryValidationError("duplicate_test_id")
         seen.add(test_id)
-    return tuple(ids), code, finished, errors
+    return tuple(ids), code, finished, errors, checkpoint
 
 
 def finalize_discovery(
@@ -123,8 +130,8 @@ def finalize_discovery(
         "infrastructure_error",
     }:
         raise InventoryValidationError("invalid_termination")
-    ids, code, finished, errors = (
-        ((), None, False, None) if payload is None else _parse_payload(payload)
+    ids, code, finished, errors, checkpoint = (
+        ((), None, False, None, False) if payload is None else _parse_payload(payload)
     )
     status: DiscoveryStatus
     reason: str | None
@@ -133,8 +140,10 @@ def finalize_discovery(
         reason = termination
     elif payload is None:
         status, reason = "failed", "missing_collection_payload"
-    elif code not in {0, 5}:
-        status, reason = ("partial" if ids else "failed"), "collection_failed"
+    elif code in {1, 3, 4}:
+        status, reason = "failed", "collection_failed"
+    elif code == 2:
+        status, reason = ("partial" if ids or checkpoint else "failed"), "collection_failed"
     elif errors:
         status, reason = ("partial" if ids else "failed"), "collection_errors"
     elif not finished:
@@ -143,7 +152,7 @@ def finalize_discovery(
         status, reason = "failed", "inconsistent_exit_code"
     else:
         status, reason = ("complete" if ids else "empty"), None
-    return DiscoveryResult(observed, ids, status, reason, code, finished, errors)
+    return DiscoveryResult(observed, ids, status, reason, code, finished, errors, checkpoint)
 
 
 def require_inventory_ids(

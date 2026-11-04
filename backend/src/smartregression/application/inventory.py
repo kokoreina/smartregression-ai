@@ -31,6 +31,8 @@ _SAFE_ERRORS = frozenset(
         "isolation_not_enforced",
         "collector_configuration_changed",
         "discovery_infrastructure_error",
+        "candidate_not_authorized",
+        "candidate_environment_mismatch",
     }
 )
 
@@ -75,6 +77,7 @@ def inventory_stage(
             "exit_code": result.exit_code,
             "collection_finished": result.collection_finished,
             "collection_errors": result.collection_errors,
+            "checkpoint_valid": result.checkpoint_valid,
         }
     )
     checked = finalize_discovery(
@@ -94,8 +97,7 @@ def inventory_stage(
         completeness="partial" if result.status == "partial" else "complete",
     )
     if data.test_ids != list(result.observed_ids):
-        # Canonical Text trims leading/trailing whitespace. Reject rather than
-        # changing a native ID; resolving that schema policy belongs to H1/2.14.
+        # Guard against deployment with an older v2 reader that still trims IDs.
         return StageResult(status="failed", error_code="native_test_id_normalization")
     return StageResult(
         status="partial" if result.status == "partial" else "completed",

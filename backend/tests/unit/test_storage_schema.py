@@ -8,10 +8,18 @@ from sqlalchemy.schema import CreateTable
 from smartregression.adapters.storage.schema import metadata
 
 
-def test_five_table_schema_has_scoped_keys_and_foreign_keys():
+def test_foundation_and_inventory_have_scoped_keys_and_foreign_keys():
     assert set(metadata.tables) == {
         "smartregression." + name
-        for name in ("repositories", "snapshots", "analysis_runs", "artifacts", "run_reports")
+        for name in (
+            "repositories",
+            "snapshots",
+            "analysis_runs",
+            "artifacts",
+            "run_reports",
+            "test_inventories",
+            "test_cases",
+        )
     }
     runs = metadata.tables["smartregression.analysis_runs"]
     assert list(runs.primary_key.columns.keys()) == ["repository_id", "run_id"]
@@ -30,12 +38,13 @@ def test_five_table_schema_has_scoped_keys_and_foreign_keys():
     assert "NaN" in sql and "Infinity" in sql
 
 
-def test_migration_chain_has_one_head_and_two_ordered_revisions():
+def test_migration_chain_has_one_head_and_ordered_revisions():
     root = Path(__file__).resolve().parents[3]
     config = Config(str(root / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ["20261103_02"]
+    assert script.get_heads() == ["20261104_03"]
     assert [(r.revision, r.down_revision) for r in script.walk_revisions()] == [
+        ("20261104_03", "20261103_02"),
         ("20261103_02", "20261103_01"),
         ("20261103_01", None),
     ]

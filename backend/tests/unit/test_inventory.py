@@ -63,7 +63,7 @@ def test_complete_inventory_preserves_native_ids_and_identity(identity):
         (observation(finished=False), "failed", "collection_unfinished"),
         (observation(), "failed", "inconsistent_exit_code"),
         (observation(["test_a"], exit_code=5), "failed", "inconsistent_exit_code"),
-        (observation(["test_a"], exit_code=3), "partial", "collection_failed"),
+        (observation(["test_a"], exit_code=3), "failed", "collection_failed"),
     ],
 )
 def test_collection_state_matrix(identity, payload, status, reason):
@@ -124,12 +124,10 @@ def test_stale_or_foreign_identity_is_rejected(identity, field, value):
         {**observation(), "ids": "test_a"},
         {**observation(), "ids": [None]},
         observation([""]),
-        observation(["   "]),
         observation(["test\nsecret"]),
         observation(["test\x1b[31m"]),
         observation(["test\ud800"]),
         observation(["test_a", "test_a"]),
-        observation(["x" * 8193]),
         observation([str(i) for i in range(10001)]),
         observation([str(i) + "x" * 8000 for i in range(70)]),
     ],
@@ -178,11 +176,27 @@ def test_unknown_controller_termination_is_rejected(identity):
 
 def test_utf8_limit_is_bytes_and_native_whitespace_is_not_normalized(identity):
     with pytest.raises(InventoryValidationError, match="inventory_limit"):
-        finish(identity, observation(["đ" * 4097]))
+        finish(identity, observation(["đ" * (262144 + 1)]))
     ids = [" tests/test_a.py::test_x[ a ] ", "tests/test_a.py::test_x[ a ]"]
     assert require_inventory_ids(finish(identity, observation(ids)), expected=identity) == tuple(
         ids
     )
+
+
+def test_long_and_whitespace_only_ids_remain_opaque(identity):
+    ids = [" " * 2, "test_" + "đ" * 5000]
+    assert finish(identity, observation(ids)).observed_ids == tuple(ids)
+
+
+def test_explicit_trusted_empty_checkpoint_is_partial_not_success_empty(identity):
+    result = finish(identity, {**observation(exit_code=2, errors=1), "checkpoint_valid": True})
+    assert (result.status, result.observed_ids) == ("partial", ())
+
+
+@pytest.mark.parametrize("code", [1, 3, 4])
+def test_internal_plugin_error_is_failed_even_with_ids(identity, code):
+    result = finish(identity, observation(["test_one"], exit_code=code))
+    assert result.status == "failed"
 
 
 def test_invalid_identity_objects_and_termination_have_stable_errors(identity):

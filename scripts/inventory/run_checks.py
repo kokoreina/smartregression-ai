@@ -99,6 +99,11 @@ def execute(image: str, output: Path) -> None:
                 "duplicate": ("failed", "duplicate_test_id"),
                 "timeout": ("failed", "discovery_timeout"),
                 "output_limit": ("failed", "output_limit"),
+                "plugin_error": ("failed", "collection_failed"),
+                "missing_result": ("failed", "invalid_worker_result"),
+                "malformed_result": ("failed", "invalid_worker_result"),
+                "unsupported_id": ("failed", "invalid_collection_payload"),
+                "native_ids": ("completed", None),
             }[case]
             observation = {
                 "expected": list(expected),
@@ -118,6 +123,13 @@ def execute(image: str, output: Path) -> None:
                 assert inventory.data.test_ids == ["tests/test_inventory.py::test_one"]
             if case == "empty":
                 assert inventory.data.test_ids == [] and inventory.data.completeness == "complete"
+            if case == "native_ids":
+                assert inventory.data.test_ids == [
+                    " test[đ] ",
+                    "test[é]",
+                    "test[e\u0301]",
+                    "test_" + "x" * 9000,
+                ]
             if inventory.status == "failed":
                 assert inventory.data is None and analysis_exit_code(report) == 2
         ledger["passed"] = True

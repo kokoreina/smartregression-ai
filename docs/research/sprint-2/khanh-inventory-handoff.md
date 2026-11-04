@@ -1,5 +1,11 @@
 # Khánh handoff for the independent part of 2.08 and 2.09
 
+**Update 2026-11-04:** [Current handoff](../../development/task-2.08-2.09-completion.md)
+supersedes the historical status below. Accepted decisions, native-ID dependency,
+candidate collector and PostgreSQL inventory domain are now integrated on the task
+branch. The documented operator run passed: 521 default tests, both real candidates,
+12 Docker fixtures and 71 actual PostgreSQL tests. Independent team review remains.
+
 Update 2026-11-03: preserved historical independent delivery below. Current branch,
 canonical report/workflow integration and isolated fixture collector are documented
 in [task 2.08/2.09](../../development/task-2.08-2.09.md). The dependencies described
