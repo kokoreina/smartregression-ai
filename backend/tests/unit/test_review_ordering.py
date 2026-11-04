@@ -645,3 +645,279 @@ class TestFullPipelineScenario:
 
         # Rule version
         assert result.rule_version == RULE_VERSION
+
+
+# ---------------------------------------------------------------------------
+# Group 12: Real data thin adapter (Task 2.01 & 2.04 integration)
+# ---------------------------------------------------------------------------
+
+
+class TestRealDataThinAdapter:
+    """Kiểm chứng lớp chuyển đổi mỏng kết nối output thực tế từ
+
+    Task 2.01 (ChangePayload) và Task 2.04 (ImpactPayload) sang ReviewOrder.
+    """
+
+    def test_order_from_impact_payload_mapping_and_distances(self) -> None:
+        """Kiểm chứng:
+
+        1. relationship 'changed' -> Tier 1, 'direct' -> Tier 2, 'indirect' -> Tier 3
+        2. Khoảng cách (distance) được trích xuất từ chuỗi nodes của ImpactPath:
+           - direct: distance 1
+           - indirect: min distance theo số cạnh (len(nodes) - 1)
+        """
+        import hashlib
+
+        from smartregression.contracts.stages import (
+            ImpactCandidate,
+            ImpactPath,
+            ImpactPayload,
+            SnapshotIdentity,
+        )
+        from smartregression.core.impact.review_ordering import order_from_impact_payload
+
+        snap = SnapshotIdentity(
+            repository_id="repo-1",
+            commit="a" * 40,
+            snapshot_id=hashlib.sha256(b"snap").hexdigest(),
+        )
+
+        p1 = ImpactPath(id="p1", changed_component_id="c1", nodes=["api.py", "core.py"])
+        p2 = ImpactPath(id="p2", changed_component_id="c1", nodes=["web.py", "api.py", "core.py"])
+
+        cand_core = ImpactCandidate(
+            id="cand-1",
+            path="core.py",
+            symbol=None,
+            relationship="changed",
+            changed_component_id="c1",
+            path_ids=[],
+        )
+        cand_api = ImpactCandidate(
+            id="cand-2",
+            path="api.py",
+            symbol=None,
+            relationship="direct",
+            changed_component_id="c1",
+            path_ids=["p1"],
+        )
+        cand_web = ImpactCandidate(
+            id="cand-3",
+            path="web.py",
+            symbol=None,
+            relationship="indirect",
+            changed_component_id="c1",
+            path_ids=["p2"],
+        )
+
+        impact = ImpactPayload(
+            snapshot=snap,
+            candidates=[cand_web, cand_core, cand_api],
+            paths=[p1, p2],
+        )
+
+        review_order = order_from_impact_payload(impact)
+
+        assert len(review_order.candidates) == 3
+        # Tier 1: core.py
+        assert review_order.candidates[0].path == "core.py"
+        assert review_order.candidates[0].tier == 1
+        assert "directly changed" in review_order.candidates[0].reason
+
+        # Tier 2: api.py (distance 1)
+        assert review_order.candidates[1].path == "api.py"
+        assert review_order.candidates[1].tier == 2
+        assert "distance 1" in review_order.candidates[1].reason
+
+        # Tier 3: web.py (distance 2 hops: web -> api -> core)
+        assert review_order.candidates[2].path == "web.py"
+        assert review_order.candidates[2].tier == 3
+        assert "min distance 2" in review_order.candidates[2].reason
+
+    def test_order_from_impact_deduplication_best_tier_wins(self) -> None:
+        """Kiểm chứng deduplication khi một component xuất hiện qua nhiều relationship
+
+        (ví dụ: vừa direct từ change 1 vừa indirect từ change 2).
+        Tier thấp hơn (1 < 2 < 3) và khoảng cách ngắn nhất phải thắng.
+        """
+        import hashlib
+
+        from smartregression.contracts.stages import (
+            ImpactCandidate,
+            ImpactPath,
+            ImpactPayload,
+            SnapshotIdentity,
+        )
+        from smartregression.core.impact.review_ordering import order_from_impact_payload
+
+        snap = SnapshotIdentity(
+            repository_id="repo-1",
+            commit="a" * 40,
+            snapshot_id=hashlib.sha256(b"snap").hexdigest(),
+        )
+
+        p_direct = ImpactPath(
+            id="p_d", changed_component_id="c1", nodes=["shared.py", "origin1.py"]
+        )
+        p_indirect = ImpactPath(
+            id="p_i", changed_component_id="c2", nodes=["shared.py", "mid.py", "origin2.py"]
+        )
+
+        # shared.py xuất hiện 2 lần: direct từ c1, indirect từ c2
+        cand_direct = ImpactCandidate(
+            id="c_d",
+            path="shared.py",
+            symbol=None,
+            relationship="direct",
+            changed_component_id="c1",
+            path_ids=["p_d"],
+        )
+        cand_indirect = ImpactCandidate(
+            id="c_i",
+            path="shared.py",
+            symbol=None,
+            relationship="indirect",
+            changed_component_id="c2",
+            path_ids=["p_i"],
+        )
+
+        impact = ImpactPayload(
+            snapshot=snap,
+            candidates=[cand_indirect, cand_direct],
+            paths=[p_direct, p_indirect],
+        )
+
+        review_order = order_from_impact_payload(impact)
+
+        # shared.py chỉ xuất hiện duy nhất 1 lần ở Tier 2 (best tier)
+        assert len(review_order.candidates) == 1
+        cand = review_order.candidates[0]
+        assert cand.path == "shared.py"
+        assert cand.tier == 2
+        assert "distance 1" in cand.reason
+
+    def test_order_from_impact_limitations_reconciliation_from_graph(self) -> None:
+        """Kiểm chứng tính tương thích của định nghĩa 'partial':
+
+        Khi GraphPayload có unresolved imports (star_import, dynamic_import, v.v.),
+        lớp chuyển đổi mỏng phải ghi nhận 'partial_graph' và các unresolved reasons cụ thể.
+        """
+        import hashlib
+
+        from smartregression.contracts.stages import (
+            GraphPayload,
+            ImpactCandidate,
+            ImpactPayload,
+            ImportLimitation,
+            SnapshotIdentity,
+            StageEdge,
+        )
+        from smartregression.core.impact.review_ordering import order_from_impact_payload
+
+        snap = SnapshotIdentity(
+            repository_id="repo-1",
+            commit="a" * 40,
+            snapshot_id=hashlib.sha256(b"snap").hexdigest(),
+        )
+
+        impact = ImpactPayload(
+            snapshot=snap,
+            candidates=[
+                ImpactCandidate(
+                    id="c1",
+                    path="core.py",
+                    symbol=None,
+                    relationship="changed",
+                    changed_component_id="comp1",
+                    path_ids=[],
+                )
+            ],
+            paths=[],
+        )
+
+        graph = GraphPayload(
+            snapshot=snap,
+            nodes=["core.py", "importer.py"],
+            edges=[StageEdge(source="importer.py", target="core.py", kind="absolute_import")],
+            unresolved=[
+                ImportLimitation(
+                    source_path="importer.py",
+                    reference="*",
+                    kind="star_import",
+                    reason="unsupported_import",
+                ),
+                ImportLimitation(
+                    source_path="importer.py",
+                    reference="missing_pkg",
+                    kind="absolute_import",
+                    reason="target_not_in_snapshot",
+                ),
+            ],
+        )
+
+        review_order = order_from_impact_payload(impact, graph=graph)
+
+        assert "partial_graph" in review_order.limitations
+        assert "unsupported_import" in review_order.limitations
+        assert "target_not_in_snapshot" in review_order.limitations
+
+    def test_order_from_stage_changes_end_to_end(self) -> None:
+        """Kiểm chứng hàm order_from_stage_changes chuyển đổi ChangePayload + GraphPayload."""
+        import hashlib
+
+        from smartregression.contracts.stages import (
+            ChangePayload,
+            FileCoverage,
+            GraphPayload,
+            SnapshotIdentity,
+            StageComponent,
+            StageEdge,
+        )
+        from smartregression.core.impact.review_ordering import order_from_stage_changes
+
+        snap = SnapshotIdentity(
+            repository_id="repo-1",
+            commit="a" * 40,
+            snapshot_id=hashlib.sha256(b"snap").hexdigest(),
+        )
+
+        changes = ChangePayload(
+            components=[
+                StageComponent(
+                    id="comp-1",
+                    path="core/storage.py",
+                    kind="method",
+                    symbol="Storage.validate",
+                    change="modified",
+                    base_location={"line_start": 5, "line_end": 8},
+                    target_location={"line_start": 5, "line_end": 10},
+                    reason="content_changed",
+                )
+            ],
+            files=[FileCoverage(path="core/storage.py", status="completed", limitations=[])],
+        )
+
+        graph = GraphPayload(
+            snapshot=snap,
+            nodes=["core/storage.py", "api/routes.py"],
+            edges=[
+                StageEdge(
+                    source="api/routes.py",
+                    target="core/storage.py",
+                    kind="absolute_import",
+                )
+            ],
+            unresolved=[],
+        )
+
+        review_order = order_from_stage_changes(changes, graph)
+
+        assert len(review_order.candidates) == 2
+        # Tier 1: core/storage.py with symbol Storage.validate
+        assert review_order.candidates[0].path == "core/storage.py"
+        assert review_order.candidates[0].symbol == "Storage.validate"
+        assert review_order.candidates[0].tier == 1
+
+        # Tier 2: api/routes.py
+        assert review_order.candidates[1].path == "api/routes.py"
+        assert review_order.candidates[1].tier == 2

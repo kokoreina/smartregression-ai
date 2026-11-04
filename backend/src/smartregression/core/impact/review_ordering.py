@@ -12,6 +12,11 @@ from dataclasses import dataclass
 from typing import Literal
 
 from smartregression.contracts.models import ChangedComponent
+from smartregression.contracts.stages import (
+    ChangePayload,
+    GraphPayload,
+    ImpactPayload,
+)
 
 RULE_VERSION = "2.07-v1"
 
@@ -166,3 +171,135 @@ def order_for_review(
         limitations=merged_limitations,
         rule_version=RULE_VERSION,
     )
+
+
+def order_from_impact_payload(
+    impact: ImpactPayload,
+    *,
+    graph: GraphPayload | None = None,
+    limitations: Sequence[str] = (),
+) -> ReviewOrder:
+    """Thin adapter converting Task 2.04 ImpactPayload into a ReviewOrder.
+
+    Maps Task 2.04 relationship tiers:
+        - 'changed'  → Tier 1
+        - 'direct'   → Tier 2
+        - 'indirect' → Tier 3
+
+    Distance resolution:
+        Derives shortest graph distance (hops) from associated ImpactPath nodes
+        and includes it in the candidate reason.
+
+    Limitations reconciliation:
+        - If graph has unresolved imports, records 'partial_graph' and appends
+          the specific unresolved reasons/kinds.
+        - If graph is present with nodes but no edges, records 'partial_graph'.
+        - Preserves caller-supplied limitations.
+
+    Deduplication:
+        If a component appears under multiple relationships (e.g. reachable
+        both directly from one change and indirectly from another), the lowest
+        tier wins (1 < 2 < 3), and the shortest distance is retained.
+    """
+    extra_limitations: set[str] = set()
+    path_lookup = {path.id: path for path in impact.paths}
+
+    # Group candidates by (path, symbol) to resolve duplicates across multiple change origins
+    grouped: dict[tuple[str, str | None], list[tuple[int, int, str]]] = {}
+
+    for cand in impact.candidates:
+        if cand.relationship == "changed":
+            tier: Literal[1, 2, 3] = 1
+        elif cand.relationship == "direct":
+            tier = 2
+        else:
+            tier = 3
+
+        if tier == 1:
+            dist = 0
+            reason = f"directly changed ({cand.symbol or 'module-level'})"
+        elif tier == 2:
+            dist = 1
+            reason = "direct dependent (distance 1)"
+        else:
+            # Derive distance from associated ImpactPaths
+            matched_lengths = [
+                len(path_lookup[pid].nodes) - 1 for pid in cand.path_ids if pid in path_lookup
+            ]
+            dist = min(matched_lengths, default=2)
+            reason = f"indirect dependent (min distance {dist})"
+
+        key = (cand.path, cand.symbol)
+        grouped.setdefault(key, []).append((tier, dist, reason))
+
+    candidates: list[ReviewCandidate] = []
+    for (path, symbol), entries in grouped.items():
+        # Best (lowest) tier wins
+        best_tier = min(e[0] for e in entries)
+        # For the chosen tier, pick shortest distance and its reason
+        best_entry = min(
+            (e for e in entries if e[0] == best_tier),
+            key=lambda e: e[1],
+        )
+        candidates.append(
+            ReviewCandidate(
+                path=path,
+                symbol=symbol,
+                tier=best_tier,  # type: ignore[arg-type]
+                reason=best_entry[2],
+            )
+        )
+
+    # Sort candidates deterministically: (tier, path, symbol or "")
+    sorted_candidates = tuple(sorted(candidates, key=lambda c: (c.tier, c.path, c.symbol or "")))
+
+    # Reconcile limitations from graph or missing paths
+    if graph is not None:
+        if graph.unresolved:
+            extra_limitations.add(_LIMITATION_PARTIAL_GRAPH)
+            for u in graph.unresolved:
+                extra_limitations.add(u.reason)
+        if not graph.edges and graph.nodes:
+            extra_limitations.add(_LIMITATION_PARTIAL_GRAPH)
+    elif not impact.paths and any(c.tier > 1 for c in sorted_candidates):
+        extra_limitations.add(_LIMITATION_PARTIAL_GRAPH)
+
+    merged_limitations = tuple(sorted(set(limitations) | extra_limitations))
+
+    return ReviewOrder(
+        candidates=sorted_candidates,
+        limitations=merged_limitations,
+        rule_version=RULE_VERSION,
+    )
+
+
+def order_from_stage_changes(
+    changes: ChangePayload,
+    graph: GraphPayload,
+    *,
+    limitations: Sequence[str] = (),
+) -> ReviewOrder:
+    """Thin adapter converting Stage ChangePayload (Task 2.01) and GraphPayload (Task 2.03)
+
+    directly into a ReviewOrder using order_for_review.
+    """
+    changed_components = [
+        ChangedComponent(
+            path=c.path,
+            symbol=c.symbol,
+            change=c.change,
+            previous_path=c.previous_path,
+        )
+        for c in changes.components
+        if c.kind != "file"  # exclude file-level git metadata wrapper when symbol/module exists
+    ]
+    edges = [(edge.source, edge.target) for edge in graph.edges]
+
+    extra_limitations: set[str] = set()
+    if graph.unresolved:
+        extra_limitations.add(_LIMITATION_PARTIAL_GRAPH)
+        for u in graph.unresolved:
+            extra_limitations.add(u.reason)
+
+    merged_limitations = tuple(sorted(set(limitations) | extra_limitations))
+    return order_for_review(changed_components, edges, merged_limitations)

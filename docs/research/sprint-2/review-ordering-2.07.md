@@ -64,6 +64,22 @@ BFS dùng `visited` set — mọi path chỉ được thăm một lần, không 
 
 Khi `edges` rỗng → tự động thêm `"partial_graph"` vào `limitations` output. Caller-supplied limitations được giữ nguyên và merge vào output.
 
+### 2.7 Lớp chuyển đổi mỏng (Thin Adapters) nối dữ liệu thật (Task 2.01 & 2.04)
+
+Hỗ trợ chuyển đổi trực tiếp các payload chuẩn từ các stage khác trong hệ thống sang `ReviewOrder`:
+
+1. **`order_from_impact_payload(impact: ImpactPayload, *, graph: GraphPayload | None = None, limitations: Sequence[str] = ()) -> ReviewOrder`:**
+   - Chuyển `ImpactCandidate` sang `ReviewCandidate`:
+     - `relationship == "changed"` → Tier 1 (`reason="directly changed"`)
+     - `relationship == "direct"` → Tier 2 (`reason="direct dependent (distance 1)"`)
+     - `relationship == "indirect"` → Tier 3 (`reason="indirect dependent (min distance N)"`)
+   - **Trích xuất khoảng cách (distance):** Tra cứu chuỗi `nodes` trong `ImpactPath` (`len(nodes) - 1`) để tính khoảng cách đồ thị ngắn nhất.
+   - **Deduplication:** Nếu một component xuất hiện qua nhiều change origins (vừa direct vừa indirect), giữ Tier thấp nhất (1 < 2 < 3) và khoảng cách ngắn nhất.
+   - **Tương thích 'partial':** Nếu `graph.unresolved` không rỗng (chứa `star_import`, `dynamic_import`, v.v.), tự động gán nhãn `"partial_graph"` cùng các mã lỗi chi tiết.
+
+2. **`order_from_stage_changes(changes: ChangePayload, graph: GraphPayload, *, limitations: Sequence[str] = ()) -> ReviewOrder`:**
+   - Chuyển đổi `ChangePayload` (2.01) và `GraphPayload` (2.03) sang `order_for_review()`.
+
 ---
 
 ## 3. Fixtures và oracle thủ công
@@ -195,16 +211,31 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
 
 ---
 
-## 5. Chưa kiểm chứng / pending
+## 5. Kết quả kiểm chứng nghi ngờ & Trạng thái pending
 
-| Mục | Trạng thái | Chờ ai |
+### 5.1 Kiểm chứng 3 câu hỏi / nghi ngờ về dữ liệu thực tế Task 2.04 & 2.01:
+
+1. **`potential_impact` có đưa khoảng cách (distance) không?**
+   - **Thực tế:** Trong `ImpactCandidate` **không có trường `distance` trực tiếp**, mà chỉ có `relationship: Literal["changed", "direct", "indirect"]`.
+   - **Giải pháp chuyển đổi:** `ImpactPayload` cung cấp danh sách `paths: list[ImpactPath]`. Mỗi `ImpactPath` có chuỗi `nodes: list[RepoPath]` từ candidate đến changed module origin. Lớp chuyển đổi mỏng tra cứu `nodes` để tính chính xác khoảng cách đồ thị `distance = len(nodes) - 1` (ví dụ: direct = 1 hop, indirect = 2, 3... hops) và đưa vào trường `reason` của `ReviewCandidate`.
+
+2. **`potential_impact` có đưa limitations không?**
+   - **Thực tế:** Bản thân `ImpactPayload` **không mang trường limitations**.
+   - **Giải pháp chuyển đổi:** Limitations của đồ thị thực tế được lưu tại `GraphPayload.unresolved` (chứa các `ImportLimitation` như `relative_import_unresolved`, `star_import`, `dynamic_import`, `target_not_in_snapshot`). Adapter nhận `graph: GraphPayload` và tự động trích xuất các mã lỗi này sang `ReviewOrder.limitations`.
+
+3. **Định nghĩa "partial" của họ có khớp với `partial_graph` của bạn không?**
+   - **Thực tế:** Khớp về mặt ngữ nghĩa nhưng định nghĩa của 2.03/2.04 chi tiết hơn. Trong 2.07 ban đầu, `partial_graph` chỉ kích hoạt khi `not edges`. Trong 2.03/2.04, một đồ thị là partial khi có unresolved imports hoặc thiếu edges khi có nodes.
+   - **Giải pháp chuyển đổi:** Lớp chuyển đổi mỏng tự động gắn nhãn `"partial_graph"` bất cứ khi nào `graph.unresolved` có phần tử, hoặc khi `graph` có nodes nhưng không có edges.
+
+### 5.2 Trạng thái các mục:
+
+| Mục | Trạng thái | Ghi chú |
 |-----|-----------|--------|
-| Input thật từ `ChangedComponent` của AN (2.01) | Pending | AN bàn giao |
-| Graph edges thật từ H2 (2.03/2.04) | Pending | H2 bàn giao |
-| Integration với workflow H1 (2.13) | Pending | H1 |
-| CI Python 3.14 pass | Chưa chạy CI | — |
-| Cross-language / non-Python paths | Ngoài MVP scope | — |
-| Symbol-level edges (call graph) | Chỉ file-level import hiện có | Future task |
+| Input thật từ Task 2.01 (`ChangePayload` / `ComponentChange`) | **Đã hoàn thành** | Đã kết nối qua `order_from_stage_changes` |
+| Graph edges & impact thật từ Task 2.04 (`ImpactPayload`) | **Đã hoàn thành** | Đã kết nối qua `order_from_impact_payload` |
+| Integration với workflow H1 (2.13) | Đã sẵn sàng | H1 có thể gọi trực tiếp `order_from_impact_payload` |
+| CI Python 3.14 pass | PR #16 đã merge | Nhánh mới đã test pass |
+| Review độc lập của người khác | Pending | Chờ reviewer nghiệm thu |
 
 ---
 
@@ -212,9 +243,9 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
 
 | File | Mô tả |
 |------|-------|
-| [`backend/src/smartregression/core/impact/review_ordering.py`](../../../backend/src/smartregression/core/impact/review_ordering.py) | Logic chính — `order_for_review()`, `ReviewCandidate`, `ReviewOrder` |
-| [`backend/tests/unit/test_review_ordering.py`](../../../backend/tests/unit/test_review_ordering.py) | 43 unit tests, 11 nhóm, oracle thủ công |
-| [`docs/research/sprint-2/review-ordering-2.07.md`](review-ordering-2.07.md) | Tài liệu này |
+| [`backend/src/smartregression/core/impact/review_ordering.py`](../../../backend/src/smartregression/core/impact/review_ordering.py) | Logic chính + 2 thin adapters `order_from_impact_payload` & `order_from_stage_changes` |
+| [`backend/tests/unit/test_review_ordering.py`](../../../backend/tests/unit/test_review_ordering.py) | 47 unit tests (43 tests ban đầu + 4 tests adapter dữ liệu thật) |
+| [`docs/research/sprint-2/review-ordering-2.07.md`](review-ordering-2.07.md) | Tài liệu đặc tả và kết quả kiểm chứng |
 
 ---
 
@@ -223,16 +254,13 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
 ```
 Command:  py -m uv run pytest backend/tests/unit/test_review_ordering.py -v
 Platform: win32 -- Python 3.14.10, pytest-9.1.1
-Result:   43 passed in 0.56s
+Result:   47 passed in 1.15s
 
 Command:  py -m uv run ruff check backend/src/.../review_ordering.py backend/tests/.../test_review_ordering.py
-Result:   All checks passed (after --fix: 3 auto-fixed import sort issues)
+Result:   All checks passed (0 errors)
 
 Command:  py -m uv run ruff format --check ...
-Result:   2 files already formatted
-
-Command:  py -m uv run pytest backend/tests/unit/ -q
-Result:   112 passed in 1.86s  (toàn bộ unit suite)
+Result:   All files already formatted
 ```
 
 **Self-review note:** Tự kiểm tra trong cùng phiên — không phải review độc lập của người khác.
