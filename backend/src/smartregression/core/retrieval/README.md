@@ -32,3 +32,25 @@ This module deliberately does not choose a chunking policy, embedding model, vec
 database, retrieval backend, retention policy or PostgreSQL tables. Source bytes are
 only accepted transiently to verify a manifest; they are not stored in the manifest.
 Retrieval consumers must continue to treat source content as untrusted data.
+
+## Task 2.11 context payload boundary
+
+`context.build_retrieval_payload` is a backend-neutral, in-memory builder for
+`RetrievalPayload`. It consumes a validated Task 2.10 `IndexManifest` and the
+Task 2.04 `ImpactPayload`, checks repository/commit/snapshot/configuration identity,
+and returns matching chunk provenance (`path`, physical source range, content hash,
+snapshot identity, index identity, configuration identity and a deterministic
+manifest-order contract rank; it does not perform relevance ranking).
+It returns an explicit empty `items` list when no candidate path has a matching
+chunk. It does not return source text.
+
+Wrong repository, commit, snapshot, stale configuration, invalid manifest, and
+inconsistent source data are rejected. Candidate and source text remain opaque data;
+the builder does not execute content and does not accept outcomes, fault labels or
+execution results.
+
+This builder is not a retrieval backend and does not authorize an index. It must not
+be used to bypass `IndexBuild.ready()`: ready publication remains blocked until
+Task 2.15/H1 supplies independently acquired snapshot evidence. Backend selection,
+ranking/deduplication/verification, persistence and workflow integration remain
+outside Task 2.11 pending the approved Task 2.20 P5 and downstream task boundaries.
