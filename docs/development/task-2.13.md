@@ -4,6 +4,11 @@
 
 ## Prompt 6 — integrated static impact/evidence and compound persistence
 
+> [Prompt-7 audit](sprint-2-h1-acceptance-audit.md) adds bounded impact expansion
+> (`bounded-static-impact/1`): 4,096 total paths and 10,000 candidates, with explicit
+> failed stage on exhaustion. Tests/merge status there supersede assumptions that
+> source-input byte limits alone bound path enumeration.
+
 Local branch `feat/sprint-2-2.13-evidence-integration`, depending on prompt-5 PR #38
 and storage PR #37/P3 #36. The historical handoffs below remain baseline-specific;
 they do not describe the current integration branch's available stages.

@@ -1,5 +1,15 @@
 # Lệnh đã đối chiếu với repository
 
+## Prompt 7 H1 acceptance audit — 2026-11-04
+
+[Audit](sprint-2-h1-acceptance-audit.md) records exact baseline/commands/evidence:
+main-only focused worktree 109 passed; final implementation stack **612 passed,
+95 skipped**, one existing warning; dedicated PostgreSQL **92 passed, 2 skipped**
+(separate candidate harness), fresh head/recovery/reload/cleanup passed. CLI demo,
+Ruff/export and frontend contracts/typecheck/lint/build passed. Bounded impact
+path/candidate failure regressions included; UI findings reproduced and handed to
+VI, not hidden by build success. Pending merges mean these are not full-main claims.
+
 ## Prompt 6 workflow/evidence integration — 2026-11-04
 
 [Integration handoff](task-2.13.md#evidence-integration) records backend 606 passed /

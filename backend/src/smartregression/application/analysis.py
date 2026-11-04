@@ -38,7 +38,11 @@ from smartregression.contracts.stages import (
 )
 from smartregression.core.git.snapshots import SnapshotLimits, SnapshotManifest, SnapshotPair
 from smartregression.core.impact.dependency_graph import build_dependency_graph
-from smartregression.core.impact.potential_impact import build_potential_impact
+from smartregression.core.impact.potential_impact import (
+    IMPACT_VERSION,
+    MAX_IMPACT_PATHS,
+    build_potential_impact,
+)
 from smartregression.core.impact.python_snapshot import MAX_PYTHON_SOURCE_BYTES
 from smartregression.core.impact.review_ordering import RULE_VERSION, order_from_impact_payload
 
@@ -66,6 +70,8 @@ _SAFE_ERRORS = frozenset(
         "ambiguous_module",
         "source_limit",
         "binary_source",
+        "impact_path_limit",
+        "impact_candidate_limit",
     }
 )
 
@@ -272,11 +278,15 @@ def analyze_execution(
         try:
             impact = StageResult(
                 status="partial" if inherited else "completed",
-                data=build_potential_impact(identity, projected, graph.data),
+                data=build_potential_impact(
+                    identity, projected, graph.data, max_paths=MAX_IMPACT_PATHS
+                ),
                 limitations=inherited,
             )
-        except ValueError, RecursionError:
-            impact = StageResult(status="failed", error_code="impact_analysis_failed")
+        except (ValueError, RecursionError) as exc:
+            impact = StageResult(
+                status="failed", error_code=_error_code(exc, "impact_analysis_failed")
+            )
         if impact.data is not None:
             try:
                 explained, evidence = explain_impact(
@@ -353,7 +363,7 @@ def analyze_execution(
                 ("snapshots", pair.target.manifest.schema_version),
                 ("changes", change_version),
                 ("graph", None),
-                ("impact", None),
+                ("impact", IMPACT_VERSION),
                 ("evidence", EVIDENCE_VERSION),
                 ("review_ordering", RULE_VERSION),
             ),

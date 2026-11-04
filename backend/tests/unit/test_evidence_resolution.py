@@ -222,3 +222,27 @@ def test_unchanged_module_span_cannot_prove_a_change_elsewhere_in_file():
     _, result = explain_impact(bundle.identity, changes, bundle.graph, bundle.impact, pair)
     assert result.status == "partial"
     assert all(item.support != "supported" for item in result.data.items)
+
+
+def test_arbitrary_claim_is_unverified_even_when_a_structural_claim_is_contradicted():
+    bundle, pair, _ = case()
+    graph = bundle.graph.model_copy(
+        update={
+            "edges": [
+                edge.model_copy(update={"kind": "invented_dependency"})
+                for edge in bundle.graph.edges
+            ]
+        }
+    )
+    candidates = [
+        candidate.model_copy(update={"explanation": "An arbitrary security claim."})
+        for candidate in bundle.impact.candidates
+    ]
+    changed = bundle.model_copy(
+        update={
+            "graph": graph,
+            "impact": bundle.impact.model_copy(update={"candidates": candidates}),
+        }
+    )
+    result = inspect_bundle(changed, pair)
+    assert all(item.support == "unverified" for item in result.data.items)
