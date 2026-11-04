@@ -564,3 +564,88 @@ class TestEvidenceReferenceShape:
                 symbol="Statement.get_type",
                 change="updated",  # không phải literal hợp lệ
             )
+
+
+# ---------------------------------------------------------------------------
+# Group 6: Cross-check đối soát với actual output của Task 2.01
+# ---------------------------------------------------------------------------
+
+
+class TestActualTask201Reconciliation:
+    """Đối soát thực tế output của Task 2.01 (compare_python) với Oracle độc lập 2.02."""
+
+    def test_reconcile_fixture_a_process(self):
+        from smartregression.core.impact.changed_components import compare_python
+
+        changes = compare_python(FIXTURE_A_BASE, FIXTURE_A_TARGET, path="test_a.py")
+        direct_symbols = {c.symbol for c in changes if c.kind in ("function", "method")}
+        assert direct_symbols == {"process"}
+
+        process_rec = next(c for c in changes if c.symbol == "process")
+        assert process_rec.change == "modified"
+        assert process_rec.base_location.line_start == 1
+        assert process_rec.base_location.line_end == 5
+        assert process_rec.target_location.line_start == 1
+        assert process_rec.target_location.line_end == 3
+        assert process_rec.reason == "content_changed"
+
+    def test_reconcile_fixture_b_q_an_01_resolved(self):
+        """Xác nhận giải quyết Q-AN-01: Class Storage mang reason contains_changed_symbol,
+
+        trong khi method Storage.validate mang reason content_changed.
+        """
+        from smartregression.core.impact.changed_components import compare_python
+
+        changes = compare_python(FIXTURE_B_BASE, FIXTURE_B_TARGET, path="test_b.py")
+        symbols_by_reason = {c.symbol: c.reason for c in changes if c.symbol is not None}
+        assert symbols_by_reason["Storage"] == "contains_changed_symbol"
+        assert symbols_by_reason["Storage.validate"] == "content_changed"
+
+        val_rec = next(c for c in changes if c.symbol == "Storage.validate")
+        assert val_rec.change == "modified"
+        assert val_rec.base_location.line_start == 5
+        assert val_rec.base_location.line_end == 8
+        assert val_rec.target_location.line_start == 5
+        assert val_rec.target_location.line_end == 10
+
+    def test_reconcile_fixture_c_deleted_function(self):
+        from smartregression.core.impact.changed_components import compare_python
+
+        changes = compare_python(FIXTURE_C_BASE, FIXTURE_C_TARGET, path="test_c.py")
+        del_rec = next(c for c in changes if c.symbol == "deprecated_load")
+        assert del_rec.change == "deleted"
+        assert del_rec.base_location.line_start == 1
+        assert del_rec.base_location.line_end == 2
+        assert del_rec.target_location is None
+        assert del_rec.reason == "symbol_deleted"
+
+    def test_reconcile_fixture_d_added_class_and_methods(self):
+        from smartregression.core.impact.changed_components import compare_python
+
+        changes = compare_python(FIXTURE_D_BASE, FIXTURE_D_TARGET, path="test_d.py")
+        added_symbols = {c.symbol for c in changes if c.symbol is not None}
+        assert added_symbols == {"Token", "Token.__init__", "Token.__repr__"}
+        for c in changes:
+            if c.symbol in added_symbols:
+                assert c.change == "added"
+                assert c.base_location is None
+                assert c.target_location is not None
+
+    def test_reconcile_fixture_e_identical_source(self):
+        from smartregression.core.impact.changed_components import compare_python
+
+        changes = compare_python(FIXTURE_E_SOURCE, FIXTURE_E_SOURCE, path="test_e.py")
+        assert changes == ()
+
+    def test_reconcile_fixture_f_q_an_02_resolved(self):
+        """Xác nhận giải quyết Q-AN-02: compute.start tính từ dòng decorator (L4)
+
+        chứ không phải dòng def (L5).
+        """
+        from smartregression.core.impact.changed_components import compare_python
+
+        changes = compare_python(FIXTURE_F_BASE, FIXTURE_F_TARGET, path="test_f.py")
+        comp_rec = next(c for c in changes if c.symbol == "compute")
+        assert comp_rec.change == "modified"
+        assert comp_rec.target_location.line_start == 4
+        assert comp_rec.target_location.line_end == 6
