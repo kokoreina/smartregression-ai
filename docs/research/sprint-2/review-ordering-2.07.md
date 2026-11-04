@@ -64,6 +64,30 @@ BFS dùng `visited` set — mọi path chỉ được thăm một lần, không 
 
 Khi `edges` rỗng → tự động thêm `"partial_graph"` vào `limitations` output. Caller-supplied limitations được giữ nguyên và merge vào output.
 
+### 2.7 Lớp chuyển đổi mỏng (Thin Adapters) nối dữ liệu thật (Task 2.01 & 2.04)
+
+Hỗ trợ chuyển đổi trực tiếp các payload chuẩn từ các stage khác trong hệ thống sang `ReviewOrder`:
+
+1. **`order_from_impact_payload(impact: ImpactPayload, *, graph: GraphPayload | None = None, limitations: Sequence[str] = ()) -> ReviewOrder`:**
+   - Chuyển `ImpactCandidate` sang `ReviewCandidate`:
+     - `relationship == "changed"` → Tier 1 (`reason="directly changed (...)"`, `distance=0`)
+     - `relationship == "direct"` → Tier 2 (`reason="direct dependent (distance 1)"`, `distance=1`)
+     - `relationship == "indirect"` → Tier 3 (`reason="indirect dependent (distance N)"`, `distance=N`)
+   - **Xử lý khoảng cách trung thực (không bịa số):**
+     - Khoảng cách được lưu như một trường có cấu trúc `distance: int | None = None` trên `ReviewCandidate`.
+     - Tra cứu từ chuỗi `nodes` trong `ImpactPath` (`len(nodes) - 1`).
+     - Khi không có path hợp lệ: gán `distance = None`, ghi `reason = "indirect dependent (distance unknown)"` và tự động ghi nhận limitation `"missing_impact_path"`. Tuyệt đối không tự bịa một con số khoảng cách mặc định.
+     - Khi `path_ids` tham chiếu tới path không tồn tại trong `impact.paths`: tự động ghi nhận limitation `"broken_impact_path_reference"` thay vì im lặng bỏ qua.
+   - **Deduplication:** Nếu một component xuất hiện qua nhiều change origins (vừa direct vừa indirect), giữ Tier thấp nhất (1 < 2 < 3) và khoảng cách ngắn nhất.
+   - **Ranh giới rõ ràng về 'partial':**
+     - Nhãn `"partial_graph"` **chỉ** được lấy từ producer thật (`graph.unresolved` do Task 2.03 cung cấp, hoặc `limitations` caller truyền vào).
+     - Các trường hợp suy luận từ hình thái cấu trúc dùng nhãn riêng biệt:
+       - `no_dependency_edges_observed`: đồ thị có nodes nhưng không có edges.
+       - `inconsistent_impact_payload`: có candidate direct/indirect nhưng hoàn toàn không có paths.
+
+2. **`order_from_stage_changes(changes: ChangePayload, graph: GraphPayload, *, limitations: Sequence[str] = ()) -> ReviewOrder`:**
+   - Chuyển đổi `ChangePayload` (2.01) và `GraphPayload` (2.03) sang `order_for_review()`.
+
 ---
 
 ## 3. Fixtures và oracle thủ công
@@ -195,16 +219,37 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
 
 ---
 
-## 5. Chưa kiểm chứng / pending
+## 5. Kết quả kiểm chứng nghi ngờ & Trạng thái pending
 
-| Mục | Trạng thái | Chờ ai |
+### 5.1 Kiểm chứng 3 câu hỏi / nghi ngờ về dữ liệu thực tế Task 2.04 & 2.01:
+
+1. **`potential_impact` có đưa khoảng cách (distance) không?**
+   - **Thực tế:** Trong `ImpactCandidate` **không có trường `distance` trực tiếp**, mà chỉ có `relationship: Literal["changed", "direct", "indirect"]`.
+   - **Giải pháp chuyển đổi:** `ImpactPayload` cung cấp danh sách `paths: list[ImpactPath]`. Mỗi `ImpactPath` có chuỗi `nodes: list[RepoPath]` từ candidate đến changed module origin. Lớp chuyển đổi mỏng tra cứu `nodes` để tính chính xác khoảng cách đồ thị `distance = len(nodes) - 1` (direct = 1 hop, indirect = 2, 3... hops) và lưu vào trường có cấu trúc `distance: int | None`.
+   - **Xử lý trung thực khi thiếu path:** Khi không có path phù hợp, `distance = None`, ghi `reason = "indirect dependent (distance unknown)"` và tự động ghi nhận limitation `"missing_impact_path"`. Tuyệt đối không bịa số mặc định.
+   - **Xử lý tham chiếu hỏng:** Khi `path_ids` trỏ tới ID không tồn tại, ghi nhận limitation `"broken_impact_path_reference"`, không âm thầm bỏ qua.
+
+2. **`potential_impact` có đưa limitations không?**
+   - **Thực tế:** Bản thân `ImpactPayload` **không mang trường limitations**.
+   - **Giải pháp chuyển đổi:** Limitations của đồ thị thực tế được lưu tại `GraphPayload.unresolved` (chứa các `ImportLimitation` như `relative_import_unresolved`, `star_import`, `dynamic_import`, `target_not_in_snapshot`). Adapter nhận `graph: GraphPayload` và tự động trích xuất các mã lỗi này sang `ReviewOrder.limitations`.
+
+3. **Định nghĩa "partial" của họ có khớp với `partial_graph` của bạn không?**
+   - **Thực tế:** Cần phân biệt rõ giữa tín hiệu xác nhận từ producer và suy luận cấu trúc:
+     - **Tín hiệu producer:** Khi `graph.unresolved` có phần tử $\to$ gán `"partial_graph"` và các lý do cụ thể.
+     - **Suy luận cấu trúc:** Khi đồ thị có nodes nhưng 0 edges $\to$ dùng nhãn riêng `"no_dependency_edges_observed"` (vì repo nhỏ hoàn toàn có thể không có module nào import nhau, không thể vội kết luận là partial).
+     - **Mâu thuẫn dữ liệu:** Khi có candidate direct/indirect nhưng 0 paths $\to$ dùng nhãn riêng `"inconsistent_impact_payload"`.
+   - **Câu hỏi mở cho Phan Hoàng Huy (H2) và Huy Nguyễn Tấn (H1):** Cần thống nhất định nghĩa chính thức của `"partial"` trong toàn bộ pipeline để tránh hiểu lầm giữa một đồ thị độc lập (0 edges) và một đồ thị phân tích thiếu.
+
+### 5.2 Trạng thái các mục:
+
+| Mục | Trạng thái | Ghi chú |
 |-----|-----------|--------|
-| Input thật từ `ChangedComponent` của AN (2.01) | Pending | AN bàn giao |
-| Graph edges thật từ H2 (2.03/2.04) | Pending | H2 bàn giao |
-| Integration với workflow H1 (2.13) | Pending | H1 |
-| CI Python 3.14 pass | Chưa chạy CI | — |
-| Cross-language / non-Python paths | Ngoài MVP scope | — |
-| Symbol-level edges (call graph) | Chỉ file-level import hiện có | Future task |
+| Input thật từ Task 2.01 (`ChangePayload` / `ComponentChange`) | **Đã hoàn thành** | Đã kết nối qua `order_from_stage_changes` |
+| Graph edges & impact thật từ Task 2.04 (`ImpactPayload`) | **Đã hoàn thành** | Đã kết nối qua `order_from_impact_payload` |
+| Test tích hợp chạy qua code THẬT của 2.03 và 2.04 | **Đã hoàn thành** | `test_real_integration_through_task_203_and_204_code` chạy qua `build_dependency_graph` và `build_potential_impact` thật |
+| Integration với workflow H1 (2.13) | Đã sẵn sàng | H1 có thể gọi trực tiếp `order_from_impact_payload` |
+| CI Python 3.14 pass | PR #16 đã merge | Nhánh mới đã test pass |
+| Review độc lập của người khác | Pending | Chờ reviewer nghiệm thu |
 
 ---
 
@@ -212,9 +257,9 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
 
 | File | Mô tả |
 |------|-------|
-| [`backend/src/smartregression/core/impact/review_ordering.py`](../../../backend/src/smartregression/core/impact/review_ordering.py) | Logic chính — `order_for_review()`, `ReviewCandidate`, `ReviewOrder` |
-| [`backend/tests/unit/test_review_ordering.py`](../../../backend/tests/unit/test_review_ordering.py) | 43 unit tests, 11 nhóm, oracle thủ công |
-| [`docs/research/sprint-2/review-ordering-2.07.md`](review-ordering-2.07.md) | Tài liệu này |
+| [`backend/src/smartregression/core/impact/review_ordering.py`](../../../backend/src/smartregression/core/impact/review_ordering.py) | Logic chính + 2 thin adapters `order_from_impact_payload` & `order_from_stage_changes` (thêm trường `distance: int | None`) |
+| [`backend/tests/unit/test_review_ordering.py`](../../../backend/tests/unit/test_review_ordering.py) | 50 unit & integration tests (43 unit tests + 7 tests adapter & integration code thật 2.03/2.04) |
+| [`docs/research/sprint-2/review-ordering-2.07.md`](review-ordering-2.07.md) | Tài liệu đặc tả và kết quả kiểm chứng |
 
 ---
 
@@ -223,16 +268,13 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
 ```
 Command:  py -m uv run pytest backend/tests/unit/test_review_ordering.py -v
 Platform: win32 -- Python 3.14.10, pytest-9.1.1
-Result:   43 passed in 0.56s
+Result:   50 passed in 2.75s
 
 Command:  py -m uv run ruff check backend/src/.../review_ordering.py backend/tests/.../test_review_ordering.py
-Result:   All checks passed (after --fix: 3 auto-fixed import sort issues)
+Result:   All checks passed (0 errors)
 
 Command:  py -m uv run ruff format --check ...
-Result:   2 files already formatted
-
-Command:  py -m uv run pytest backend/tests/unit/ -q
-Result:   112 passed in 1.86s  (toàn bộ unit suite)
+Result:   All files already formatted
 ```
 
 **Self-review note:** Tự kiểm tra trong cùng phiên — không phải review độc lập của người khác.
@@ -247,40 +289,53 @@ Result:   112 passed in 1.86s  (toàn bộ unit suite)
 ReviewOrder(
     candidates=(
         ReviewCandidate(
-            path="core/auth.py", symbol=None, tier=1, reason="directly changed (modified)"
+            path="core/auth.py",
+            symbol=None,
+            tier=1,
+            reason="directly changed (modified)",
+            distance=0,
         ),
         ReviewCandidate(
             path="core/storage.py",
             symbol="Storage.load",
             tier=1,
             reason="directly changed (modified)",
+            distance=0,
         ),
         ReviewCandidate(
             path="core/storage.py",
             symbol="Storage.save",
             tier=1,
             reason="directly changed (modified)",
+            distance=0,
         ),
         ReviewCandidate(
             path="api/login.py",
             symbol=None,
             tier=2,
             reason="directly imports changed path 'core/auth.py'",
+            distance=1,
         ),
         ReviewCandidate(
             path="api/profile.py",
             symbol=None,
             tier=2,
             reason="directly imports changed path 'core/auth.py'",
+            distance=1,
         ),
         ReviewCandidate(
             path="api/upload.py",
             symbol=None,
             tier=2,
             reason="directly imports changed path 'core/storage.py'",
+            distance=1,
         ),
         ReviewCandidate(
-            path="web/app.py", symbol=None, tier=3, reason="transitively depends on 'api/login.py'"
+            path="web/app.py",
+            symbol=None,
+            tier=3,
+            reason="transitively depends on 'api/login.py'",
+            distance=2,
         ),
     ),
     limitations=(),
@@ -289,9 +344,10 @@ ReviewOrder(
 ```
 
 **Điểm cần lưu ý cho 2.13/2.18:**
-- `tier` field: 1/2/3 — dùng để nhóm hiển thị hoặc lọc
+- `tier` field: 1/2/3 — dùng để nhóm hiển thị hoặc lọc (1 < 2 < 3)
+- `distance` field: `int | None` — khoảng cách cạnh đồ thị (0 cho tier 1, 1 cho tier 2, >=2 cho tier 3, None nếu không rõ). Không dùng để sắp xếp, chỉ dùng hiển thị thông tin cấu trúc.
 - `symbol` có thể `None` ở Tier 2/3 (chỉ file-level, không có symbol-level dep info)
-- `reason` là mô tả text cho human — không phải machine-readable state
+- `reason` là mô tả text cho human — không dùng để mã hóa thông tin máy
 - `rule_version` pin cho traceability; nếu thuật toán đổi, version phải tăng
 - Không có `confidence`, `fault_probability`, `test_id` — thiết kế cố ý theo AC
 
