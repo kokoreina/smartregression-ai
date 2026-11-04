@@ -1,5 +1,90 @@
 # Task 2.14 — Integration contracts và stage reports
 
+<a id="native-test-id-follow-up"></a>
+## Follow-up NativeTestId — 2026-11-04
+
+### Trạng thái, baseline và scope
+
+- Đã sửa và kiểm chứng cục bộ; independent review/merge còn pending.
+- Sau bàn giao implementation, user giao commit/push và mở PR vào main để các
+  thành viên review/merge. Quyền xuất bản không bao gồm tự approve/merge; kết quả
+  kiểm chứng phía dưới thuộc phiên implementation, không phải CI cho PR mới.
+- Main fetch: `90fd538845da9bc63e9a69243aa940533221e75f` (đã merge quyết định D15).
+- Checkout: `D:\smart-regression-ai\var\main-review-20261103`;
+  branch `fix/sprint-2-2.14-native-test-id`, xuất phát từ main trên.
+- H1 là writer contract theo [quyết định inventory](task-2.08-2.09-decisions.md#5-native-ids-và-thay-đổi-contract-cần-triển-khai).
+  Checkout gốc và các untracked files có sẵn được giữ nguyên.
+- Đọc AGENTS/routing Backend/Contracts, rules 00/02/03/05/06/07/13, task/contract/
+  decision docs. Skills: api-contracts, test-driven-development, systematic-debugging,
+  security-review. Không sub-agent hoặc xem open PR.
+
+### Thay đổi và handoff cho KH
+
+- `contracts/stages.py`: thêm một alias `NativeTestId` và dùng cho
+  `InventoryPayload.test_ids`; không thêm dependency, helper hoặc abstraction.
+- Trước fix, Text trim ID, làm hai ID khác nhau thành duplicate và có thể tự decode
+  bytes. Sau fix, strict non-empty strings giữ exact value và collection order.
+- Global Text, legacy TestDecision/ExecutionResult, report fields/statuses và fixtures
+  hiện có không đổi. Test riêng khóa legacy behavior; không chuyển inventory v2 sang
+  v1 cho dispatch. [Compatibility/version strategy](../contracts/stage-reports.md#native-test-ids)
+  giữ root 2.0.0, yêu cầu nâng cấp readers cùng fix; không coi old readers an toàn.
+- KH import `NativeTestId`/`InventoryPayload` từ `smartregression.contracts.stages`.
+  Collector cung cấp exact `item.nodeid`, không normalize/deduplicate; database digest
+  không thay public ID. ID dài hơn 512 UTF-8 bytes thuộc regression cases, không phải
+  tuyên bố mọi ID đều persist được. Unsupported DB values phải báo lỗi theo D15.
+- Baseline chưa có Sprint 2 inventory producer/converter. Report validator/CLI dùng
+  `application.reports`; publisher chuẩn bị/đọc lại StageAnalysisReport. Spike runner
+  so exact ID và truyền argument vector, không dùng model này; UI hiện chỉ đọc v1.
+  Không thay collector/runner/UI hoặc thêm consumer chưa có.
+- Tests ở `test_stage_reports.py` gồm Unicode NFC/NFD, case, separators, whitespace,
+  non-string/empty rejection và JSON round-trip; exact duplicate rejection vẫn được
+  existing test kiểm. `test_report_publication.py` kiểm publish/retry/read trên file
+  thật, gồm ID có whitespace và ID dài; DB store trong test này là double.
+- Dữ liệu cũ đã trim cần recollect đúng snapshot/profile; không sửa published report
+  hoặc hash/digest cũ để giả phục hồi. KH fixtures/collector và AN/VI review vẫn riêng.
+
+### Kiểm chứng thực tế
+
+Cwd là checkout trên. Windows, Python 3.14.3, Node 22.14.0, npm 10.9.2;
+Python executable `D:/smart-regression-ai/var/task-2.20-b-venv/Scripts/python.exe`.
+Set `PYTHONPATH` tới `backend/src` của checkout, `PYTHONDONTWRITEBYTECODE=1`,
+`PYTHONIOENCODING=utf-8`; full backend prepend portable Git ở
+`D:/smart-regression-ai/var/task-2.13-tools/mingit/cmd`. Không clean install mới;
+frontend node_modules junction hiện có được tái dùng, không đổi dependency/lock.
+
+Commands `python`/`ruff` dưới dùng executable của venv trên:
+
+| Command/check | Kết quả thực |
+| --- | --- |
+| `git fetch origin main` | Exit 0, main từ b50fe89 lên 90fd538; sandbox network ban đầu bị chặn, fetch elevated thành công |
+| `python -m pytest backend/tests/unit/test_stage_reports.py -q -p no:cacheprovider --tb=short -k 'inventory_native_ids or legacy_native_id'` trước fix | 4 failed, 7 passed, 55 deselected: mất whitespace, duplicate sau trim, whitespace-only bị xóa, bytes bị decode |
+| `python -m pytest backend/tests/unit/test_report_publication.py -q -p no:cacheprovider --tb=short -k publication_retry_and_read --basetemp D:/smart-regression-ai/var/task-2.14-native-red-file-elevated` trước fix | 1 failed, 3 deselected: file reload mất whitespace; lần sandbox trước đó WinError 5, không dùng làm bug evidence |
+| `python -m pytest backend/tests/unit/test_stage_reports.py backend/tests/unit/test_stage_conversion.py backend/tests/unit/test_contracts.py -q -p no:cacheprovider --tb=short` sau fix | 91 passed, exit 0 |
+| `python -m pytest backend/tests -q -p no:cacheprovider --tb=short --basetemp D:/smart-regression-ai/var/task-2.14-native-final-backend` | 411 passed, 41 skipped, 1 existing Starlette/httpx warning, exit 0; 57.53s; elevated để tránh sandbox temp permissions |
+| `ruff check .` / `ruff format --check .` | Exit 0; 193 files formatted; alias được formatter chỉnh trước lần check cuối |
+| `python scripts/export_contracts.py` / `npm.cmd --prefix frontend run contracts:generate` | Exit 0; OpenAPI và TypeScript không có diff |
+| `python scripts/export_contracts.py --check` | Exit 0 |
+| `python -m smartregression.cli.main validate-report examples/reports/demo.json` và `examples/reports/stage-report.partial.json` | Cả hai exit 0, valid DEMO; không phải analysis/collector acceptance |
+| `npm.cmd --prefix frontend run contracts:check` / `run typecheck` / `run lint` | Exit 0 |
+| `npm.cmd --prefix frontend run build` | Sandbox lỗi esbuild spawn EPERM; chạy elevated cùng command exit 0, Vite build thành công |
+| So JSON OpenAPI với HEAD, kiểm legacy source diff | Toàn bộ schema/API paths bằng nhau; global Text/legacy source không đổi |
+| `git diff --check`, kiểm local links/anchors/fences của ba Markdown files đã đổi | Exit 0; paths, anchors và fences hợp lệ |
+
+41 skips gồm 40 opt-in PostgreSQL tests và một POSIX FIFO case trên Windows.
+Không chạy PostgreSQL/Docker/candidate/CI/browser trong phiên này; source fix không
+đổi DB schema/adapter hay UI behavior. File round-trip không thay PostgreSQL inventory
+acceptance. Không bỏ test hoặc nới gate để che lỗi môi trường.
+
+OpenAI Codex hỗ trợ implementation/tests/docs và self-review. Đã đối chiếu Proposal
+v1.4 Appendix C/D; Tấn Huy/nhóm cần đọc, hiểu và review diff trước nghiệm thu.
+Không suy assistance percentage, chữ ký lịch sử, independent approval hoặc hoàn thành
+2.08/2.09/Sprint 2. Không khởi động service/process nền bởi task này.
+
+---
+
+Các phần dưới là handoff ban đầu ngày 2026-11-03; trạng thái pending lịch sử không
+thay hiện trạng main hoặc follow-up phía trên.
+
 ## Baseline và quyết định triển khai
 
 - Checkout: `D:\smart-regression-ai\var\main-review-20261103`, branch `main`.
