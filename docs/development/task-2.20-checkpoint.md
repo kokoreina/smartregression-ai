@@ -330,6 +330,13 @@ review_rank/explanation hoặc tạo component IDs mới cho graph module nodes.
 
 ### 6.2. 2.08/09 — inventory metadata checkpoint
 
+> **Superseded cho quyết định inventory ngày 2026-11-04:**
+> [D15 / brief 2.08–2.09](task-2.08-2.09-decisions.md) đã được H1 chốt.
+> Giữ phần dưới làm lịch sử: không triển khai native test ID dài trực tiếp trong
+> B-tree PK như đề xuất cũ; dùng scoped digest key và exact native ID text với
+> collision check. State semantics, nullable failure identity, ownership và
+> acceptance hiện hành nằm trong brief D15. P3/P5 vẫn riêng.
+
 Future `test_inventories`: PK `(repo,run,inventory_id text)`, FK run + target snapshot;
 one frozen inventory/run bằng UQ(repo,run); stage_status năm giá trị canonical,
 completeness nullable (complete/partial), test_count nullable >=0, reason/error và
