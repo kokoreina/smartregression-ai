@@ -332,7 +332,9 @@ implementation mới bên trong các vùng đó là **dự kiến**, chưa phả
 - **Kiểm chứng/bàn giao:** PostgreSQL round-trip, foreign-identity rejection và
   failure tests; schema/constraint requirements gửi migration writer; [DB checks](#checks-db).
 - **Routing/rủi ro:** [Backend/persistence](#route-backend), [Impact](#route-impact)
-  cho provenance, security. DB engine accepted nhưng exact minimum tables/FKs pending.
+  cho provenance, security. Foundation đã có; [P3](task-2.05-p3.md) đã accepted
+  ngày 2026-11-04 theo xác nhận nhóm qua H1; evidence adapter chưa triển khai. H1 làm domain adapter;
+  KH giữ shared migration chain, không tự nhận slot M003 cũ.
 
 <a id="task-206"></a>
 ### 2.06 — Explanation payload và evidence-item view
@@ -349,6 +351,9 @@ implementation mới bên trong các vùng đó là **dự kiến**, chưa phả
   backend/contract và UI checks theo slice; usage example cho VI/H1 tích hợp.
 - **Routing/rủi ro:** H1 [Backend](#route-backend) + Impact; VI [UI](#route-ui).
   Không claim fault probability; không dùng valid JSON thay source verification.
+- **Lifecycle đã chốt:** [P3](task-2.05-p3.md#p3-lifecycle) yêu cầu verification
+  trước freeze; inspection sau load riêng, không sửa bundle đã lưu. H1 bàn giao
+  payload/state mapping, VI giữ component; chưa triển khai resolver/UI từ tài liệu này.
 
 <a id="task-207"></a>
 ### 2.07 — Deterministic manual-review ordering
@@ -976,8 +981,10 @@ Hiện chưa có frontend test/e2e script trong package. Không tự ghi `npm te
 cài Playwright cho một lần kiểm tra. Build/typecheck hoặc HTTP 200 không là browser QA.
 
 <a id="checks-db"></a>
-**PostgreSQL:** chưa có migration/DB integration command được repository xác minh.
-Task 2.20 phải triển khai rồi document lệnh/tool thực, không bịa Alembic hay ORM.
+**PostgreSQL:** foundation/inventory/run-report đã có lệnh và evidence trong
+[setup](postgresql-setup.md#dedicated-test-command) và [verified commands](verified-commands.md).
+Không coi kết quả các slice đó là acceptance EvidenceStore chưa triển khai;
+[P3 acceptance](task-2.05-p3.md#p3-acceptance) là kế hoạch cần mở rộng harness.
 Kiểm minimum schema/FKs, migration path, domain round-trip, wrong repo/run/snapshot,
 write/read/connection failure và transaction rollback; ghi version/config đã redacted.
 Test backup/restore phù hợp data impact; không gọi down migration là data recovery.
@@ -1026,6 +1033,7 @@ source nhạy cảm hoặc DSN/secret vào nhật ký chia sẻ.
 | --- | --- | --- |
 | PostgreSQL engine | Accepted, workbook `Sprint 2 Reports!E11`, user 2026-10-31 | Triển khai bounded foundation theo task; không hỏi chọn engine lại |
 | ORM/driver, migration tool, minimum schema/FKs | P1/P2/P4 accepted 2026-11-03; Core + psycopg + Alembic, five-table foundation đã merge qua PR #25 | Dùng [handoff adapter](task-2.20-adapter.md); DB verification được ghi ở handoff, không phải chạy lại trong guide; human acceptance riêng |
+| P3/EvidenceBundle 2.05 và lifecycle 2.06/2.13 | [Spec P3](task-2.05-p3.md#p3-status) accepted ngày 2026-11-04 theo H1 xác nhận cả nhóm đồng ý; implementation/acceptance riêng | Đã chốt bounded bytea 2 MiB, immutable lifecycle và compound SQL integration; H1 adapter, KH migration/harness từ head hiện tại |
 | Candidate/environment/inventory persistence 2.08/2.09 | Accepted 2026-11-04 theo H1; [quyết định chung](task-2.08-2.09-decisions.md) | KH triển khai collector/profile/domain tables; H1 native-ID contract; thực hiện đủ acceptance trước đóng task |
 | Retrieval/embedding/backend và non-null model | Pending; `E40`, DB §3.4.8 | H2 nêu phương án/config/data policy, phối hợp H1/KH; quyết định lexical/embedding và schema reconciliation trước implementation phụ thuộc |
 | Revision policy/authorization | Cần review Q01–Q10 và candidate scope; `E47` | AN cùng consumers xác minh quyết định đủ cho snapshot slice; không tự mở live PR/arbitrary input |

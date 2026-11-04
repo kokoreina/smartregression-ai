@@ -28,11 +28,18 @@ thay thế, phải giữ liên kết cũ/mới. Không xóa lịch sử để l�
 | D13 | Engine PostgreSQL cho backend Sprint 2 | accepted theo user; tách khỏi phần DB pending lịch sử ở D06; không chốt provider/index/retention | User xác nhận engine, được nhắc lại trong brief 2.20-A; [team guide 2.20](sprint-2-team-guide.md#task-220), [checkpoint](task-2.20-checkpoint.md#1-trạng-thái-nguồn-và-baseline) | Nguyễn Tấn Huy truyền đạt quyết định nhóm; không suy mentor approval |
 | D14 | Tooling, minimum schema và writer boundaries foundation 2.20 | accepted P1/P2/P4 ngày 2026-11-03 theo user xác nhận nhóm thống nhất; H1 independent foundation triển khai cục bộ, DB acceptance pending | [Checkpoint 2.20-A](task-2.20-checkpoint.md#11-decision-register-cho-checkpoint): Core + psycopg3 + Alembic, 5-table foundation và writer boundaries; [handoff 2.20-B](task-2.20-b.md) tách code local khỏi KH schema/migrations/adapter chưa có; P3 bundle/P5 retrieval vẫn cần quyết định riêng | Nguyễn Tấn Huy truyền đạt nhóm đã thống nhất sau danh sách P1/P2/P4; không suy mentor approval/runtime acceptance |
 | D15 | Candidate/environment, inventory PostgreSQL và native pytest IDs cho 2.08/2.09 | accepted 2026-11-04; implementation/acceptance riêng | [Quyết định 2.08/2.09](task-2.08-2.09-decisions.md): sqlparse + TinyDB fixed SHA, locked collection profile/isolation, hai bảng, exact native IDs, explicit empty/partial/failed; thay đề xuất inventory checkpoint §6.2, không chốt P3/P5 | Nguyễn Tấn Huy xác nhận áp dụng phương án ưu tiên cho nhóm; không suy mentor approval |
+| D16 | P3: EvidenceBundle persistence 2.05 và lifecycle với 2.06/2.13 | accepted 2026-11-04 theo xác nhận nhóm qua H1; implementation/acceptance riêng | [Đặc tả P3 và nguồn xác nhận](task-2.05-p3.md#p3-status): bounded canonical bytea 2 MiB, full identity, immutable retry, verification trước freeze/transient inspection và compound SQL transaction; KH giữ migration chain. Thay trạng thái proposed trước đó | Nguyễn Tấn Huy truyền đạt “vậy hãy chốt như phương án đề xuất đi, cả nhóm đều đã đồng ý rồi”; không suy mentor approval hoặc GitHub approval/merge |
 
 D14 cập nhật hiện trạng ngày 2026-11-04: foundation, schema/migrations và run/report
 adapter đã merge qua PR #25 vào main `b50fe89`. [Handoff adapter](task-2.20-adapter.md)
 ghi kiểm chứng PostgreSQL thật; trạng thái local/pending trong hàng D14 là mốc H1
 ban đầu. Không suy acceptance inventory hoặc whole sprint từ foundation.
+
+Baseline P3 ngày 2026-11-04: main fetch `9bcd6a4` đã merge PR #30, nối opt-in
+run/report persistence; hai source CI checks của PR SUCCESS. Revision files hiện
+có head `20261104_03` cho inventory, không dành sẵn M003 cho evidence. Các dữ kiện
+này không chứng minh PostgreSQL EvidenceStore/resolver đã tồn tại. D16 được chấp
+thuận bởi xác nhận user riêng nêu trong đặc tả P3, không suy từ các mốc merge/CI này.
 
 D05/D07/D09 giữ lịch sử ở bảng. Evidence mới và các điểm quyết định còn lại được
 phân loại theo mốc cần chốt trong [closeout decisions](../research/sprint-1/closeout-decisions.md).

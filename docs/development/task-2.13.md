@@ -9,6 +9,12 @@ của từng phiên, không phải kết quả chạy lại cho follow-up này.
 
 ## Persistence wiring follow-up — 2026-11-04
 
+> Đối chiếu P3 ngày 2026-11-04: PR #30 đã merge tại main `9bcd6a4`; hai source
+> CI checks của PR SUCCESS. [Spec P3](task-2.05-p3.md#p3-status) đã accepted
+> theo H1 xác nhận cả nhóm đồng ý ngày 2026-11-04. Optional evidence/compound
+> transaction chưa triển khai trên main tại baseline và không
+> thay kết quả kiểm chứng lịch sử của report-only wiring bên dưới.
+
 ### Phạm vi, baseline và interface
 
 - Main fetch: `f1dbe2da629da9b008f76cac43fdcf3882f46109`, đã merge NativeTestId.
@@ -138,6 +144,11 @@ Operator thực hiện prerequisites trong setup trước khi dùng persistence 
 được phép. KH/AN có thể tái sử dụng boundary tests cho 2.19; các fixture/fakes trong
 unit tests không thay acceptance DB. H1 tiếp tục P3/2.05 và integration producer khi
 có handoff; task 2.13 toàn phần vẫn pending các stage còn thiếu và human acceptance.
+
+Đặc tả tiếp nối: [P3](task-2.05-p3.md) giữ immutable domain bundle và report status
+riêng, preflight overlap trước publish và một SQL transaction khi supplied bundle.
+Không nối standalone save bundle sau report save để claim compound atomicity;
+standalone adapter là prompt 4, compound workflow wiring là prompt 6 sau 2.06.
 
 OpenAI Codex hỗ trợ implementation/tests/docs/debugging/self-review. Đã đối chiếu
 Proposal Appendix C/D trong cùng chuỗi công việc; nhóm cần đọc/hiểu/review trước
