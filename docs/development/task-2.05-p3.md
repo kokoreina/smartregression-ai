@@ -1,5 +1,9 @@
 # P3 — EvidenceBundle persistence cho 2.05
 
+> Implementation follow-up: [2.05 handoff](task-2.05.md) records local adapter,
+> migration and PostgreSQL verification. Statements below describe the P3 decision
+> baseline; source verification and compound workflow remain separate slices.
+
 <a id="p3-status"></a>
 
 ## 1. Trạng thái, baseline và phạm vi
