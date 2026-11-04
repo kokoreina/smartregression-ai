@@ -49,9 +49,16 @@ class Observations:
     def __init__(self):
         self.ids = []
         self.reports = []
+        self.collection_finished = False
+        self.collection_errors = 0
+
+    def pytest_collectreport(self, report):
+        if report.failed:
+            self.collection_errors += 1
 
     def pytest_collection_finish(self, session):
         self.ids = [item.nodeid for item in session.items]
+        self.collection_finished = True
 
     def pytest_runtest_logreport(self, report):
         self.reports.append(
@@ -66,12 +73,14 @@ if __name__ == "__main__":
     args += ["--collect-only"] if sys.argv[1] == "collect" else [sys.argv[2]]
     exit_code = int(pytest.main(args, plugins=[observations]))
     print(
-        "SMARTREGRESSION_RESULT="
+        "\nSMARTREGRESSION_RESULT="
         + json.dumps(
             {
                 "exit_code": exit_code,
                 "ids": observations.ids,
                 "reports": observations.reports,
+                "collection_finished": observations.collection_finished,
+                "collection_errors": observations.collection_errors,
                 "isolation": isolation,
                 "python": sys.version.split()[0],
                 "pytest": pytest.__version__,
@@ -80,5 +89,6 @@ if __name__ == "__main__":
                     for name in ["pytest", "iniconfig", "packaging", "pluggy", "pygments"]
                 },
             }
-        )
+        ),
+        flush=True,
     )

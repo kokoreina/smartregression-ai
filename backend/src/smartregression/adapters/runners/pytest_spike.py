@@ -163,14 +163,17 @@ class FixtureWorker:
             if len(lines) != 1:
                 raise ValueError("invalid_worker_result")
             result = json.loads(lines[0])
+            if not isinstance(result, dict):
+                raise ValueError("invalid_worker_result")
             if (
                 type(result.get("exit_code")) is not int
                 or not isinstance(result.get("ids"), list)
                 or not all(isinstance(i, str) for i in result["ids"])
-                or len(set(result["ids"])) != len(result["ids"])
                 or not isinstance(result.get("reports"), list)
             ):
                 raise ValueError("invalid_worker_result")
+            if len(set(result["ids"])) != len(result["ids"]):
+                raise ValueError("duplicate_test_id")
             if test_id is not None and result["ids"] != [test_id]:
                 raise ValueError("invalid_worker_result")
             result["status"] = classify_pytest(
