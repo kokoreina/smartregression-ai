@@ -1,4 +1,4 @@
-"""Five-table PostgreSQL foundation owned by KH, checkpoint 2.20 P1/P2/P4.
+"""PostgreSQL foundation plus accepted task 2.08/2.09 inventory domain.
 
 No connections or create_all side effects. H1's adapters import these Table objects;
 versioned migrations contain frozen DDL rather than importing evolving metadata.
@@ -94,6 +94,13 @@ analysis_runs = sa.Table(
     sa.Column("configuration", JSONB, nullable=False),
     sa.Column("configuration_sha256", sa.Text, nullable=False),
     _created(),
+    sa.UniqueConstraint(
+        "repository_id",
+        "run_id",
+        "target_sha",
+        "target_snapshot_id",
+        name="uq_run_inventory_target",
+    ),
     _fk(["repository_id"], ["repositories.repository_id"], "fk_run_repository"),
     *[
         _fk(
@@ -217,4 +224,124 @@ run_reports = sa.Table(
         )
         for column in ("analysis_duration_seconds", "llm_cost_usd")
     ],
+)
+
+test_inventories = sa.Table(
+    "test_inventories",
+    metadata,
+    sa.Column("repository_id", sa.Text, primary_key=True),
+    sa.Column("run_id", sa.Text, primary_key=True),
+    sa.Column("inventory_id", sa.Text, primary_key=True),
+    sa.Column("target_sha", sa.Text, nullable=False),
+    sa.Column("target_snapshot_id", sa.Text),
+    sa.Column("framework", sa.Text, nullable=False),
+    sa.Column("collector_version", sa.Text, nullable=False),
+    sa.Column("image_id", sa.Text),
+    sa.Column("configuration", JSONB, nullable=False),
+    sa.Column("configuration_sha256", sa.Text, nullable=False),
+    sa.Column("stage_status", sa.Text, nullable=False),
+    sa.Column("completeness", sa.Text),
+    sa.Column("test_count", sa.Integer),
+    sa.Column("reason", sa.Text),
+    sa.Column("error_code", sa.Text),
+    sa.Column("limitations", JSONB, nullable=False),
+    sa.Column("exit_code", sa.Integer),
+    sa.Column("duration_seconds", sa.Double),
+    sa.Column("diagnostic_artifact_id", sa.Text),
+    _created(),
+    sa.UniqueConstraint("repository_id", "run_id", name="uq_inventory_run"),
+    _fk(
+        ["repository_id", "run_id"],
+        ["analysis_runs.repository_id", "analysis_runs.run_id"],
+        "fk_inventory_run",
+    ),
+    _fk(
+        ["repository_id", "run_id", "target_sha", "target_snapshot_id"],
+        [
+            "analysis_runs.repository_id",
+            "analysis_runs.run_id",
+            "analysis_runs.target_sha",
+            "analysis_runs.target_snapshot_id",
+        ],
+        "fk_inventory_run_target",
+    ),
+    _fk(
+        ["repository_id", "target_sha", "target_snapshot_id"],
+        ["snapshots.repository_id", "snapshots.commit_sha", "snapshots.snapshot_id"],
+        "fk_inventory_snapshot",
+    ),
+    _fk(
+        ["repository_id", "run_id", "diagnostic_artifact_id"],
+        ["artifacts.repository_id", "artifacts.run_id", "artifacts.artifact_id"],
+        "fk_inventory_diagnostic",
+    ),
+    _id_check("inventory_id", "ck_inventory_id"),
+    _check(f"target_sha ~ '{_SHA}'", "ck_inventory_sha"),
+    _check(
+        f"target_snapshot_id IS NULL OR target_snapshot_id ~ '{_DIGEST}'", "ck_inventory_snapshot"
+    ),
+    _check("framework = 'pytest'", "ck_inventory_framework"),
+    _check("length(collector_version) BETWEEN 1 AND 128", "ck_inventory_collector"),
+    _check("image_id IS NULL OR image_id ~ '^sha256:[0-9a-f]{64}$'", "ck_inventory_image"),
+    _check(f"configuration_sha256 ~ '{_DIGEST}'", "ck_inventory_config_hash"),
+    _check("jsonb_typeof(configuration) = 'object'", "ck_inventory_configuration"),
+    _check("jsonb_typeof(limitations) = 'array'", "ck_inventory_limitations"),
+    _check("exit_code IS NULL OR exit_code BETWEEN 0 AND 255", "ck_inventory_exit"),
+    _check(
+        "duration_seconds IS NULL OR (duration_seconds >= 0 "
+        "AND duration_seconds < 'Infinity'::float8 AND duration_seconds <> 'NaN'::float8)",
+        "ck_inventory_duration",
+    ),
+    _check(
+        "("
+        "stage_status IN ('not_implemented','not_run') AND completeness IS NULL "
+        "AND test_count IS NULL AND reason ~ '^[a-z][a-z0-9_]*$' AND error_code IS NULL "
+        "AND limitations = '[]'::jsonb) OR ("
+        "stage_status = 'failed' AND completeness IS NULL AND test_count IS NULL "
+        "AND reason IS NULL AND error_code ~ '^[a-z][a-z0-9_]*$') OR ("
+        "stage_status IN ('completed','partial') AND target_snapshot_id IS NOT NULL "
+        "AND image_id IS NOT NULL AND test_count BETWEEN 0 AND 10000 "
+        "AND reason IS NULL AND error_code IS NULL AND (("
+        "stage_status = 'completed' AND completeness = 'complete' AND limitations = '[]'::jsonb) "
+        "OR (stage_status = 'partial' AND completeness = 'partial' "
+        "AND jsonb_array_length(limitations) > 0)))",
+        "ck_inventory_state",
+    ),
+    # SQL CHECK treats NULL as satisfied; explicitly require the state discriminants.
+    _check(
+        "stage_status IN ('not_implemented','not_run','failed','completed','partial') "
+        "AND (stage_status NOT IN ('completed','partial') OR "
+        "(completeness IS NOT NULL AND test_count IS NOT NULL)) "
+        "AND (stage_status NOT IN ('not_implemented','not_run') OR reason IS NOT NULL) "
+        "AND (stage_status <> 'failed' OR error_code IS NOT NULL)",
+        "ck_inventory_presence",
+    ),
+)
+
+test_cases = sa.Table(
+    "test_cases",
+    metadata,
+    sa.Column("repository_id", sa.Text, primary_key=True),
+    sa.Column("run_id", sa.Text, primary_key=True),
+    sa.Column("inventory_id", sa.Text, primary_key=True),
+    sa.Column("test_id_sha256", sa.Text, primary_key=True),
+    sa.Column("test_id", sa.Text, nullable=False),
+    sa.Column("ordinal", sa.Integer, nullable=False),
+    sa.UniqueConstraint(
+        "repository_id", "run_id", "inventory_id", "ordinal", name="uq_test_case_ordinal"
+    ),
+    _fk(
+        ["repository_id", "run_id", "inventory_id"],
+        [
+            "test_inventories.repository_id",
+            "test_inventories.run_id",
+            "test_inventories.inventory_id",
+        ],
+        "fk_test_case_inventory",
+    ),
+    _check("octet_length(test_id) > 0", "ck_test_case_nonempty"),
+    _check(
+        "test_id_sha256 = encode(sha256(convert_to(test_id, 'UTF8')), 'hex')", "ck_test_case_digest"
+    ),
+    _check("ordinal BETWEEN 0 AND 9999", "ck_test_case_ordinal"),
 )

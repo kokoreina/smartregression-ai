@@ -116,7 +116,16 @@ def migrated(engines):
         )
         connection.execute(
             sa.text(
-                "GRANT SELECT, INSERT ON ALL TABLES IN SCHEMA smartregression "
+                "GRANT SELECT, INSERT ON smartregression.repositories, smartregression.snapshots, "
+                "smartregression.analysis_runs, smartregression.artifacts, "
+                "smartregression.run_reports "
+                "TO smartregression_runtime"
+            )
+        )
+        connection.execute(
+            sa.text(
+                "GRANT SELECT, INSERT ON smartregression.test_inventories, "
+                "smartregression.test_cases "
                 "TO smartregression_runtime"
             )
         )

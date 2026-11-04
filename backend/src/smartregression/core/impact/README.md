@@ -25,3 +25,23 @@ changed-component contract và persistence vẫn chờ các task 2.15, 2.01, 2.1
 
 Tạo nhận định ảnh hưởng từ change model và evidence, có trace về đúng commit.
 Không suy diễn findings giả thành kết quả thật.
+
+## Reverse-reachable potential impact
+
+`build_potential_impact` nhận `RunIdentity`, `ChangePayload` và một `GraphPayload`
+thuộc snapshot base hoặc target của identity. Component thay đổi là candidate
+`changed`; importer cách một cạnh là `direct`, còn importer chỉ reachable qua
+component trung gian là `indirect`. Graph không được nối các component cùng tên
+giữa hai revision; path được resolve theo snapshot đã chọn (deleted component có
+thể dùng `previous_path` trong base, còn added component chỉ có trong target).
+
+`ImpactPath.nodes` giữ chiều cạnh gốc, từ candidate tới changed component, ví dụ
+`[a.py, b.py, c.py]`. Các path đơn giản hợp lệ được deduplicate và sort ổn định;
+cycle và self-loop không được lặp node hoặc làm traversal vô hạn. Candidate chỉ
+thể hiện static import reachability có khả năng ảnh hưởng, không chứng minh
+runtime behavior đã thay đổi.
+
+Phân tích này không bao phủ dynamic imports, reflection, call graph, runtime
+dispatch hoặc các quan hệ không biểu diễn được bởi static import graph. Vì vậy
+không tìm thấy path không chứng minh không có ảnh hưởng, và có path cũng không
+chứng minh behavior chắc chắn thay đổi.

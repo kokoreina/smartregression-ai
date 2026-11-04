@@ -50,6 +50,8 @@ def snapshot_rows(connection):
         "analysis_runs",
         "artifacts",
         "run_reports",
+        "test_inventories",
+        "test_cases",
         "alembic_version",
     ):
         rows = connection.execute(
@@ -276,7 +278,7 @@ def execute():
             )
         evidence["checks"]["artifact_restore_digest_and_catalog"] = True
         evidence["backup_sha256"] = hashlib.sha256(dump).hexdigest()
-        evidence["checks"]["revision_head"] = "20261103_02"
+        evidence["checks"]["revision_head"] = "20261104_03"
         evidence["passed"] = True
     except Exception as exc:
         # Do not echo SQL, credentials or exception chains at this operator boundary.

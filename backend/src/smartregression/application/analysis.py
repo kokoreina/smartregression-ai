@@ -9,6 +9,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from smartregression.application.changed_components import identify_changes
 from smartregression.application.frozen_reader import DiffSource, FrozenReader
+from smartregression.application.inventory import InventoryCollector, collect_inventory
 from smartregression.application.run_store import RunConfiguration
 from smartregression.application.snapshots import (
     RepositoryAuthorization,
@@ -122,6 +123,7 @@ def analyze(
     target: str,
     data_kind: Literal["demo", "real"] = "real",
     limits: SnapshotLimits | None = None,
+    inventory_collector: InventoryCollector | None = None,
 ) -> StageAnalysisReport:
     """Compatibility boundary for callers that only need the canonical report."""
     return analyze_execution(
@@ -132,6 +134,7 @@ def analyze(
         target=target,
         data_kind=data_kind,
         limits=limits,
+        inventory_collector=inventory_collector,
     ).report
 
 
@@ -144,11 +147,13 @@ def analyze_execution(
     target: str,
     data_kind: Literal["demo", "real"] = "real",
     limits: SnapshotLimits | None = None,
+    inventory_collector: InventoryCollector | None = None,
 ) -> AnalysisExecution:
     """Authorize and freeze once, then call existing producers on that exact pair.
 
     Local CLI authorization is the operator's explicit ID/path binding, not a
-    multi-user access-control service. No input code is imported or executed.
+    multi-user access-control service. Discovery is opt-in through an explicitly
+    injected isolated collector; the default read-only flow executes no input code.
     """
     try:
         TypeAdapter(RepositoryId).validate_python(repository_id)
@@ -221,7 +226,11 @@ def analyze_execution(
         changes=changes,
         graph=graph,
         impact=absent(),
-        inventory=absent(),
+        inventory=(
+            collect_inventory(pair.target, identity, inventory_collector)
+            if inventory_collector is not None
+            else absent()
+        ),
         retrieval=absent(),
         evidence=absent(),
         review_ordering=StageResult(

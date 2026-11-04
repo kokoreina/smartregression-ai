@@ -38,6 +38,17 @@ chạy browser/CI hoặc product/frontend build mới cho scope này. Không com
 dump hoặc credentials. Wrapper portable `scripts/storage/verify.ps1` vẫn yêu cầu
 `.venv` của checkout; phiên này gọi run_checks.py bằng venv thực có sẵn.
 
+## Inventory 2.08/2.09 ngày 2026-11-04
+
+`scripts/inventory/verify_complete.ps1 -PythonExe <locked-backend-python>` đã chạy
+trong PowerShell thường: 521 default tests pass (72 opt-in/platform skips), Ruff/
+format/contracts pass; hai candidate thật collect hai lần, 12 Docker fixtures và
+71 PostgreSQL tests đều pass. Xem [kết quả và giới hạn](../research/sprint-2/inventory-verification-20261104.md).
+`-RuntimeOnly` chỉ phục vụ debug runtime sau source checks, không thay default gate.
+Script tải đúng hai public SHA như dữ liệu; build hooks/collection chỉ trong Docker,
+DB test là container riêng. Evidence tạo mới dưới `var/`; không cần DSN có sẵn.
+Các mục có ngày cũ bên dưới giữ lịch sử, không phải trạng thái hiện tại của inventory.
+
 ## Bổ sung task 2.20-B ngày 2026-11-03
 
 H1 đã triển khai local config/connection/application metadata boundary, chưa có
