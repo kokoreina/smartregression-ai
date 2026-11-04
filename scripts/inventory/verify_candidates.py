@@ -17,6 +17,7 @@ from smartregression.adapters.runners.candidate_inventory import (
 from smartregression.application.inventory import inventory_identity, inventory_stage
 from smartregression.application.inventory_store import prepare_inventory
 from smartregression.application.stage_conversion import identity_from_snapshots
+from smartregression.application.test_mapping import sources_from_collection
 from smartregression.core.git.snapshots import (
     SnapshotPair,
     TreeEntry,
@@ -121,6 +122,11 @@ def execute(image):
             first, second = [s.data.test_ids for s in stages]
             if first != second:
                 raise ValueError("unstable_candidate_inventory")
+            if (
+                record["attempts"][0]["result"]["test_sources"]
+                != record["attempts"][1]["result"]["test_sources"]
+            ):
+                raise ValueError("unstable_candidate_test_sources")
             record["ordered_ids_sha256"] = hashlib.sha256(canonical_json(first)).hexdigest()
             record["test_count"] = len(first)
             record["historical_count"] = {"sqlparse": 509, "tinydb": 228}[name]
@@ -133,17 +139,23 @@ def execute(image):
                 inventory_id="inventory-1",
                 stage=stages[0],
                 configuration=collector.configuration,
-                exit_code=result.exit_code,
-                duration_seconds=collector.last_observation["result"]["duration_seconds"],
+                exit_code=record["attempts"][0]["result"]["collection"]["exit_code"],
+                duration_seconds=record["attempts"][0]["result"]["duration_seconds"],
             )
             # The DB harness consumes this frozen value in a dedicated test DB.
             (folder / "inventory-write.json").write_bytes(canonical_json(asdict(write)))
+            sources_manifest = sources_from_collection(write, record["attempts"][0])
+            (folder / "test-sources.json").write_bytes(canonical_json(asdict(sources_manifest)))
+            record["test_sources_sha256"] = hashlib.sha256(
+                canonical_json(asdict(sources_manifest))
+            ).hexdigest()
         ledger["passed"] = True
     except Exception as exc:
         ledger["error_type"] = type(exc).__name__
         allowed = {
             "candidate_collection_failed",
             "unstable_candidate_inventory",
+            "unstable_candidate_test_sources",
             "historical_inventory_count_changed_review_required",
             "candidate_environment_mismatch",
             "candidate_setup_failed",

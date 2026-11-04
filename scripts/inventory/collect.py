@@ -17,6 +17,7 @@ class Observer:
         self.finished = False
         self.skips = []
         self.configuration = {}
+        self.sources = []
 
     def pytest_configure(self, config):
         self.configuration = {
@@ -37,6 +38,13 @@ class Observer:
 
     def pytest_collection_finish(self, session):
         self.ids = [item.nodeid for item in session.items]
+        self.sources = []
+        for item in session.items:
+            try:
+                path = item.path.relative_to(session.config.rootpath).as_posix()
+            except AttributeError, ValueError:
+                path = None
+            self.sources.append({"test_id": item.nodeid, "path": path})
         self.finished = True
 
 
@@ -68,9 +76,10 @@ def main():
         "\nSMARTREGRESSION_INVENTORY="
         + json.dumps(
             {
-                "protocol": "inventory/1",
+                "protocol": "inventory/2",
                 "identity": identity,
                 "mode": mode,
+                "test_sources": {"version": "pytest-item-path/1", "items": observer.sources},
                 "collection": {
                     "ids": observer.ids,
                     "exit_code": code,

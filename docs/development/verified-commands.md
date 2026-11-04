@@ -1,5 +1,15 @@
 # Lệnh đã đối chiếu với repository
 
+## Mapping 2.16 ngày 2026-11-04
+
+`scripts/mapping/verify.ps1 -PythonExe <locked-backend-python>` chạy từ root trong
+PowerShell thường với Linux Docker: default suite 609 passed/75 existing skips,
+Ruff/format/contracts pass; hai candidate collect hai lần với metadata item.path,
+mapping probes và stale-receipt rejection pass. Probe dùng synthetic component seeds,
+không là actual diff hoặc test-selection benchmark. Chi tiết:
+[task](task-2.16.md), [evidence](../research/sprint-2/mapping-verification-20261104.md).
+`-RuntimeOnly` phục vụ debug, không thay default suite; không đổi DB/migrations.
+
 ## Xuất bản 2.13 sau tích hợp main ngày 2026-11-04
 
 Main `64d343b` đã có inventory/domain migration mới và potential impact. Nhánh 2.13
