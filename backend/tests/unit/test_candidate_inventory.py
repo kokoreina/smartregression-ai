@@ -21,9 +21,10 @@ def identity():
 
 def result():
     return dict(
-        protocol="inventory/1",
+        protocol="inventory/2",
         identity=asdict(identity()),
         mode="collect",
+        test_sources={"version": "pytest-item-path/1", "items": []},
         collection=dict(ids=[], exit_code=5, collection_finished=True, collection_errors=0),
         isolation=dict(
             uid=65534,
@@ -50,6 +51,9 @@ def result():
         lambda r: r["isolation"].update(memory_max="max"),
         lambda r: r.update(duration_seconds=float("nan")),
         lambda r: r.update(exclusions=[]),
+        lambda r: r.update(protocol="inventory/1"),
+        lambda r: r["test_sources"].update(items=[{"test_id": "unknown", "path": "test.py"}]),
+        lambda r: r["test_sources"].update(version="other"),
     ],
 )
 def test_invalid_frame_scope_or_isolation_is_not_inventory(mutation):

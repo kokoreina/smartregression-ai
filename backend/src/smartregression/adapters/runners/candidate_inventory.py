@@ -13,7 +13,7 @@ from uuid import uuid4
 from smartregression.adapters.bounded_process import CommandFailure, bounded_command
 from smartregression.application.inventory_store import InventoryConfiguration
 from smartregression.core.execution.inventory import InventoryIdentity, finalize_discovery
-from smartregression.core.git.snapshots import validate_frozen_snapshot
+from smartregression.core.git.snapshots import validate_frozen_snapshot, validate_snapshot_paths
 
 CANDIDATES = {
     "sqlparse": (
@@ -75,18 +75,42 @@ def decode_result(raw, identity, mode):
                 "protocol",
                 "identity",
                 "mode",
+                "test_sources",
                 "collection",
                 "isolation",
                 "environment",
                 "exclusions",
                 "duration_seconds",
             }
-            or result["protocol"] != "inventory/1"
+            or result["protocol"] != "inventory/2"
             or result["mode"] != mode
         ):
             raise ValueError("invalid_worker_result")
         if result["identity"] != asdict(identity):
             raise ValueError("inventory_identity_mismatch")
+        metadata = result["test_sources"]
+        if (
+            type(metadata) is not dict
+            or set(metadata) != {"version", "items"}
+            or metadata["version"] != "pytest-item-path/1"
+            or type(metadata["items"]) is not list
+        ):
+            raise ValueError("invalid_worker_result")
+        source_ids = []
+        for item in metadata["items"]:
+            if (
+                type(item) is not dict
+                or set(item) != {"test_id", "path"}
+                or type(item["test_id"]) is not str
+                or item["path"] is not None
+                and type(item["path"]) is not str
+            ):
+                raise ValueError("invalid_worker_result")
+            if item["path"] is not None:
+                validate_snapshot_paths([item["path"]])
+            source_ids.append(item["test_id"])
+        if source_ids != result["collection"]["ids"]:
+            raise ValueError("invalid_worker_result")
         iso = result["isolation"]
         cpu = iso["cpu_max"].split()
         if (
@@ -145,7 +169,7 @@ class CandidateInventoryCollector:
             + Path(__file__).read_bytes()
         )
         return InventoryConfiguration(
-            "candidate-inventory/1",
+            "candidate-inventory/2",
             self.name,
             self.image,
             hashlib.sha256(observer).hexdigest(),
