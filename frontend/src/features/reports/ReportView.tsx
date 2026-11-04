@@ -1,3 +1,4 @@
+import { EvidenceItem } from '../../components/EvidenceItem'
 import type { AnalysisReport } from './demo'
 
 export function ReportView({ report }: { report: AnalysisReport }) {
@@ -23,12 +24,9 @@ export function ReportView({ report }: { report: AnalysisReport }) {
         </article>)}
         <h3>Bằng chứng</h3>
         {report.evidence.length === 0 && <p>Chưa có bằng chứng.</p>}
-        {report.evidence.map((item) => <article id={item.id} key={item.id} className="evidence">
-          <strong>{item.id}</strong>
-          <p><code>{item.path}:{item.line_start}–{item.line_end}</code></p>
-          <p className="muted">Symbol: {item.symbol ?? '—'} · Commit: <code>{item.commit}</code></p>
-          {item.excerpt && <pre>{item.excerpt}</pre>}
-        </article>)}
+        {report.evidence.map((item) => (
+          <EvidenceItem key={item.id} evidence={item} />
+        ))}
       </section>
       <section className="card">
         <h2>Lựa chọn test <span className="count">{report.selection.selected.length}</span></h2>
