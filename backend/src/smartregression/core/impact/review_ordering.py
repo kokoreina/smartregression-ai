@@ -24,6 +24,9 @@ RULE_VERSION = "2.07-v1"
 _LIMITATION_PARTIAL_GRAPH = "partial_graph"
 
 
+Tier = Literal[1, 2, 3]
+
+
 @dataclass(frozen=True)
 class ReviewCandidate:
     """A single component recommended for manual review.
@@ -34,13 +37,16 @@ class ReviewCandidate:
         3 — indirect dependent (transitively reachable, not Tier 1 or 2)
 
     ``symbol`` is ``None`` when the finding is at file/module level.
+    ``distance`` is the shortest graph distance in hops (0 for tier 1, 1 for tier 2,
+    >=2 for tier 3, or None if distance is unknown / unresolvable).
     No confidence score, no fault label.
     """
 
     path: str
     symbol: str | None
-    tier: Literal[1, 2, 3]
+    tier: Tier
     reason: str
+    distance: int | None = None
 
 
 @dataclass(frozen=True)
@@ -102,6 +108,7 @@ def order_for_review(
                     symbol=comp.symbol,
                     tier=1,
                     reason=f"directly changed ({comp.change})",
+                    distance=0,
                 )
             )
         tier1_paths.add(comp.path)
@@ -129,6 +136,7 @@ def order_for_review(
                         symbol=None,
                         tier=2,
                         reason=f"directly imports changed path '{t1_path}'",
+                        distance=1,
                     )
                 )
 
@@ -137,19 +145,24 @@ def order_for_review(
     tier3_candidates: list[ReviewCandidate] = []
     visited: set[str] = set(tier1_paths) | tier2_paths
     frontier: list[str] = list(sorted(tier2_paths))  # BFS starts from Tier 2
+    distances: dict[str, int] = {p: 1 for p in tier2_paths}
     while frontier:
         next_frontier: list[str] = []
         for current in frontier:
+            current_dist = distances[current]
             for importer in sorted(dependents_of.get(current, set())):
                 if importer not in visited:
                     visited.add(importer)
                     tier3_paths.add(importer)
+                    importer_dist = current_dist + 1
+                    distances[importer] = importer_dist
                     tier3_candidates.append(
                         ReviewCandidate(
                             path=importer,
                             symbol=None,
                             tier=3,
                             reason=f"transitively depends on '{current}'",
+                            distance=importer_dist,
                         )
                     )
                     next_frontier.append(importer)
@@ -188,12 +201,18 @@ def order_from_impact_payload(
 
     Distance resolution:
         Derives shortest graph distance (hops) from associated ImpactPath nodes
-        and includes it in the candidate reason.
+        as an integer field on ReviewCandidate. When no valid path exists, distance
+        is None, reason notes 'distance unknown', and limitation 'missing_impact_path'
+        is recorded.
+        Broken path references (path_id not in impact.paths) are recorded explicitly
+        as limitation 'broken_impact_path_reference'.
 
     Limitations reconciliation:
-        - If graph has unresolved imports, records 'partial_graph' and appends
-          the specific unresolved reasons/kinds.
-        - If graph is present with nodes but no edges, records 'partial_graph'.
+        - Only producer-confirmed limitations are mapped to 'partial_graph'
+          (e.g. graph.unresolved from Task 2.03).
+        - Structural inferences use separate distinct labels:
+          'no_dependency_edges_observed' (when graph has nodes but 0 edges)
+          'inconsistent_impact_payload' (when direct/indirect candidates exist with 0 paths).
         - Preserves caller-supplied limitations.
 
     Deduplication:
@@ -204,30 +223,35 @@ def order_from_impact_payload(
     extra_limitations: set[str] = set()
     path_lookup = {path.id: path for path in impact.paths}
 
-    # Group candidates by (path, symbol) to resolve duplicates across multiple change origins
-    grouped: dict[tuple[str, str | None], list[tuple[int, int, str]]] = {}
+    grouped: dict[tuple[str, str | None], list[tuple[Tier, int | None, str]]] = {}
 
     for cand in impact.candidates:
+        tier: Tier
         if cand.relationship == "changed":
-            tier: Literal[1, 2, 3] = 1
+            tier = 1
+            dist: int | None = 0
+            reason = f"directly changed ({cand.symbol or 'module-level'})"
         elif cand.relationship == "direct":
             tier = 2
-        else:
-            tier = 3
-
-        if tier == 1:
-            dist = 0
-            reason = f"directly changed ({cand.symbol or 'module-level'})"
-        elif tier == 2:
             dist = 1
             reason = "direct dependent (distance 1)"
         else:
-            # Derive distance from associated ImpactPaths
-            matched_lengths = [
+            tier = 3
+            # Check for broken path references explicitly
+            broken_refs = [pid for pid in cand.path_ids if pid not in path_lookup]
+            if broken_refs:
+                extra_limitations.add("broken_impact_path_reference")
+
+            valid_lengths = [
                 len(path_lookup[pid].nodes) - 1 for pid in cand.path_ids if pid in path_lookup
             ]
-            dist = min(matched_lengths, default=2)
-            reason = f"indirect dependent (min distance {dist})"
+            if valid_lengths:
+                dist = min(valid_lengths)
+                reason = f"indirect dependent (distance {dist})"
+            else:
+                dist = None
+                reason = "indirect dependent (distance unknown)"
+                extra_limitations.add("missing_impact_path")
 
         key = (cand.path, cand.symbol)
         grouped.setdefault(key, []).append((tier, dist, reason))
@@ -235,34 +259,43 @@ def order_from_impact_payload(
     candidates: list[ReviewCandidate] = []
     for (path, symbol), entries in grouped.items():
         # Best (lowest) tier wins
-        best_tier = min(e[0] for e in entries)
-        # For the chosen tier, pick shortest distance and its reason
+        best_tier: Tier = (
+            1 if any(e[0] == 1 for e in entries) else (2 if any(e[0] == 2 for e in entries) else 3)
+        )
+        # For the chosen tier, pick candidate with smallest distance (None treated as infinity)
+        tier_entries = [e for e in entries if e[0] == best_tier]
         best_entry = min(
-            (e for e in entries if e[0] == best_tier),
-            key=lambda e: e[1],
+            tier_entries,
+            key=lambda e: (e[1] is None, e[1] if e[1] is not None else 0),
         )
         candidates.append(
             ReviewCandidate(
                 path=path,
                 symbol=symbol,
-                tier=best_tier,  # type: ignore[arg-type]
+                tier=best_tier,
                 reason=best_entry[2],
+                distance=best_entry[1],
             )
         )
 
     # Sort candidates deterministically: (tier, path, symbol or "")
     sorted_candidates = tuple(sorted(candidates, key=lambda c: (c.tier, c.path, c.symbol or "")))
 
-    # Reconcile limitations from graph or missing paths
-    if graph is not None:
-        if graph.unresolved:
-            extra_limitations.add(_LIMITATION_PARTIAL_GRAPH)
-            for u in graph.unresolved:
-                extra_limitations.add(u.reason)
-        if not graph.edges and graph.nodes:
-            extra_limitations.add(_LIMITATION_PARTIAL_GRAPH)
-    elif not impact.paths and any(c.tier > 1 for c in sorted_candidates):
+    # Reconcile limitations:
+    # 1. Producer-supplied partial graph limitations:
+    if graph is not None and graph.unresolved:
         extra_limitations.add(_LIMITATION_PARTIAL_GRAPH)
+        for u in graph.unresolved:
+            extra_limitations.add(u.reason)
+
+    # 2. Structural inferences using explicit labels (not confusing with producer partial_graph):
+    if graph is not None and not graph.edges and graph.nodes:
+        extra_limitations.add("no_dependency_edges_observed")
+
+    if not impact.paths and any(
+        c.relationship in ("direct", "indirect") for c in impact.candidates
+    ):
+        extra_limitations.add("inconsistent_impact_payload")
 
     merged_limitations = tuple(sorted(set(limitations) | extra_limitations))
 
@@ -300,6 +333,8 @@ def order_from_stage_changes(
         extra_limitations.add(_LIMITATION_PARTIAL_GRAPH)
         for u in graph.unresolved:
             extra_limitations.add(u.reason)
+    if not graph.edges and graph.nodes:
+        extra_limitations.add("no_dependency_edges_observed")
 
     merged_limitations = tuple(sorted(set(limitations) | extra_limitations))
     return order_for_review(changed_components, edges, merged_limitations)

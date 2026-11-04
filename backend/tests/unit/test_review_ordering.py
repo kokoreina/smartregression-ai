@@ -719,20 +719,131 @@ class TestRealDataThinAdapter:
         review_order = order_from_impact_payload(impact)
 
         assert len(review_order.candidates) == 3
-        # Tier 1: core.py
+        # Tier 1: core.py (distance 0)
         assert review_order.candidates[0].path == "core.py"
         assert review_order.candidates[0].tier == 1
+        assert review_order.candidates[0].distance == 0
         assert "directly changed" in review_order.candidates[0].reason
 
         # Tier 2: api.py (distance 1)
         assert review_order.candidates[1].path == "api.py"
         assert review_order.candidates[1].tier == 2
+        assert review_order.candidates[1].distance == 1
         assert "distance 1" in review_order.candidates[1].reason
 
         # Tier 3: web.py (distance 2 hops: web -> api -> core)
         assert review_order.candidates[2].path == "web.py"
         assert review_order.candidates[2].tier == 3
-        assert "min distance 2" in review_order.candidates[2].reason
+        assert review_order.candidates[2].distance == 2
+        assert "distance 2" in review_order.candidates[2].reason
+
+    def test_order_from_impact_missing_and_broken_paths_handled(self) -> None:
+        """Kiểm chứng xử lý thiếu path và tham chiếu hỏng:
+
+        1. Khi candidate tier 3 không có path: distance là None, ghi 'distance unknown'
+           và thêm limitation 'missing_impact_path'. Không bịa khoảng cách.
+        2. Khi path_ids tham chiếu ID không tồn tại: thêm limitation
+           'broken_impact_path_reference', không bỏ qua im lặng.
+        """
+        import hashlib
+
+        from smartregression.contracts.stages import (
+            ImpactCandidate,
+            ImpactPayload,
+            SnapshotIdentity,
+        )
+        from smartregression.core.impact.review_ordering import order_from_impact_payload
+
+        snap = SnapshotIdentity(
+            repository_id="repo-1",
+            commit="a" * 40,
+            snapshot_id=hashlib.sha256(b"snap").hexdigest(),
+        )
+
+        cand_broken = ImpactCandidate(
+            id="c_broken",
+            path="broken.py",
+            symbol=None,
+            relationship="indirect",
+            changed_component_id="c1",
+            path_ids=["non_existent_pid"],  # broken reference
+        )
+        cand_empty = ImpactCandidate(
+            id="c_empty",
+            path="empty.py",
+            symbol=None,
+            relationship="indirect",
+            changed_component_id="c1",
+            path_ids=[],  # missing path
+        )
+
+        impact = ImpactPayload(
+            snapshot=snap,
+            candidates=[cand_broken, cand_empty],
+            paths=[],
+        )
+
+        order = order_from_impact_payload(impact)
+
+        # Cả 2 đều có distance là None, reason ghi 'distance unknown'
+        for cand in order.candidates:
+            assert cand.distance is None
+            assert "distance unknown" in cand.reason
+
+        # Limitations ghi nhận rõ ràng, không bịa số và không bỏ qua im lặng
+        assert "broken_impact_path_reference" in order.limitations
+        assert "missing_impact_path" in order.limitations
+        assert "inconsistent_impact_payload" in order.limitations
+
+    def test_order_from_impact_structural_inference_labels(self) -> None:
+        """Kiểm chứng: partial_graph chỉ đến từ unresolved; các suy luận cấu trúc
+
+        dùng nhãn riêng 'no_dependency_edges_observed' và 'inconsistent_impact_payload'.
+        """
+        import hashlib
+
+        from smartregression.contracts.stages import (
+            GraphPayload,
+            ImpactCandidate,
+            ImpactPayload,
+            SnapshotIdentity,
+        )
+        from smartregression.core.impact.review_ordering import order_from_impact_payload
+
+        snap = SnapshotIdentity(
+            repository_id="repo-1",
+            commit="a" * 40,
+            snapshot_id=hashlib.sha256(b"snap").hexdigest(),
+        )
+
+        impact = ImpactPayload(
+            snapshot=snap,
+            candidates=[
+                ImpactCandidate(
+                    id="c1",
+                    path="core.py",
+                    symbol=None,
+                    relationship="changed",
+                    changed_component_id="comp1",
+                    path_ids=[],
+                )
+            ],
+            paths=[],
+        )
+
+        # Graph có nodes nhưng 0 edges: suy luận cấu trúc
+        empty_edge_graph = GraphPayload(
+            snapshot=snap,
+            nodes=["core.py", "standalone.py"],
+            edges=[],
+            unresolved=[],
+        )
+
+        order = order_from_impact_payload(impact, graph=empty_edge_graph)
+
+        # Không gắn 'partial_graph' mà dùng nhãn riêng
+        assert "partial_graph" not in order.limitations
+        assert "no_dependency_edges_observed" in order.limitations
 
     def test_order_from_impact_deduplication_best_tier_wins(self) -> None:
         """Kiểm chứng deduplication khi một component xuất hiện qua nhiều relationship
@@ -921,3 +1032,125 @@ class TestRealDataThinAdapter:
         # Tier 2: api/routes.py
         assert review_order.candidates[1].path == "api/routes.py"
         assert review_order.candidates[1].tier == 2
+
+    def test_real_integration_through_task_203_and_204_code(self) -> None:
+        """Test tích hợp chạy qua code THẬT của Task 2.03 (build_dependency_graph)
+
+        và Task 2.04 (build_potential_impact) trên fixture nhỏ: web -> api -> core.
+        Thứ tự mong đợi (oracle viết tay trước):
+          1. core.py: tier 1 (directly changed), distance 0
+          2. api.py:  tier 2 (direct dependent), distance 1
+          3. web.py:  tier 3 (indirect dependent), distance 2
+        """
+        import hashlib
+
+        from smartregression.contracts.stages import (
+            ChangePayload,
+            FileCoverage,
+            GraphPayload,
+            ImportLimitation,
+            RunIdentity,
+            SnapshotIdentity,
+            StageComponent,
+            StageEdge,
+        )
+        from smartregression.core.impact.dependency_graph import build_dependency_graph
+        from smartregression.core.impact.potential_impact import build_potential_impact
+        from smartregression.core.impact.review_ordering import order_from_impact_payload
+
+        base_sha = "1" * 40
+        target_sha = "2" * 40
+        run = RunIdentity(
+            repository_id="repo-test",
+            run_id="run-test",
+            base=SnapshotIdentity(
+                repository_id="repo-test",
+                commit=base_sha,
+                snapshot_id=hashlib.sha256(b"base").hexdigest(),
+            ),
+            target=SnapshotIdentity(
+                repository_id="repo-test",
+                commit=target_sha,
+                snapshot_id=hashlib.sha256(b"target").hexdigest(),
+            ),
+            comparison_mode="direct_two_tree",
+        )
+
+        sources = {
+            "core.py": "def add(x, y):\n    return x + y\n",
+            "api.py": "import core\n\ndef handle(x, y):\n    return core.add(x, y)\n",
+            "web.py": "import api\n\ndef app():\n    return api.handle(1, 2)\n",
+        }
+
+        # 1. Chạy code THẬT của Task 2.03: build_dependency_graph
+        dep_graph = build_dependency_graph(
+            repository="repo-test",
+            revision=target_sha,
+            sources=sources,
+        )
+        graph_payload = GraphPayload(
+            snapshot=run.target,
+            nodes=[n.path for n in dep_graph.nodes],
+            edges=[
+                StageEdge(source=e.source.path, target=e.target.path, kind=e.kind)
+                for e in dep_graph.edges
+            ],
+            unresolved=[
+                ImportLimitation(
+                    source_path=u.source_path,
+                    reference=u.reference,
+                    kind=u.kind,
+                    reason=u.reason,
+                )
+                for u in dep_graph.unresolved
+            ],
+        )
+
+        # 2. Dựng ChangePayload: core.py bị sửa
+        changes = ChangePayload(
+            components=[
+                StageComponent(
+                    id=hashlib.sha256(b"core.py:modified").hexdigest(),
+                    path="core.py",
+                    kind="module",
+                    change="modified",
+                    base_location={"line_start": 1, "line_end": 2},
+                    target_location={"line_start": 1, "line_end": 2},
+                    reason="content_changed",
+                )
+            ],
+            files=[FileCoverage(path="core.py", status="completed", limitations=[])],
+        )
+
+        # 3. Chạy code THẬT của Task 2.04: build_potential_impact
+        impact_payload = build_potential_impact(run, changes, graph_payload)
+
+        # 4. Nối qua Adapter mỏng của Task 2.07
+        review_order = order_from_impact_payload(impact_payload, graph=graph_payload)
+
+        # 5. Kiểm chứng thứ tự mong đợi (oracle định nghĩa trước):
+        assert len(review_order.candidates) == 3
+
+        # Candidate 1: core.py (tier 1, distance 0)
+        c1 = review_order.candidates[0]
+        assert c1.path == "core.py"
+        assert c1.tier == 1
+        assert c1.distance == 0
+        assert "directly changed" in c1.reason
+
+        # Candidate 2: api.py (tier 2, distance 1)
+        c2 = review_order.candidates[1]
+        assert c2.path == "api.py"
+        assert c2.tier == 2
+        assert c2.distance == 1
+        assert "distance 1" in c2.reason
+
+        # Candidate 3: web.py (tier 3, distance 2 hops)
+        c3 = review_order.candidates[2]
+        assert c3.path == "web.py"
+        assert c3.tier == 3
+        assert c3.distance == 2
+        assert "distance 2" in c3.reason
+
+        # Limitations: đồ thị đầy đủ, không có unresolved -> limitations rỗng
+        assert review_order.limitations == ()
