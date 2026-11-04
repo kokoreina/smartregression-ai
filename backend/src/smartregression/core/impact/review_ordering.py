@@ -8,7 +8,7 @@ This module does NOT select tests, estimate fault probability, or assign fault l
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import InitVar, dataclass
 from typing import Literal
 
 from smartregression.contracts.models import ChangedComponent
@@ -46,7 +46,10 @@ class ReviewCandidate:
     symbol: str | None
     tier: Tier
     reason: str
-    distance: int | None = None
+    distance: InitVar[int | None] = None
+
+    def __post_init__(self, distance: int | None = None) -> None:
+        object.__setattr__(self, "distance", distance)
 
 
 @dataclass(frozen=True)
