@@ -32,6 +32,24 @@ code { font-size: 12px; overflow-wrap: anywhere; }
 .count { border-radius: 5px; background: #edf3e9; padding: 3px 8px; font-size: 12px; margin-left: 8px; }
 article { border-top: 1px solid #e4e9e1; padding: 16px 0; font-size: 14px; }
 .evidence { background: #f6f8f4; padding: 15px; border-radius: 7px; }
+.evidence-item { margin-bottom: 12px; }
+.evidence-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.evidence-identity { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.evidence-id { font-size: 13px; color: #173b37; }
+.evidence-location code { font-weight: 600; color: #1d4d12; }
+.evidence-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.evidence-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; border: 1px solid transparent; line-height: 1.4; }
+.badge-icon { font-weight: 900; }
+.evidence-badge-resolved { background: #e4f4dc; border-color: #88be70; color: #1d4d12; }
+.evidence-badge-missing { background: #fde8e7; border-color: #e28a84; color: #7a1c16; }
+.evidence-badge-mismatched { background: #fff3d6; border-color: #e0be68; color: #735105; }
+.evidence-badge-supported { background: #d8f3e5; border-color: #6fc799; color: #0d4d29; }
+.evidence-badge-unsupported { background: #fde8e7; border-color: #e28a84; color: #7a1c16; }
+.evidence-badge-unverified { background: #edf1ed; border-color: #b4c2b2; color: #415340; }
+.evidence-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; margin: 6px 0; }
+.evidence-issue { margin: 8px 0; padding: 6px 10px; border-radius: 4px; background: #fff3d6; border-left: 3px solid #e0be68; font-size: 12px; color: #735105; }
+.evidence-issue-label { font-weight: 700; }
+.evidence-excerpt { margin-top: 8px; }
 pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; border-left: 3px solid #7e9f6b; padding-left: 12px; }
 a { color: #326748; }
 .links { display: flex; gap: 12px; font-size: 12px; }
