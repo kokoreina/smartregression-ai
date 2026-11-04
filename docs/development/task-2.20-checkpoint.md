@@ -1,10 +1,13 @@
 # Task 2.20-A — Checkpoint PostgreSQL foundation
 
-> Tiếp nối implementation 2.20-B ngày 2026-11-03: H1 đã triển khai cục bộ
-> dependencies/config/connection/application metadata boundary; xem
-> [handoff 2.20-B](task-2.20-b.md). Schema/migrations KH, durable adapter và
-> PostgreSQL acceptance vẫn pending. Các mô tả checkpoint bên dưới giữ mốc lịch sử;
-> không coi code local đã có trên main hoặc task 2.20 đã Done.
+> Cập nhật đối chiếu 2026-11-04: foundation/schema/adapter đã merge qua PR #25;
+> inventory revision `20261104_03` và run/report wiring PR #30 đã có trên main
+> `9bcd6a4`. Xem [handoff adapter](task-2.20-adapter.md) và
+> [2.13](task-2.13.md#persistence-wiring) cho evidence thực của từng slice.
+> [Đặc tả P3](task-2.05-p3.md#p3-status) đã accepted ngày 2026-11-04 theo H1
+> xác nhận cả nhóm đồng ý, là nguồn hiện hành cho 2.05/lifecycle và
+> transaction integration. Các mô tả “chưa có DB/adapter” bên dưới là mốc checkpoint
+> 2026-11-03, không phải hiện trạng; P3/P5 và human acceptance vẫn riêng.
 
 ## 1. Trạng thái, nguồn và baseline
 
@@ -132,6 +135,10 @@ name từ input. Một Alembic head, KH là migration writer duy nhất.
 | M002 | artifacts → run_reports và indexes/constraints tương ứng | KH; H1 report/config contract |
 | M003 | Bounded evidence_bundles của 2.05 | KH migration; H1 domain design/adapter, ngoài giờ foundation |
 | M004+ | inventory/test cases và index/chunks khi contracts/producer decisions đủ | KH điều phối thứ tự; domain owner gửi mapping, không tự thêm migrations |
+
+Thứ tự trong bảng là kế hoạch lịch sử: inventory đã đi trước với revision
+`20261104_03`. Evidence dùng revision kế tiếp do KH điều phối từ head thực tế,
+không tự nhận M003 hoặc sửa migration inventory; xem [handoff P3](task-2.05-p3.md#p3-handoff).
 
 M001/M002 làm trong 2.20; có thể cùng một implementation PR để KH/H1 test chung,
 không bắt merge skeleton chưa hoạt động. Tên revision ID thực do Alembic sinh khi
@@ -289,44 +296,14 @@ Report reference phải đúng artifact kind/schema/scope qua application transa
 
 ### 6.1. 2.05 — evidence_bundles theo existing port
 
-Minimum consumer hiện có chỉ là save/load bằng `(repo,run)`, chưa có SQL query theo
-symbol/path. **Đề xuất M003 lưu bounded canonical bundle bytes trong PostgreSQL**,
-giữ whole report/log/snapshots ở artifacts. Đây là domain record có giới hạn,
-không biến metadata DB thành source-code/artifact store.
-
-Fields dự kiến: `repository_id text`, `run_id text` (PK/FK analysis_runs);
-`bundle_format text NOT NULL` (internal storage codec, ví dụ evidence-bundle/1,
-không thêm schema_version vào public model); `payload bytea NOT NULL`,
-`payload_sha256 text NOT NULL`, `created_at timestamptz NOT NULL`.
-DB CHECK digest format và `octet_length(payload) <= 2_097_152`; application cap
-đề xuất cùng 2 MiB và validate trước transaction. Vượt cap: explicit
-EvidenceStorageError với safe diagnostic, không truncate/fallback/file success
-âm thầm. Nếu representative data vượt cap, mở scope review về artifact-backed
-bundle/normalization; không tự mở rộng storage policy trong 2.05.
-
-`payload` là `canonical_json(bundle.model_dump(mode="json"))`, UTF-8 bytes, không
-compression/custom pickle. Byte equality là chuẩn retry; digest chỉ hỗ trợ integrity,
-không dùng digest một mình để kết luận nội dung giống. Decode + EvidenceBundle
-validation + expected identity check khi load. Composite FK buộc run tồn tại;
-app so cả hai snapshot hashes/SHAs với immutable run trước khi write/read.
-
-| Representation đã cân nhắc | Trade-off / quyết định proposed |
-| --- | --- |
-| JSONB toàn bundle | Dễ inspect/query, giữ array order nhưng không giữ byte representation/object key order; SQL equality không thay canonical byte comparison; JSONB không biểu diễn mọi JSON string như U+0000 |
-| Bounded canonical bytea + relational run binding | Exact bytes/array order, phù hợp port immutable save/load, không lỗi codec text JSONB; không SQL-query nested paths; chọn cho M003 |
-| Normalize toàn DB §3.4.1–5 ngay | Tốt cho query/FKs từng edge, nhưng producer shape chưa khớp và nhiều tables/joins ngoài consumer hiện có; deferred tới khi có nhu cầu query cụ thể |
-
-Không claim DB FK bên trong bytea: unknown component/path/evidence và cùng snapshot
-edge support do typed validators/application kiểm transactionally, resolver 2.06
-kiểm source/support. DB chỉ bảo vệ key/run/size/basic constraints. Storage runtime
-role không UPDATE/DELETE bundle; migration owner có quyền bảo trì riêng. Tests
-tampered/corrupt payload vẫn bắt buộc, dù database không tự decode bundle.
-
-Mapping DB Design §3.4.1–5: changed files/components/ranges, graph nodes/edges,
-impact candidates/paths và evidence đều giữ lossless trong canonical domain bundle;
-chưa tạo tables cùng tên nên không được gọi là implementation normalized design.
-Reconciliation này cần nhóm chốt trong §11. Không tự điền missing source_location,
-review_rank/explanation hoặc tạo component IDs mới cho graph module nodes.
+Đề xuất bounded canonical bytea 2 MiB tại checkpoint này được chi tiết hóa trong
+[đặc tả P3 ngày 2026-11-04](task-2.05-p3.md). Tài liệu đó là nguồn hiện hành cho
+schema/codec, full identity, errors/retry/concurrency, vòng đời verification,
+report integration và acceptance. **Accepted ngày 2026-11-04 theo xác nhận nhóm
+qua H1**; PostgreSQL EvidenceStore chưa triển khai. Nguồn chấp thuận nằm tại P3 §1,
+không suy việc merge foundation chốt P3.
+Normalization DB Design §3.4.1–5 được đối chiếu trong P3; không tự tạo tables/query
+ngoài consumer save/load. Nhãn M003 cũ không còn là migration slot evidence.
 
 ### 6.2. 2.08/09 — inventory metadata checkpoint
 
@@ -398,6 +375,11 @@ implementation thấy cần breaking contract change, quay về checkpoint với
 impact; không sửa generated files tay. DB Design DOCX chưa được sửa trong phiên này.
 
 ## 8. Transaction, retry và DB/file publication
+
+> Thiết kế checkpoint lịch sử; [P3 §5–7](task-2.05-p3.md#p3-storage) bổ sung và
+> thay thế phần đặc tả EvidenceStore/lifecycle/compound integration để review.
+> Report-only `persist_report` đã có qua PR #30; optional bundle/compound writer
+> trong phần dưới và trong P3 vẫn chưa triển khai.
 
 ### 8.1. Domain save/load
 
@@ -539,14 +521,14 @@ không chuyển 2.05/domain data vào 2.20 để làm như đủ 24h. EvidenceSt
 | P0 | Accepted: user; nguồn team guide/brief hiện hành | PostgreSQL engine; không hỏi lại |
 | P1 | Accepted 2026-11-03: Nguyễn Tấn Huy xác nhận nhóm thống nhất, nguồn §1 | Sync Core 2.1 + psycopg3 binary + Alembic; PostgreSQL17 test baseline, revalidate/pin tại implementation |
 | P2 | Accepted 2026-11-03: nhóm theo xác nhận H1, nguồn §1 | 5-table foundation, text IDs, inline immutable config, defer auth/full design; reconciliation §7 |
-| P3 | Proposed; H1/KH chốt cùng P2 trước M003 | Bounded canonical bytea bundle 2 MiB cho 2.05, chưa normalize/full artifact DB; size vượt thì fail rõ, review lại trước production claim |
+| P3 | Accepted 2026-11-04: Nguyễn Tấn Huy xác nhận cả nhóm đồng ý, nguồn P3 §1 | [Đặc tả P3](task-2.05-p3.md#p3-status): bounded bytea 2 MiB, lifecycle và compound transaction; KH chọn revision từ head thật, không dùng slot M003 cũ; chưa implementation acceptance |
 | P4 | Accepted 2026-11-03: nhóm theo xác nhận H1, nguồn §1; giữ allocation hiện có | H1 manifest/config/connection/ports, KH Table metadata/migrations/shared DB fixture; không hai writer |
 | P5 | Pending domain decisions; không chặn minimum foundation | Retrieval backend/config và domain queries; nullable embedding_model conditional/mapping inventory partial trước migrations consumer |
 
 P1/P2/P4 đã được chốt, đủ đầu vào quyết định để bắt đầu H1/KH implementation.
-P3 chặn M003/2.05, không
-chặn config/connection; P5 chặn index/inventory consumer schema, không buộc chọn
-retrieval ngay. Phạm vi thiết kế này chưa cấp quyền triển khai code; prompt sau
+P3 đã đủ quyết định để triển khai evidence migration/2.05 khi được giao code,
+không cần hỏi chốt lại; P5 chặn retrieval/index schema, không chặn inventory đã có
+quyết định D15 và migration riêng. Phạm vi thiết kế này chưa cấp quyền triển khai code; prompt sau
 cần giao slice implementation cụ thể. Không hỏi lại permission cho việc viết
 tài liệu đã giao; đây là nơi nhóm quyết định tooling/schema mới.
 
@@ -674,8 +656,13 @@ mapping, test matrix và tài liệu; đã đọc Proposal v1.4 Appendix C/D. Ng
 nhóm cần review, hiểu và chốt thiết kế; không lấy chữ ký/tỉ lệ lịch sử làm approval
 hoặc contribution mới. Không service/process local mới; chỉ Markdown thay đổi.
 
-**Trạng thái bàn giao:** P1/P2/P4 đã được nhóm thống nhất theo xác nhận H1;
+**Trạng thái bàn giao lịch sử 2026-11-03:** P1/P2/P4 đã được nhóm thống nhất theo xác nhận H1;
 implementation 2.20 vẫn chưa bắt đầu. Có thể chuyển sang brief 2.20-B; P3 cần chốt
 trước 2.05 và P5 trước consumer migrations tương ứng. Chưa có runtime acceptance,
 mentor approval hoặc hoàn thành task/sprint được suy diễn. Lượt ghi nhận quyết định
 này chỉ sửa Markdown cục bộ, chưa commit/push.
+
+**Tiếp nối 2026-11-04:** P3 đã accepted theo xác nhận mới của H1 rằng cả nhóm
+đồng ý; xem nguồn tại [P3 §1](task-2.05-p3.md#p3-status). Pending P3 trong bàn giao
+lịch sử trên không còn là blocker quyết định. Implementation/acceptance 2.05/2.06,
+shared migration và review code vẫn là các bước tiếp theo, không tự hoàn thành.
