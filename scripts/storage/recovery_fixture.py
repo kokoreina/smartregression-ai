@@ -1,0 +1,75 @@
+"""Quiescent, task-owned report/file fixture for the backup/restore drill.
+
+Fixture publication/provisioning is explicit; metadata uses the actual bound SQL adapter.
+"""
+
+import hashlib
+import os
+from pathlib import Path
+
+from sqlalchemy import Connection
+
+from smartregression.adapters.storage.run_store import BoundRunReportStore
+from smartregression.adapters.storage.schema import repositories
+from smartregression.application.analysis import aggregate_status
+from smartregression.application.run_store import (
+    ReportArtifact,
+    RunConfiguration,
+    prepare_run_report,
+)
+from smartregression.application.stage_conversion import identity_from_snapshots, snapshots_result
+from smartregression.contracts.stages import AnalysisStages, StageAnalysisReport, StageResult
+from smartregression.core.git.snapshots import SnapshotLimits, SnapshotPair, freeze_snapshot
+
+
+def seed_recovery_fixture(connection: Connection, artifact_root: Path) -> dict:
+    base = freeze_snapshot("recovery-fixture", "a" * 40, (), ())
+    target = freeze_snapshot("recovery-fixture", "b" * 40, (), ())
+    pair = SnapshotPair(base, target, "owned-in-memory-fixture")
+    identity = identity_from_snapshots(pair, run_id="recovery-run")
+    absent = {
+        name: StageResult(status="not_implemented", reason="fixture_not_implemented")
+        for name in (
+            "changes",
+            "graph",
+            "impact",
+            "inventory",
+            "retrieval",
+            "evidence",
+            "review_ordering",
+        )
+    }
+    stages = AnalysisStages(snapshots=snapshots_result(pair), **absent)
+    report = StageAnalysisReport(
+        schema_version="2.0.0",
+        report_id="recovery-report",
+        data_kind="demo",
+        identity=identity,
+        analysis_status=aggregate_status(stages),
+        stages=stages,
+    )
+    raw = report.model_dump_json(indent=2).encode() + b"\n"
+    artifact = ReportArtifact(
+        "recovery-file", "reports/recovery.json", hashlib.sha256(raw).hexdigest(), len(raw)
+    )
+    configuration = RunConfiguration(
+        None, SnapshotLimits(), 256000, (("snapshots", "git-blobs/1"),)
+    )
+    write = prepare_run_report(
+        report=report,
+        configuration=configuration,
+        snapshot_manifests=(base.manifest, target.manifest),
+        artifact=artifact,
+        published_report_bytes=raw,
+    )
+    file = artifact_root / artifact.storage_key
+    file.parent.mkdir(parents=True, exist_ok=False)
+    with file.open("xb") as stream:
+        stream.write(raw)
+        stream.flush()
+        os.fsync(stream.fileno())
+    connection.execute(
+        repositories.insert().values(repository_id=identity.repository_id, source_kind="local")
+    )
+    BoundRunReportStore(connection).save(write)
+    return {"storage_key": artifact.storage_key, "sha256": artifact.sha256, "size_bytes": len(raw)}

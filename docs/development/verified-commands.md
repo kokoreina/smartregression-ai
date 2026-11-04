@@ -1,5 +1,41 @@
 # Lệnh đã đối chiếu với repository
 
+## Bổ sung task 2.20-B ngày 2026-11-03
+
+H1 đã triển khai local config/connection/application metadata boundary, chưa có
+schema/migrations/durable adapter. Chi tiết [handoff 2.20-B](task-2.20-b.md).
+Cwd `D:\smart-regression-ai\var\main-review-20261103`; Python 3.14.3 và
+packages cài locked trong `D:/smart-regression-ai/var/task-2.20-b-venv`.
+Các lệnh dưới dùng tool path thực đã chạy; member dùng uv theo setup hiện hành.
+
+```powershell
+$env:UV_PROJECT_ENVIRONMENT='D:/smart-regression-ai/var/task-2.20-b-venv'
+& D:/smart-regression-ai/.tools/bin/uv.exe sync --locked --cache-dir D:/smart-regression-ai/.uv-cache --python D:/smart-regression-ai/.venv/Scripts/python.exe
+& D:/smart-regression-ai/.tools/bin/uv.exe lock --check --offline --cache-dir D:/smart-regression-ai/.uv-cache
+& D:/smart-regression-ai/.tools/bin/uv.exe sync --locked --offline --cache-dir D:/smart-regression-ai/.uv-cache
+& D:/smart-regression-ai/var/task-2.20-b-venv/Scripts/ruff.exe check .
+& D:/smart-regression-ai/var/task-2.20-b-venv/Scripts/ruff.exe format --check .
+$env:PYTHONDONTWRITEBYTECODE='1'
+$env:PATH='D:/smart-regression-ai/var/task-2.13-tools/mingit/cmd;' + $env:PATH
+& D:/smart-regression-ai/var/task-2.20-b-venv/Scripts/python.exe -m pytest backend/tests -q -p no:cacheprovider --tb=short --basetemp D:/smart-regression-ai/var/task-2.20-b-pytest-final
+& D:/smart-regression-ai/var/task-2.20-b-venv/Scripts/python.exe scripts/export_contracts.py --check
+```
+
+Exit 0 cho các lệnh trên. Locked install tạo venv mới/cài 32 packages; subsequent
+offline sync chỉ xác minh environment đã cài, không phải cache-cold install.
+Full backend: **383 passed, 1 skipped, 1 warning**; skip POSIX FIFO trên Windows,
+warning Starlette/httpx có sẵn. Ruff check/format và exporter pass.
+
+Non-DB demo với runtime/migration URL invalid cố ý: script `scripts/demo_analysis.py`
+với output mới `D:/smart-regression-ai/var/task-2.20-b-demo-1` exit 0, xác nhận
+thin=1/failure=2/empty=1. DEMO analysis incomplete, không gọi PostgreSQL.
+Không tái dùng output cũ; pytest basetemp tự quản lý cleanup nên khi chạy lại hãy
+chọn thư mục dành riêng cho test, không dùng thư mục artifacts/dữ liệu cần giữ.
+
+Chưa verified migration commands hoặc PostgreSQL connect/commit/rollback thật.
+Docker Linux engine chưa chạy và KH schema/fixtures chưa có trên fetched main;
+driver doubles không thay acceptance DB. Không có CI run cho diff local này.
+
 ## Bổ sung task 2.13 ngày 2026-11-03
 
 CLI có `analyze`: shared read-only flow snapshots → changes → target import graph,

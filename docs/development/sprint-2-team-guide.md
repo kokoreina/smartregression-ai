@@ -368,6 +368,14 @@ implementation mới bên trong các vùng đó là **dự kiến**, chưa phả
 <a id="task-208"></a>
 ### 2.08 — Isolated target test inventory
 
+**Quyết định accepted 2026-11-04:** đọc
+[brief chung 2.08/2.09](task-2.08-2.09-decisions.md) trước khi triển khai. Nhóm chốt
+sqlparse chính + TinyDB kiểm tra bổ sung tại hai SHA cố định, môi trường input
+Python 3.14.3/pytest 9.1.1 được khóa dependencies, isolated collection và hai bảng
+PostgreSQL. KH giữ writer collector/domain migrations; H1 phối hợp native-ID
+contract. Foundation/schema/run-report adapter đã có trên main qua PR #25;
+không dựng lại phần này. Quyết định không phải task acceptance.
+
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B97:Z101`; PB09; KH 12h, accountable KH;
   reviewer pending.
 - **Input/dependency:** 2.14/15; 2.20 cho durable inventory. Runner reuse chỉ trong
@@ -386,6 +394,13 @@ implementation mới bên trong các vùng đó là **dự kiến**, chưa phả
 
 <a id="task-209"></a>
 ### 2.09 — Inventory completeness và failure states
+
+**Chuẩn trạng thái đã chốt:** theo
+[bảng semantics chung](task-2.08-2.09-decisions.md#7-trạng-thái-chung-cho-collector-db-và-consumers).
+Giữ nguyên pytest node IDs; H1 sửa kiểu riêng không trim, KH cung cấp fixtures và
+collector. Partial giữ kết quả hợp lệ + limitations; failed không được báo empty.
+Consumers không dùng partial/failed để kết luận selection an toàn. Nghiệm thu phải
+có runner và PostgreSQL thật theo [acceptance](task-2.08-2.09-decisions.md#8-writer-thứ-tự-và-acceptance).
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B103:Z107`; PB09; KH 6h, accountable KH;
   reviewer pending.
@@ -1010,7 +1025,8 @@ source nhạy cảm hoặc DSN/secret vào nhật ký chia sẻ.
 | Mục | Trạng thái/nguồn | Bước tiếp theo đề xuất |
 | --- | --- | --- |
 | PostgreSQL engine | Accepted, workbook `Sprint 2 Reports!E11`, user 2026-10-31 | Triển khai bounded foundation theo task; không hỏi chọn engine lại |
-| ORM/driver, migration tool, minimum schema/FKs | Pending; `E11`, `E34:E39` | H1/KH chuẩn bị tradeoff, AN reviewer đề xuất; người quyết định tooling cụ thể chưa xác định |
+| ORM/driver, migration tool, minimum schema/FKs | P1/P2/P4 accepted 2026-11-03; Core + psycopg + Alembic, five-table foundation đã merge qua PR #25 | Dùng [handoff adapter](task-2.20-adapter.md); DB verification được ghi ở handoff, không phải chạy lại trong guide; human acceptance riêng |
+| Candidate/environment/inventory persistence 2.08/2.09 | Accepted 2026-11-04 theo H1; [quyết định chung](task-2.08-2.09-decisions.md) | KH triển khai collector/profile/domain tables; H1 native-ID contract; thực hiện đủ acceptance trước đóng task |
 | Retrieval/embedding/backend và non-null model | Pending; `E40`, DB §3.4.8 | H2 nêu phương án/config/data policy, phối hợp H1/KH; quyết định lexical/embedding và schema reconciliation trước implementation phụ thuộc |
 | Revision policy/authorization | Cần review Q01–Q10 và candidate scope; `E47` | AN cùng consumers xác minh quyết định đủ cho snapshot slice; không tự mở live PR/arbitrary input |
 | Capacity, sprint dates, commitment | Pending; `E16`, `E19`, `E46` | Nhóm đối chiếu availability từng người với giờ task; không tự dời sprint/cắt task hoặc gán 264h là capacity |

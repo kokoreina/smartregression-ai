@@ -1,11 +1,21 @@
 # Task 2.20-A — Checkpoint PostgreSQL foundation
 
+> Tiếp nối implementation 2.20-B ngày 2026-11-03: H1 đã triển khai cục bộ
+> dependencies/config/connection/application metadata boundary; xem
+> [handoff 2.20-B](task-2.20-b.md). Schema/migrations KH, durable adapter và
+> PostgreSQL acceptance vẫn pending. Các mô tả checkpoint bên dưới giữ mốc lịch sử;
+> không coi code local đã có trên main hoặc task 2.20 đã Done.
+
 ## 1. Trạng thái, nguồn và baseline
 
 **Checkpoint thiết kế để review; chưa triển khai database.** PostgreSQL engine đã
 accepted theo người dùng và [team guide 2.20](sprint-2-team-guide.md#task-220).
-Tooling, schema thu hẹp và writer paths dưới đây là **proposed**, chưa có xác nhận
-của KH/AN/mentor. Không đóng task 2.20 hoặc thay allocation backlog.
+P1/P2/P4 (tooling, foundation schema và writer boundaries) đã **accepted** theo
+xác nhận của Nguyễn Tấn Huy ngày 2026-11-03: “nhóm đã thống chất toàn bộ các điểm
+này”, trả lời danh sách P1/P2/P4 ngay trước đó. Đây là quyết định nhóm do H1 truyền
+đạt, không phải mentor approval hoặc bằng chứng implementation. P3/P5 vẫn riêng,
+không suy xác nhận này chốt bundle policy/retrieval backend. Không đóng task 2.20
+hoặc thay allocation backlog.
 
 - Main được fetch: `d30388fae09a8fb413c20b8afc7d7c38c5e361c4`, merge thin workflow 2.13.
 - Ngày đối chiếu: 2026-11-03. Không mặc định remote không đổi sau lúc fetch.
@@ -58,7 +68,7 @@ foundation, nhưng fixtures không thay acceptance của actual producers.
 
 ## 3. Tooling recommendation
 
-**Đề xuất A: synchronous SQLAlchemy Core + psycopg 3 binary + Alembic.** Dùng Core
+**Phương án A đã chốt (P1): synchronous SQLAlchemy Core + psycopg 3 binary + Alembic.** Dùng Core
 Table/statement, chưa dùng ORM Session/relationships hoặc async stack. CLI/use case
 hiện synchronous; không có analyze endpoint cần async DB. Core/adapters boundary
 giữ nguyên, SQLAlchemy/driver chỉ trong storage adapter và migration layer.
@@ -111,7 +121,7 @@ ghi và kiểm compatible trước thay baseline, không âm thầm đổi.
 
 ## 4. Scope và migration sequence
 
-Foundation 2.20 đề xuất chỉ **5 application tables** + bảng version do Alembic quản
+Foundation 2.20 đã chốt (P2) chỉ **5 application tables** + bảng version do Alembic quản
 lý. Không tạo full DB Design. Naming/fields dưới đây là schema dự kiến, không phải
 DDL đã tạo. Schema qualification cố định `smartregression`; không lấy schema/table
 name từ input. Một Alembic head, KH là migration writer duy nhất.
@@ -139,11 +149,11 @@ LLM calls, CI integration, evaluation tables; vector embeddings ngoài metadata 
 - Run/report/component/test IDs: canonical `Text` hoặc native ID, không ép UUID;
   store giá trị đã normalize/validate, không truncate/cast. CLI đang sinh UUID là
   implementation detail. Run key `(repository_id, run_id)` đúng EvidenceStore.
-- Giới hạn storage cần chốt ở P2: PostgreSQL text không chứa U+0000, B-tree keys
+- Giới hạn storage thuộc P2 đã chốt: PostgreSQL text không chứa U+0000, B-tree keys
   có byte-size limit trong khi canonical Text chưa có max length. Đề xuất kiểm
   run_id/report_id/artifact_id metadata <=512 UTF-8 bytes, không U+0000 trước SQL;
   unsupported input báo persistence error, không truncate/đổi ID hoặc đổi validator
-  public. Đây là giới hạn persistence mới cần review, không claim mọi JSON-valid
+  public. Đây là giới hạn persistence cần kiểm chứng implementation, không claim mọi JSON-valid
   Text đều lưu được. Component IDs/excerpts trong bundle bytea vẫn giữ bytes đầy đủ;
   native test ID limits chốt riêng với KH trước domain schema, không áp cap 512 giả.
 - SHA: `text`, CHECK full lowercase 40 hoặc 64 hex; digest: `text`, 64 lowercase hex.
@@ -320,6 +330,13 @@ review_rank/explanation hoặc tạo component IDs mới cho graph module nodes.
 
 ### 6.2. 2.08/09 — inventory metadata checkpoint
 
+> **Superseded cho quyết định inventory ngày 2026-11-04:**
+> [D15 / brief 2.08–2.09](task-2.08-2.09-decisions.md) đã được H1 chốt.
+> Giữ phần dưới làm lịch sử: không triển khai native test ID dài trực tiếp trong
+> B-tree PK như đề xuất cũ; dùng scoped digest key và exact native ID text với
+> collision check. State semantics, nullable failure identity, ownership và
+> acceptance hiện hành nằm trong brief D15. P3/P5 vẫn riêng.
+
 Future `test_inventories`: PK `(repo,run,inventory_id text)`, FK run + target snapshot;
 one frozen inventory/run bằng UQ(repo,run); stage_status năm giá trị canonical,
 completeness nullable (complete/partial), test_count nullable >=0, reason/error và
@@ -486,8 +503,9 @@ Stored source/RAG vẫn untrusted data; không thực thi để kiểm SQL hoặ
 
 ## 10. Writer ownership và kế hoạch triển khai
 
-Các writers dưới đây là đề xuất phối hợp trong allocation đã có, chưa thông báo
-cho thành viên hoặc xác nhận họ nhận việc. Paths chưa tồn tại đều **dự kiến**.
+Writer boundaries đã được nhóm chốt theo xác nhận H1 (P4), trong allocation đã có.
+Agent chưa gửi tin nhắn/khởi công việc thay thành viên; không giả independent review.
+Paths chưa tồn tại đều **dự kiến**, cần kiểm lại main khi triển khai để tránh xung đột.
 
 | Deliverable | Writer duy nhất | Reader/reviewer đề xuất | Paths / dependency / acceptance |
 | --- | --- | --- | --- |
@@ -519,13 +537,14 @@ không chuyển 2.05/domain data vào 2.20 để làm như đủ 24h. EvidenceSt
 | ID | Trạng thái / người quyết định | Recommendation và phần cần chốt |
 | --- | --- | --- |
 | P0 | Accepted: user; nguồn team guide/brief hiện hành | PostgreSQL engine; không hỏi lại |
-| P1 | Proposed; người dùng/nhóm chốt, chưa có approval | Sync Core 2.1 + psycopg3 binary + Alembic; PostgreSQL17 test baseline, revalidate/pin tại implementation |
-| P2 | Proposed; H1/KH/nhóm chốt | 5-table foundation, text IDs, inline immutable config, defer auth/full design; reconciliation §7 |
+| P1 | Accepted 2026-11-03: Nguyễn Tấn Huy xác nhận nhóm thống nhất, nguồn §1 | Sync Core 2.1 + psycopg3 binary + Alembic; PostgreSQL17 test baseline, revalidate/pin tại implementation |
+| P2 | Accepted 2026-11-03: nhóm theo xác nhận H1, nguồn §1 | 5-table foundation, text IDs, inline immutable config, defer auth/full design; reconciliation §7 |
 | P3 | Proposed; H1/KH chốt cùng P2 trước M003 | Bounded canonical bytea bundle 2 MiB cho 2.05, chưa normalize/full artifact DB; size vượt thì fail rõ, review lại trước production claim |
-| P4 | Proposed trong allocation đã có; H1/KH xác nhận coordination | H1 manifest/config/connection/ports, KH Table metadata/migrations/shared DB fixture; không hai writer |
+| P4 | Accepted 2026-11-03: nhóm theo xác nhận H1, nguồn §1; giữ allocation hiện có | H1 manifest/config/connection/ports, KH Table metadata/migrations/shared DB fixture; không hai writer |
 | P5 | Pending domain decisions; không chặn minimum foundation | Retrieval backend/config và domain queries; nullable embedding_model conditional/mapping inventory partial trước migrations consumer |
 
-Để bắt đầu H1/KH implementation cần P1/P2/P4 rõ ràng. P3 chặn M003/2.05, không
+P1/P2/P4 đã được chốt, đủ đầu vào quyết định để bắt đầu H1/KH implementation.
+P3 chặn M003/2.05, không
 chặn config/connection; P5 chặn index/inventory consumer schema, không buộc chọn
 retrieval ngay. Phạm vi thiết kế này chưa cấp quyền triển khai code; prompt sau
 cần giao slice implementation cụ thể. Không hỏi lại permission cho việc viết
@@ -645,7 +664,8 @@ dùng git diff --check một mình để khẳng định untracked Markdown đã
 
 Không chạy pytest/Ruff/exporter/frontend vì không đổi code/config/contracts;
 không lấy 313 tests pass của phiên 2.13 làm kết quả của checkpoint này. D13 trong
-decision-register tách engine đã accepted khỏi D06 lịch sử; D14 chỉ link proposal.
+decision-register tách engine đã accepted khỏi D06 lịch sử; D14 ghi nhận P1/P2/P4
+accepted theo xác nhận H1 sau merge checkpoint, không coi merge tự chốt proposal.
 
 Self-review dùng Coordinator/Backend/Reviewer, rules 00/01/02/03/04/06/12/13,
 api-contracts/security-review; spreadsheet skill chỉ đọc workbook. Không gọi
@@ -654,6 +674,8 @@ mapping, test matrix và tài liệu; đã đọc Proposal v1.4 Appendix C/D. Ng
 nhóm cần review, hiểu và chốt thiết kế; không lấy chữ ký/tỉ lệ lịch sử làm approval
 hoặc contribution mới. Không service/process local mới; chỉ Markdown thay đổi.
 
-**Trạng thái bàn giao:** bản checkpoint proposed hoàn chỉnh để review, implementation
-2.20 vẫn chưa bắt đầu. Quyết định cần tiếp là P1/P2/P4; P3 trước 2.05, P5 trước
-consumer migrations. Không có phê duyệt hoặc hoàn thành task/sprint được suy diễn.
+**Trạng thái bàn giao:** P1/P2/P4 đã được nhóm thống nhất theo xác nhận H1;
+implementation 2.20 vẫn chưa bắt đầu. Có thể chuyển sang brief 2.20-B; P3 cần chốt
+trước 2.05 và P5 trước consumer migrations tương ứng. Chưa có runtime acceptance,
+mentor approval hoặc hoàn thành task/sprint được suy diễn. Lượt ghi nhận quyết định
+này chỉ sửa Markdown cục bộ, chưa commit/push.
