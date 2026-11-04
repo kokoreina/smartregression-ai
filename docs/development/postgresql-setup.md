@@ -26,7 +26,9 @@ To rerun only the DB work when other checks already have sufficient evidence:
 & .\scripts\storage\verify.ps1 -DatabaseOnly
 ```
 
-The PostgreSQL tests are opt-in (43 at the 2.13 persistence handoff). Default pytest skips them without the harness
+The PostgreSQL tests are opt-in. After inventory/main integration, the 2.13 publishing
+check passed 72 cases and skipped two candidate-to-DB cases requiring the inventory
+harness. Default pytest skips DB cases without the harness
 context; those skips are not PostgreSQL acceptance. Fixtures check the exact labelled
 container, published loopback port, dedicated DB name and PostgreSQL major version.
 The observed server is 17.11; a mutable tag is never treated as an image digest.
@@ -46,8 +48,9 @@ uv run alembic upgrade head
 uv run alembic current
 ```
 
-Expected head is `20261103_02`. Revision one creates repositories/snapshots/runs;
-revision two creates artifact/report catalog. Reapplying head changes no data.
+Expected head after inventory integration is `20261104_03`. Revision one creates
+repositories/snapshots/runs; revision two creates artifact/report catalog; revision
+three adds inventory/test-case tables. Reapplying head changes no data.
 Unexpected objects, conflicting revisions or a shared/unknown target must be
 investigated; do not stamp/drop/reset to bypass errors. Offline DDL review needs
 neither credentials nor a connection:

@@ -1,5 +1,17 @@
 # Lệnh đã đối chiếu với repository
 
+## Xuất bản 2.13 sau tích hợp main ngày 2026-11-04
+
+Main `64d343b` đã có inventory/domain migration mới và potential impact. Nhánh 2.13
+merge main, giữ collector hook qua analyze/analyze_execution. Dùng cùng môi trường
+implementation bên dưới: backend pytest với basetemp
+`D:/smart-regression-ai/var/task-2.13-persist-publish-main` đạt **549 passed, 75 skipped**,
+1 existing warning. PostgreSQL `scripts/storage/run_checks.py` đạt **72 passed,
+2 skipped** (candidate-to-DB checks riêng), fresh head `20261104_03`, recovery và
+cleanup pass. Chi tiết [handoff](task-2.13.md#persistence-wiring). Ruff lint/format,
+exporter --check, frontend contracts:check/typecheck và diff checks pass. Các counts
+ở implementation baseline dưới đây là lịch sử, không thay kết quả sau tích hợp này.
+
 ## Bổ sung task 2.13 persistence wiring ngày 2026-11-04
 
 CLI đã có `analyze --persist --artifact-root <EXISTING_AUTHORIZED_ROOT>`.

@@ -106,6 +106,27 @@ dependency junction có sẵn; không claim clean install.
 Scope này sẵn sàng review về implementation/acceptance cục bộ. CI của diff mới và
 independent human review chưa có; không suy toàn bộ task 2.13 hoặc sprint hoàn thành.
 
+### Kiểm chứng trước xuất bản sau tích hợp main
+
+User giao push/mở PR. Fetch mới thấy main `64d343b` đã merge inventory 2.08/2.09
+và potential impact 2.04. Merge vào nhánh task, giữ collector hook mới của KH và
+forward `inventory_collector` qua compatibility wrapper tới execution; không tự
+bật discovery trong CLI. Giữ cả hai phần verified-commands khi giải quyết conflict.
+
+- Backend với basetemp `D:/smart-regression-ai/var/task-2.13-persist-publish-main`:
+  **549 passed, 75 skipped**, 1 existing warning, exit 0, 248.59s; collector compatibility
+  tests trên main đều pass. 75 skips gồm 74 opt-in DB/candidate cases và POSIX FIFO.
+- PostgreSQL harness sau merge: **72 passed, 2 skipped**, 48.23s; hai skip là real
+  candidate-to-DB checks yêu cầu inventory harness riêng, không phải report persistence.
+  Revision head `20261104_03`, fresh migration/recovery/backup-restore/artifact catalog
+  và exact owned-container cleanup pass. Evidence local ignored:
+  `var/storage-verification-0aa218893c5f4d04b130babb801745c5/evidence.json`.
+- Lần harness đầu của bước publish dừng trước tạo container vì Docker engine tắt;
+  không dùng làm code failure/success evidence. Khởi động Docker Desktop nền, chạy
+  lại bằng container mới và đạt kết quả trên; không nới gate hoặc đổi database target.
+- Ruff lint/format (219 files), exporter --check, frontend contracts:check/typecheck
+  và diff checks sau merge pass. Kết quả implementation baseline phía trên là lịch sử.
+
 ### Bàn giao và giới hạn
 
 Operator thực hiện prerequisites trong setup trước khi dùng persistence trên target
