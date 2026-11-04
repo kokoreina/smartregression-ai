@@ -54,3 +54,39 @@ be used to bypass `IndexBuild.ready()`: ready publication remains blocked until
 Task 2.15/H1 supplies independently acquired snapshot evidence. Backend selection,
 ranking/deduplication/verification, persistence and workflow integration remain
 outside Task 2.11 pending the approved Task 2.20 P5 and downstream task boundaries.
+
+## Task 2.12 context ranking, deduplication, and verification boundary
+
+`ranked_context.rank_and_validate_context` (and `validate_retrieval_stage`) provides
+deterministic context ranking, deduplication, and verification against an immutable
+`FrozenSnapshot` (from Task 2.15).
+
+- **Ranking & Tie-Break (Rule 2.12-v1):**
+  - Priority by relevance tier: Tier 1 (directly changed files from Task 2.01),
+    Tier 2 (direct dependents from Task 2.04), Tier 3 (indirect dependents from
+    Task 2.04), and Tier 4 (other candidate / retrieved context).
+  - Relevance score descending (higher similarity / score first).
+  - Best original retrieval rank ascending.
+  - Stable alphabetical / numerical tie-break: `(path, line_start, line_end, id)` ascending.
+  - Sequential ranks 1..N assigned to the final deduplicated items.
+
+- **Deduplication with Provenance Preservation:**
+  - Identical physical chunks `(path, line_start, line_end, content_sha256)` across
+    queries or index sources are merged into a single ranked item.
+  - Provenance is strictly preserved: `ContextProvenance` retains all source references,
+    original item IDs, original ranks, and scores.
+  - All queried sources are retained in `RetrievalPayload.sources`.
+
+- **Verification against Immutable Sources:**
+  - Validates repository ID, commit SHA, and snapshot ID against `FrozenSnapshot`.
+  - Validates file existence in snapshot (`unknown_snapshot_path`).
+  - Validates physical line ranges within the file bounds (`invalid_source_range`).
+  - Re-computes SHA-256 of physical range bytes against `content_sha256` (`chunk_content_mismatch`).
+
+- **Reject / Expose Partial:**
+  - Revision/snapshot identity violations fail closed with `ValueError`.
+  - With `strict=True`, any corrupted chunk raises `ValueError`.
+  - With `strict=False` (default), unresolvable/corrupted chunks are excluded from
+    valid items and recorded in `limitations` as `StageIssue(code=..., path=...)`,
+    yielding a `status="partial"` `ValidatedContextResult` and `StageResult[RetrievalPayload]`.
+
