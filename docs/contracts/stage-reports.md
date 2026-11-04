@@ -110,6 +110,39 @@ Contract validation kiểm references/path structure, không triển khai thuậ
 complete/partial riêng. Empty completed inventory khác discovery chưa chạy. IDs
 hợp schema chưa chứng minh framework đã discover hoặc có thể thực thi an toàn.
 
+<a id="native-test-ids"></a>
+
+**Native test IDs — follow-up 2.14:**
+
+`InventoryPayload.test_ids` dùng `NativeTestId` từ
+`smartregression.contracts.stages`: strict non-empty string, giữ nguyên whitespace,
+case, Unicode representation và separators. Không normalize hoặc thay native ID
+bằng display label/digest. Whitespace-only vẫn là non-empty opaque string; việc
+framework thực sự discover ID đó do collector chứng minh, không do schema đoán.
+Python bytes không được tự decode thành ID. Exact duplicates bị reject; IDs chỉ
+khác whitespace/Unicode representation vẫn khác nhau. Array order được giữ nguyên.
+
+Không có cap 512 UTF-8 bytes của metadata IDs trên native ID. Transport/resource
+limits vẫn áp dụng; PostgreSQL text không hỗ trợ U+0000 phải được adapter xử lý bằng
+lỗi rõ ràng theo [quyết định inventory](../development/task-2.08-2.09-decisions.md),
+không sửa/truncate ID hoặc coi schema hợp lệ là bằng chứng persist được.
+
+**Compatibility:** giữ root `2.0.0` cho bugfix theo D15: không đổi fields,
+required/default/null, stage states hoặc JSON shape. JSON Schema vẫn là string với
+minLength=1; OpenAPI/types tái sinh không đổi. Runtime semantics có thay đổi: v2
+reader cũ trim whitespace, có thể gộp/reject IDs khác nhau, và Python callers trước
+đây có thể được bytes coercion. Vì vậy đây không phải bảo đảm tương thích với mọi
+reader cũ; phải nâng cấp producer/reader liên quan cùng fix này trước dùng inventory
+native mới. `schema_version` hoặc generated types một mình không xác nhận reader
+đã sửa lỗi. Hiện chưa có Sprint 2 inventory producer/converter trên baseline;
+application/CLI và report-file reader dùng canonical v2 model đã sửa.
+
+Legacy v1 `TestDecision.test_id`/`ExecutionResult.test_id` và global `Text` giữ nguyên
+trimming behavior. Không downgrade inventory v2 sang v1 để dispatch IDs nhạy cảm với
+whitespace. Dữ liệu cũ đã trim không thể khôi phục bằng cách đổi version/type; cần
+recollect đúng snapshot/profile nếu cần native IDs chính xác. Regression cases và
+handoff cho KH ở [task 2.14](../development/task-2.14.md#native-test-id-follow-up).
+
 **Retrieval:** sources giữ snapshot/index/config identity, kể cả kết quả rỗng;
 có thể truy vấn cả base và target bằng sources riêng. Mỗi item khai cùng provenance
 của một source được khai báo, path/range/content hash/rank và optional finite score.
