@@ -1,5 +1,85 @@
 # Task 2.13 — Incremental application workflow, CLI và demo
 
+<a id="evidence-integration"></a>
+
+## Prompt 6 — integrated static impact/evidence and compound persistence
+
+Local branch `feat/sprint-2-2.13-evidence-integration`, depending on prompt-5 PR #38
+and storage PR #37/P3 #36. The historical handoffs below remain baseline-specific;
+they do not describe the current integration branch's available stages.
+
+| Stage | Actual integration / limit |
+| --- | --- |
+| snapshots / changes / graph | Existing bounded frozen-Git producers; acquire once, preserve 2.17 failure paths and limitations |
+| impact | Actual 2.04 producer on target-observable Python origins; full changes stay in report, omitted non-Python/deleted origins create explicit partial limitations |
+| evidence | Prompt-5 frozen source/structural-support verifier; candidate-scoped IDs and deterministic static explanation, no behavioral certainty |
+| review_ordering | Actual 2.07 real-data adapter; preserve inherited scope limitations |
+| inventory | Existing isolated collector when explicitly injected into application/composition; default CLI stays not_run/collector_not_configured, no host collection |
+| retrieval | No implemented producer on this baseline; honestly not_implemented, no fabricated empty success |
+
+When a collector is explicitly injected, its stable configuration digest is captured
+in internal run configuration; changed digest fails the inventory stage instead of
+silently associating IDs with another profile. The optional config key is omitted
+when absent, preserving canonical bytes of existing non-collector configurations.
+No public report schema/configuration endpoint is added.
+
+Agent decision under H1 delegation, 2026-11-04: target graph cannot represent deleted
+origins or non-Python files. Project those only at the impact-call boundary and emit
+`impact_deleted_origin_target_graph`, `impact_non_python_change` or
+`impact_origin_not_in_graph` as appropriate. Keep original changes/base locations
+in report/bundle, propagate partial through evidence/ordering. This fixes a reproduced
+integration crash without rewriting H2's algorithm or implying deletion is safe.
+
+Composition detaches the actual report, captures bounded canonical evidence before
+publication, and uses PostgresAnalysisStore. Explicit optional bundle overlap is
+validated before publication. The concrete writer checks captured report digest
+against prepared write and checks existing bundle overlap even when no new bundle
+is supplied. One transaction calls bound run/report and bound evidence adapters;
+failure rolls back new metadata/domain rows and keeps complete orphan file.
+No distributed transaction, automatic resume/GC or analysis replay is added.
+
+CLI stdout/exit behavior is unchanged for analysis. Persistence errors, including
+typed evidence errors, use safe stderr/exit 2 and no JSON success. Successful
+diagnostic says evidence=saved or evidence=not_included_missing_stage_data; report
+save is never falsely labelled evidence save. Missing stages keep report partial.
+
+### Verification and handoff
+
+New integration tests first reproduced not_implemented outputs; then source-scope
+regression reproduced impact failure for README/deleted origins. Focused integrated
+workflow tests passed after fixes, with unchanged scope assertions retained.
+Full backend after config integration: **606 passed, 95 skipped**, one existing
+Starlette/httpx warning, 205.65s (`--basetemp var/p6-backend-config-final` under the
+outer project). Final unit suite after the module-span fix: **544 passed**, 21.10s;
+includes an additional metadata test and forged-module-span regression added after
+that full run. Real PostgreSQL final: **92 passed, 2 candidate-only skips**, 31.32s,
+ignored evidence `var/storage-verification-19980786d56c4fb28760adbcae1430df/evidence.json`.
+Fresh/upgrade/reapply, exact DB/artifact restore, evidence decode and owned-container
+cleanup passed. Real PostgreSQL test covers
+CLI → Git → file → SQL → bundle reload/inspection, bundle-write rollback of report/run,
+and incompatible report rejection against an existing bundle even without new bundle.
+Settings alone are injected for the disposable loopback exception; not production
+TLS-enabled subprocess acceptance. Candidate source is parsed as data, never executed.
+
+`scripts/demo_analysis.py` now verifies available stages and canonical bundle reload
+for owned thin/empty fixtures, rejects fabricated bundle for failed graph, and records
+bundle digest/size as local-codec evidence (not DB evidence). Artifacts are ignored in
+`D:/smart-regression-ai/var/p6-demo-integrated`; stdout confirms thin=1/failure=2/empty=1.
+No candidate outcomes/fault labels/metrics are invented. Shared schema unchanged.
+Ruff lint/format, exporter --check, frontend contracts:check/typecheck/lint/build and
+diff check passed. Build is not browser verification. No clean install was repeated.
+
+Security self-review also reproduced a forged module span that pointed only at an
+unchanged line of a changed file. Verification now requires a module-location claim
+to cover the actual full module extent; focused regression passed before rerunning
+the final unit/DB suites. Arbitrary snippets cannot inherit whole-file change support.
+
+Remaining: retrieval producer/config and explicit authorized collector configuration
+for actual collection; human reviews/merges. Prompt 7 audits main versus local stack,
+not assume whole task/Sprint completed because these slices pass. AI: Codex assisted
+implementation/tests/docs/self-review under user delegation; human understanding and
+independent review remain separate. No secret or runtime artifacts committed.
+
 Follow-up [2.17](task-2.17.md): inventory producer đã có nhưng chưa cấu hình collector
 được ghi `not_run`/`inventory_collector_not_configured`; graph source failure giữ path
 trong stage limitations. Các kết quả kiểm chứng lịch sử bên dưới giữ theo baseline

@@ -206,3 +206,19 @@ def test_graph_edge_kind_is_rederived_from_source_not_trusted():
     _, result = explain_impact(bundle.identity, bundle.changes, graph, bundle.impact, pair)
     assert result.status == "partial"
     assert any(item.support == "unsupported" for item in result.data.items)
+
+
+def test_unchanged_module_span_cannot_prove_a_change_elsewhere_in_file():
+    bundle, pair, _ = case()
+    component = bundle.changes.components[0].model_copy(
+        update={
+            "kind": "module",
+            "symbol": None,
+            "base_location": SourceLocation(line_start=1, line_end=1),
+            "target_location": SourceLocation(line_start=1, line_end=1),
+        }
+    )
+    changes = bundle.changes.model_copy(update={"components": [component]})
+    _, result = explain_impact(bundle.identity, changes, bundle.graph, bundle.impact, pair)
+    assert result.status == "partial"
+    assert all(item.support != "supported" for item in result.data.items)

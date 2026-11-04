@@ -91,6 +91,10 @@ class _Sources:
                             )
                         )
                 else:
+                    if location is not None and (
+                        location.line_start != 1 or location.line_end != len(source_lines(text))
+                    ):
+                        return False
                     snippets.append(text)
             before, after = snippets
             if component.change == "added":

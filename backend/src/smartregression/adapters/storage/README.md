@@ -9,6 +9,15 @@ inventory nối thêm hai bảng và revision `20261104_03`, không sửa founda
 User giao KH hoàn thiện adapter sau phần schema; xem
 [bàn giao adapter](../../../../../docs/development/task-2.20-adapter.md).
 
+- `evidence_store.PostgresEvidenceStore` / `BoundEvidenceStore`: accepted P3,
+  bounded immutable canonical bytea, run/snapshot binding, safe errors and exact
+  retry/conflict; revision `20261104_04`. See
+  [2.05](../../../../../docs/development/task-2.05.md).
+- `analysis_store.PostgresAnalysisStore`: captured report/domain bytes and one
+  transaction for run/report metadata plus optional evidence. Publication stays
+  before SQL; failure keeps orphan files. See
+  [2.13 integration](../../../../../docs/development/task-2.13.md#evidence-integration).
+
 - `inventory_store.PostgresInventoryStore` / `BoundInventoryStore`: frozen inventory
   theo repository/run/target/config; exact retry no-op, changed payload conflict;
   header/cases ghi atomic, load revalidate native IDs/order/count/status/digests.
