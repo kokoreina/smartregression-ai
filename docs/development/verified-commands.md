@@ -1,5 +1,27 @@
 # Lệnh đã đối chiếu với repository
 
+## Prompt 7 H1 acceptance audit — 2026-11-04
+
+[Audit](sprint-2-h1-acceptance-audit.md) records exact baseline/commands/evidence:
+main-only focused worktree 109 passed; final implementation stack **612 passed,
+95 skipped**, one existing warning; dedicated PostgreSQL **92 passed, 2 skipped**
+(separate candidate harness), fresh head/recovery/reload/cleanup passed. CLI demo,
+Ruff/export and frontend contracts/typecheck/lint/build passed. Bounded impact
+path/candidate failure regressions included; UI findings reproduced and handed to
+VI, not hidden by build success. Pending merges mean these are not full-main claims.
+
+## Prompt 6 workflow/evidence integration — 2026-11-04
+
+[Integration handoff](task-2.13.md#evidence-integration) records backend 606 passed /
+95 skipped before final two unit regressions, final unit suite 544 passed, and final
+dedicated PostgreSQL 92 passed / 2 candidate-only skips. Ruff/export/contract/frontend
+typecheck/lint/build/diff passed; owned Git CLI demo thin=1/failure=2/empty=1 and
+canonical local bundle reload passed. DB/script environment matches the 2.05 setup;
+all new basetemps/output stay under ignored project var. No UI browser/production TLS
+acceptance inferred. Exact commands are the existing pytest/Ruff/export/npm checks,
+`python scripts/storage/run_checks.py`, and `python scripts/demo_analysis.py --output
+D:/smart-regression-ai/var/p6-demo-integrated`, using the locked executable in 2.05.
+
 ## Task 2.05 evidence storage — 2026-11-04
 
 [Handoff 2.05](task-2.05.md) records actual commands/environment/results: backend

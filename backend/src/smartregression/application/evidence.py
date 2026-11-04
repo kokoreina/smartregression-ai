@@ -91,6 +91,10 @@ class _Sources:
                             )
                         )
                 else:
+                    if location is not None and (
+                        location.line_start != 1 or location.line_end != len(source_lines(text))
+                    ):
+                        return False
                     snippets.append(text)
             before, after = snippets
             if component.change == "added":
@@ -321,7 +325,7 @@ def inspect_bundle(bundle: EvidenceBundle, pair: SnapshotPair) -> StageResult[Ev
     for candidate in checked.impact.candidates:
         computed = expected_candidates[candidate.id]
         if (
-            candidate.explanation == computed.explanation
+            candidate.explanation in {_explanation(candidate, True), _explanation(candidate, False)}
             and candidate.evidence_ids == computed.evidence_ids
         ):
             allowed.update(candidate.evidence_ids)
@@ -332,7 +336,7 @@ def inspect_bundle(bundle: EvidenceBundle, pair: SnapshotPair) -> StageResult[Ev
         if (
             actual.resolution == "resolved"
             and witness is not None
-            and (item.id in allowed or witness.support == "unsupported")
+            and item.id in allowed
             and (actual.snapshot, actual.path, actual.location, actual.symbol)
             == (witness.snapshot, witness.path, witness.location, witness.symbol)
         ):

@@ -18,6 +18,10 @@ from smartregression.contracts.stages import (
 )
 from smartregression.core.git.snapshots import canonical_json
 
+MAX_IMPACT_PATHS = 4096
+MAX_IMPACT_CANDIDATES = 10_000
+IMPACT_VERSION = "bounded-static-impact/1"
+
 
 def _identifier(kind: str, value: object) -> str:
     return hashlib.sha256(canonical_json({"kind": kind, "value": value})).hexdigest()
@@ -34,21 +38,23 @@ def _selected_path(component: StageComponent, *, is_base: bool) -> str | None:
 
 
 def _simple_reverse_paths(
-    origin: str, reverse_dependencies: dict[str, tuple[str, ...]]
+    origin: str, reverse_dependencies: dict[str, tuple[str, ...]], *, max_paths: int
 ) -> tuple[tuple[str, ...], ...]:
     """Return every simple path from an importer to ``origin``."""
 
     found: set[tuple[str, ...]] = set()
 
-    def visit(current: str, path_from_candidate: tuple[str, ...]) -> None:
+    pending = [(origin, (origin,))]
+    while pending:
+        current, path_from_candidate = pending.pop()
         for importer in reverse_dependencies.get(current, ()):
             if importer in path_from_candidate:
                 continue
             candidate_path = (importer, *path_from_candidate)
             found.add(candidate_path)
-            visit(importer, candidate_path)
-
-    visit(origin, (origin,))
+            if len(found) > max_paths:
+                raise ValueError("impact_path_limit")
+            pending.append((importer, candidate_path))
     return tuple(sorted(found, key=lambda path: (len(path), path)))
 
 
@@ -90,9 +96,16 @@ def build_potential_impact(
     identity: RunIdentity,
     changes: ChangePayload,
     graph: GraphPayload,
+    *,
+    max_paths: int = MAX_IMPACT_PATHS,
+    max_candidates: int = MAX_IMPACT_CANDIDATES,
 ) -> ImpactPayload:
     """Build deterministic reverse-reachable candidates for one graph snapshot."""
 
+    if type(max_paths) is not int or not 0 <= max_paths <= MAX_IMPACT_PATHS:
+        raise ValueError("impact_path_limit")
+    if type(max_candidates) is not int or not 0 <= max_candidates <= MAX_IMPACT_CANDIDATES:
+        raise ValueError("impact_candidate_limit")
     if graph.snapshot not in (identity.base, identity.target):
         raise ValueError("graph_snapshot_mismatch")
 
@@ -111,7 +124,9 @@ def build_potential_impact(
             raise ValueError("changed_component_not_in_graph")
 
         candidates.append(_candidate(component, origin, "changed", ()))
-        discovered = _simple_reverse_paths(origin, reverse_dependencies)
+        discovered = _simple_reverse_paths(
+            origin, reverse_dependencies, max_paths=max_paths - len(paths)
+        )
         path_records: list[tuple[str, tuple[str, ...]]] = []
         for nodes in discovered:
             path_id = _identifier(
@@ -130,6 +145,8 @@ def build_potential_impact(
             candidate_paths = tuple(sorted(by_candidate[candidate_path]))
             relationship = "direct" if (candidate_path, origin) in graph_edges else "indirect"
             candidates.append(_candidate(component, candidate_path, relationship, candidate_paths))
+        if len(candidates) > max_candidates:
+            raise ValueError("impact_candidate_limit")
 
     candidates.sort(key=lambda item: (item.path, item.symbol or "", item.changed_component_id))
     paths.sort(key=lambda item: (item.changed_component_id, len(item.nodes), tuple(item.nodes)))

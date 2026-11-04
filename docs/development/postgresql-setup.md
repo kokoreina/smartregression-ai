@@ -70,6 +70,14 @@ read repository data; multi-user backend authorization remains separate.
 
 ## Opt-in CLI analysis persistence
 
+The prompt-6 integration branch uses one SQL transaction for report metadata and
+an optional complete EvidenceBundle, as specified by [P3](task-2.05-p3.md#p3-integration).
+Typed unavailable/failed stages never receive fabricated bundle data. Diagnostics
+distinguish evidence saved from not included. Database migrations/grants must include
+revision `20261104_04`; existing report-only deployments require upgrade first.
+See [integration handoff](task-2.13.md#evidence-integration) for actual verification
+and dependency/merge status; this note does not claim the branch is already on main.
+
 After migrations, a trusted operator must provision the repository ID explicitly;
 the report/CLI cannot register it. For example, on the authorized target only:
 
