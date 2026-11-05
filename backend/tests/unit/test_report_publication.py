@@ -5,7 +5,8 @@ import pytest
 from test_run_store import inputs
 
 from smartregression.adapters.storage.report_publication import ReportFiles
-from smartregression.application.persistence import persist_report
+from smartregression.application.evidence_store import EvidenceConflict, EvidenceTooLarge
+from smartregression.application.persistence import bundle_from_report, persist_report
 from smartregression.application.run_store import RunConflict, RunStorageError
 
 
@@ -70,6 +71,35 @@ def test_publication_failure_does_not_call_db(tmp_path, stage_artifacts):
     with pytest.raises(RunConflict):
         persist_report(files, store, artifact_id="file-1", storage_key="reports/1.json", **kwargs)
     assert store.writes == []
+
+
+def test_bundle_overlap_failure_precedes_file_and_sql(tmp_path, stage_artifacts):
+    files, args, kwargs, store = publish(tmp_path, stage_artifacts)
+    bundle = bundle_from_report(args["report"])
+    bundle.evidence.items[0] = bundle.evidence.items[0].model_copy(update={"excerpt": "different"})
+    with pytest.raises(EvidenceConflict):
+        persist_report(
+            files,
+            store,
+            artifact_id="file-1",
+            storage_key="reports/1.json",
+            bundle=bundle,
+            **kwargs,
+        )
+    assert store.writes == [] and list(files.root.iterdir()) == []
+
+
+def test_oversized_analysis_rejected_before_publication_or_connection(tmp_path, stage_artifacts):
+    from smartregression.adapters.storage.analysis_store import PostgresAnalysisStore
+
+    files, args, _, _ = publish(tmp_path, stage_artifacts)
+    item = args["report"].stages.evidence.data.items[0]
+    args["report"].stages.evidence.data.items[0] = item.model_copy(
+        update={"excerpt": "x" * 2_097_152}
+    )
+    with pytest.raises(EvidenceTooLarge):
+        PostgresAnalysisStore(object(), args["report"])
+    assert list(files.root.iterdir()) == []
 
 
 def test_corrupt_missing_and_foreign_artifacts_never_become_report_success(

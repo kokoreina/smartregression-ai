@@ -14,6 +14,8 @@ from smartregression.adapters.snapshot_store import materialize_pair
 from smartregression.adapters.storage.errors import DatabaseConfigurationError
 from smartregression.application.analysis import AnalysisError, analysis_exit_code
 from smartregression.application.changed_components import identify_changes
+from smartregression.application.evidence_store import EvidenceStorageError
+from smartregression.application.persistence import bundle_from_report
 from smartregression.application.reports import validate_report_json
 from smartregression.application.run_store import RunMetadataError, RunStorageError
 from smartregression.application.snapshots import RepositoryAuthorization, prepare_snapshots
@@ -47,7 +49,12 @@ def _analyze(args: argparse.Namespace) -> int:
         else:
             write_report(args.output, document, repository=args.repository)
         code = analysis_exit_code(report)
-    except (DatabaseConfigurationError, RunMetadataError, RunStorageError) as exc:
+    except (
+        DatabaseConfigurationError,
+        RunMetadataError,
+        RunStorageError,
+        EvidenceStorageError,
+    ) as exc:
         print(f"Persistence failed: {exc.code}", file=sys.stderr)
         return 2
     except AnalysisError as exc:
@@ -79,8 +86,12 @@ def _analyze(args: argparse.Namespace) -> int:
         file=sys.stderr,
     )
     if args.persist:
+        bundle_status = (
+            "saved" if bundle_from_report(report) is not None else "not_included_missing_stage_data"
+        )
         print(
-            f"Persistence saved: run={report.identity.run_id}; report={report.report_id}",
+            f"Persistence saved: run={report.identity.run_id}; report={report.report_id}; "
+            f"evidence={bundle_status}",
             file=sys.stderr,
         )
     return code
