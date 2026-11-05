@@ -40,6 +40,7 @@ def _analyze(args: argparse.Namespace) -> int:
             target=args.target,
             data_kind=args.data_kind,
             artifact_root=args.artifact_root,
+            index_root=args.index_root,
         )
         # Revalidate nested mutable values at the serialization boundary.
         report = StageAnalysisReport.model_validate_json(report.model_dump_json())
@@ -131,6 +132,11 @@ def main(argv: list[str] | None = None) -> int:
         "--artifact-root",
         type=Path,
         help="Existing artifact root outside input repo; requires --persist, excludes --output",
+    )
+    analysis.add_argument(
+        "--index-root",
+        type=Path,
+        help="Enable local lexical retrieval using PostgreSQL and this existing artifact root",
     )
     changed = commands.add_parser(
         "changed-components", help="Identify changes between two Git SHAs"

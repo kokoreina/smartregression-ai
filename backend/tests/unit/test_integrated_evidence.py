@@ -14,7 +14,8 @@ def test_available_producers_and_verified_evidence_are_wired_once(tmp_path):
     assert report.stages.review_ordering.status == "completed"
     assert report.stages.impact.data.candidates
     assert all(item.support == "supported" for item in report.stages.evidence.data.items)
-    assert report.stages.retrieval.status == "not_implemented"
+    assert report.stages.retrieval.status == "not_run"
+    assert report.stages.retrieval.reason == "retrieval_backend_not_configured"
     assert report.stages.inventory.reason == "inventory_collector_not_configured"
     assert report.analysis_status == "partial"
 

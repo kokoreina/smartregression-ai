@@ -32,7 +32,12 @@ from smartregression.contracts.stages import (
     StageAnalysisReport,
     StageResult,
 )
-from smartregression.core.git.snapshots import SnapshotLimits, SnapshotPair, freeze_snapshot
+from smartregression.core.git.snapshots import (
+    SnapshotLimits,
+    SnapshotPair,
+    TreeEntry,
+    freeze_snapshot,
+)
 
 
 def seed_recovery_fixture(connection: Connection, artifact_root: Path) -> dict:
@@ -135,3 +140,12 @@ def seed_recovery_fixture(connection: Connection, artifact_root: Path) -> dict:
         "size_bytes": len(raw),
         "evidence_identity": identity.model_dump(mode="json"),
     }
+
+
+def lexical_recovery_snapshot():
+    """Owned static bytes for a nonempty index recovery drill, not candidate data."""
+    raw = b"def recovery_value():\r\n    return 1\r\n"
+    blob = hashlib.sha1(b"blob " + str(len(raw)).encode() + b"\0" + raw).hexdigest()
+    return freeze_snapshot(
+        "recovery-fixture", "c" * 40, (TreeEntry("recovery.py", "100644", blob, len(raw)),), (raw,)
+    )

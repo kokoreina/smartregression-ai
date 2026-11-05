@@ -17,6 +17,7 @@ from smartregression.application.mapping_artifact import (
     MappingCollector,
     prepare_mapping_artifact,
 )
+from smartregression.application.retrieval import RetrievalIndexStore, retrieve_context
 from smartregression.application.run_store import RunConfiguration
 from smartregression.application.snapshots import (
     RepositoryAuthorization,
@@ -50,6 +51,7 @@ from smartregression.core.impact.potential_impact import (
 )
 from smartregression.core.impact.python_snapshot import MAX_PYTHON_SOURCE_BYTES
 from smartregression.core.impact.review_ordering import RULE_VERSION, order_from_impact_payload
+from smartregression.core.retrieval.lexical import INDEX_VERSION, LexicalConfig
 
 _SAFE_ERRORS = frozenset(
     {
@@ -199,6 +201,8 @@ def analyze_execution(
     limits: SnapshotLimits | None = None,
     inventory_collector: InventoryCollector | None = None,
     mapping_collector: MappingCollector | None = None,
+    retrieval_store: RetrievalIndexStore | None = None,
+    retrieval_config: LexicalConfig | None = None,
 ) -> AnalysisExecution:
     """Authorize and freeze once, then call existing producers on that exact pair.
 
@@ -277,9 +281,6 @@ def analyze_execution(
     except ValueError as exc:
         graph = StageResult(status="failed", error_code=_error_code(exc, "graph_analysis_failed"))
 
-    def absent() -> StageResult:
-        return StageResult(status="not_implemented", reason="producer_unavailable")
-
     impact = StageResult(status="not_run", reason="dependency_failed")
     evidence = StageResult(status="not_run", reason="dependency_failed")
     review = StageResult(status="not_run", reason="dependency_failed")
@@ -350,13 +351,19 @@ def analyze_execution(
         except ValueError, OSError:
             inventory = StageResult(status="failed", error_code="inventory_configuration_invalid")
 
+    config = retrieval_config or LexicalConfig()
+    retrieval = (
+        retrieve_context(retrieval_store, pair, changes=changes, impact=impact, config=config)
+        if retrieval_store is not None
+        else StageResult(status="not_run", reason="retrieval_backend_not_configured")
+    )
     stages = AnalysisStages(
         snapshots=snapshots,
         changes=changes,
         graph=graph,
         impact=impact,
         inventory=inventory,
-        retrieval=absent(),
+        retrieval=retrieval,
         evidence=evidence,
         review_ordering=review,
     )
@@ -393,8 +400,10 @@ def analyze_execution(
                 ("impact", IMPACT_VERSION),
                 ("evidence", EVIDENCE_VERSION),
                 ("review_ordering", RULE_VERSION),
+                *((("retrieval", INDEX_VERSION),) if retrieval_store is not None else ()),
             ),
             inventory_configuration_digest=inventory_digest,
+            retrieval_configuration_digest=config.digest if retrieval_store is not None else None,
         ),
         snapshot_manifests=(pair.base.manifest, pair.target.manifest),
         mapping_artifact=mapping_artifact,

@@ -24,6 +24,7 @@ def analyze_local(
     inventory_collector: InventoryCollector | None = None,
     mapping_collector: MappingCollector | None = None,
     mapping_artifact_root: Path | None = None,
+    index_root: Path | None = None,
 ) -> StageAnalysisReport:
     source = LocalGit(repository)
     mapping_publisher = None
@@ -36,6 +37,17 @@ def analyze_local(
         mapping_publisher = ReportFiles(mapping_root, source_repository=source.repository)
     elif mapping_artifact_root is not None:
         raise ValueError("mapping_collector_required")
+    retrieval_store = None
+    if index_root is not None:
+        from smartregression.adapters.storage.config import load_database_settings
+        from smartregression.adapters.storage.lexical_index import (
+            ConfiguredLexicalStore,
+            IndexFiles,
+        )
+
+        retrieval_store = ConfiguredLexicalStore(
+            load_database_settings(), IndexFiles(index_root, source_repository=source.repository)
+        )
     if artifact_root is not None:
         # Keep CLI help/default analysis independent even of loading DB infrastructure.
         from smartregression.adapters.storage.analysis_store import PostgresAnalysisStore
@@ -54,6 +66,7 @@ def analyze_local(
         data_kind=data_kind,
         inventory_collector=inventory_collector,
         mapping_collector=mapping_collector,
+        retrieval_store=retrieval_store,
     )
     report = StageAnalysisReport.model_validate_json(execution.report.model_dump_json())
     if mapping_publisher is not None:

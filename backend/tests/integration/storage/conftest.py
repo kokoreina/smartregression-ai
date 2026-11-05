@@ -118,7 +118,8 @@ def migrated(engines):
             sa.text(
                 "GRANT SELECT, INSERT ON smartregression.repositories, smartregression.snapshots, "
                 "smartregression.analysis_runs, smartregression.artifacts, "
-                "smartregression.run_reports, smartregression.evidence_bundles "
+                "smartregression.run_reports, smartregression.evidence_bundles, "
+                "smartregression.knowledge_indexes, smartregression.knowledge_chunks "
                 "TO smartregression_runtime"
             )
         )
@@ -131,5 +132,11 @@ def migrated(engines):
         )
         connection.execute(
             sa.text("REVOKE ALL ON smartregression.alembic_version FROM smartregression_runtime")
+        )
+        connection.execute(
+            sa.text(
+                "GRANT UPDATE(state,attempt_id,error_code,updated_at) ON "
+                "smartregression.knowledge_indexes TO smartregression_runtime"
+            )
         )
     return owner, runtime, failure

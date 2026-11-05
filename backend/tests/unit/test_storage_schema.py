@@ -18,6 +18,8 @@ def test_foundation_and_inventory_have_scoped_keys_and_foreign_keys():
             "artifacts",
             "run_reports",
             "evidence_bundles",
+            "knowledge_indexes",
+            "knowledge_chunks",
             "test_inventories",
             "test_cases",
         )
@@ -43,8 +45,9 @@ def test_migration_chain_has_one_head_and_ordered_revisions():
     root = Path(__file__).resolve().parents[3]
     config = Config(str(root / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ["20261104_04"]
+    assert script.get_heads() == ["20261105_05"]
     assert [(r.revision, r.down_revision) for r in script.walk_revisions()] == [
+        ("20261105_05", "20261104_04"),
         ("20261104_04", "20261104_03"),
         ("20261104_03", "20261103_02"),
         ("20261103_02", "20261103_01"),

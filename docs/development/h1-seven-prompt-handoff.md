@@ -129,6 +129,10 @@ deliverable; never mark a mock integration or missing runtime gate as complete.
 Prompt 5: [mapping workflow handoff](task-2.13-mapping.md) records implementation,
 actual candidate Git-to-Docker-collection-to-mapping evidence and PostgreSQL checks.
 
+Prompt 6: [retrieval handoff](task-2.13-retrieval.md) records the explicitly
+authorized completion of missing H2/KH dependencies, actual lexical workflow,
+PostgreSQL migration/publication/recovery, candidate checks and remaining UI gate.
+
 Temporary keep-awake helper PID 17648 runs from
 `D:/smart-regression-ai/var/sprint2-h1-execution/keep-awake.ps1`, started
 2026-11-05T09:13Z, with a 12-hour safety expiry. Revalidate/renew during continued

@@ -99,9 +99,15 @@ class RunConfiguration:
     graph_policy: Literal["target_imports"] = "target_imports"
     comparison_mode: Literal["direct_two_tree"] = "direct_two_tree"
     inventory_configuration_digest: str | None = None
+    retrieval_configuration_digest: str | None = None
 
     def canonical_bytes(self) -> bytes:
         _version(self.application_version)
+        if self.retrieval_configuration_digest is not None and (
+            not isinstance(self.retrieval_configuration_digest, str)
+            or not re.fullmatch(r"[0-9a-f]{64}", self.retrieval_configuration_digest)
+        ):
+            raise RunMetadataError()
         if self.inventory_configuration_digest is not None and (
             not isinstance(self.inventory_configuration_digest, str)
             or not re.fullmatch(r"[0-9a-f]{64}", self.inventory_configuration_digest)
@@ -136,6 +142,11 @@ class RunConfiguration:
                 **(
                     {"inventory_configuration_digest": self.inventory_configuration_digest}
                     if self.inventory_configuration_digest is not None
+                    else {}
+                ),
+                **(
+                    {"retrieval_configuration_digest": self.retrieval_configuration_digest}
+                    if self.retrieval_configuration_digest is not None
                     else {}
                 ),
             }
@@ -354,7 +365,11 @@ def validate_run_report_write(write: RunReportWrite) -> RunReportWrite:
             "graph_policy",
             "producer_versions",
         }
-        if set(config) not in (required, required | {"inventory_configuration_digest"}):
+        if (
+            not required
+            <= set(config)
+            <= required | {"inventory_configuration_digest", "retrieval_configuration_digest"}
+        ):
             raise RunMetadataError()
         rebuilt = RunConfiguration(
             config["application_version"],
@@ -364,6 +379,7 @@ def validate_run_report_write(write: RunReportWrite) -> RunReportWrite:
             config["graph_policy"],
             config["comparison_mode"],
             config.get("inventory_configuration_digest"),
+            config.get("retrieval_configuration_digest"),
         )
         if (
             rebuilt.canonical_bytes() != write.configuration_json
