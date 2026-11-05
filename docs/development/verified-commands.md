@@ -1,5 +1,17 @@
 # Lệnh đã đối chiếu với repository
 
+## Integrity 2.19 ngày 2026-11-05
+
+`scripts/integrity/verify.ps1 -PythonExe <locked-backend-python>` chạy full suite,
+Ruff/format/contracts rồi cùng 26 ca cross-module qua Docker fixture worker.
+Full suite quan sát 748 passed/94 opt-in/platform skips; source checks pass.
+Sau sửa Windows fixture paths/ACL workspace, `-RuntimeOnly` đạt 26 passed, 82.99s,
+actual worker và cleanup kiểm chứng. Không chạy lại default suite sau sửa test setup;
+không đổi production source/DB/contracts. Default suite dùng transport double;
+runtime dùng Docker thật, SQL vẫn recording port. Evidence/giới hạn ở
+[handoff KH](task-2.19-khanh.md) và
+[verification](../research/sprint-2/integrity-verification-20261105.md).
+
 ## Mapping 2.16 ngày 2026-11-04
 
 `scripts/mapping/verify.ps1 -PythonExe <locked-backend-python>` chạy từ root trong
