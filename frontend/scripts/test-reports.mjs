@@ -49,6 +49,7 @@ for (const variant of ['partial', 'empty', 'failed', 'not-implemented']) {
   rejects(report, (r) => { r.stages.retrieval = { status: 'failed' } })
   rejects(report, (r) => { r.llm_cost_usd = -1 })
   rejects(report, (r) => { r.identity.base.commit += '\n' })
+  rejects(report, (r) => { r.report_id = '\u0085' })
 }
 const partial = JSON.parse(await readFile(new URL('examples/reports/stage-report.partial.json', root), 'utf8'))
 rejects(partial, (r) => { r.stages.evidence.data.items[0].location.line_end = 0 })
@@ -101,6 +102,13 @@ spacedMetadata.stages.impact.data.candidates[0].evidence_ids = spacedMetadata.st
 validate(spacedMetadata)
 assert.equal(spacedMetadata.identity.run_id, withContext.identity.run_id)
 assert.deepEqual(spacedMetadata.stages.inventory.data.test_ids, withContext.stages.inventory.data.test_ids)
+checks++
+const unicodeMetadata = structuredClone(withContext)
+unicodeMetadata.report_id = '\ufeffreport\ufeff'
+unicodeMetadata.identity.run_id = `\u0085${withContext.identity.run_id}\u0085`
+validate(unicodeMetadata)
+assert.equal(unicodeMetadata.report_id, '\ufeffreport\ufeff')
+assert.equal(unicodeMetadata.identity.run_id, withContext.identity.run_id)
 checks++
 rejects(withContext, (r) => { r.stages.retrieval.data.items[0].configuration_id = 'foreign' })
 rejects(withContext, (r) => { r.stages.retrieval.data.items[0].snapshot = r.identity.base })

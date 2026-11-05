@@ -10,6 +10,10 @@ function requireValue(condition: unknown): asserts condition {
   if (!condition) throw new Error('Báo cáo sai cấu trúc, trạng thái hoặc tham chiếu định danh.')
 }
 
+// Pydantic Text uses Unicode White_Space. JS trim also removes BOM and misses
+// NEL, which would change identifier equality and accept backend-invalid values.
+const trimMetadata = (value: string) => value.replace(/^\p{White_Space}+|\p{White_Space}+$/gu, '')
+
 export async function readReportFile(
   file: File,
   definitions: Record<string, unknown>,
@@ -74,7 +78,7 @@ export function validateReportValue(raw: unknown, definitions: Record<string, un
   const path = (p: string) => requireValue(p.length > 0 && !/[\\:<>"|?*]/u.test(p)
     && !Array.from(p).some((c) => c.codePointAt(0)! < 32 || c.codePointAt(0) === 127)
     && !p.split('/').some((part) => !part || part === '.' || part === '..' || part.toLowerCase() === '.git'
-      || part !== part.trim() || part.endsWith('.')
+      || part !== trimMetadata(part) || part.endsWith('.')
       || /^(con|prn|aux|nul|conin\$|conout\$|com[1-9¹²³]|lpt[1-9¹²³])(?:\.|$)/iu.test(part)))
   function inspect(value: unknown): void {
     if (!value || typeof value !== 'object') return
@@ -85,11 +89,11 @@ export function validateReportValue(raw: unknown, definitions: Record<string, un
       // Match backend Text normalization before comparing identifiers. Framework
       // native test_ids stay opaque and must never be trimmed or normalized.
       if (['run_id', 'report_id', 'id', 'changed_component_id', 'index_id', 'configuration_id', 'rule_version', 'symbol', 'reason', 'explanation', 'excerpt', 'reference'].includes(key) && typeof child === 'string') {
-        requireValue(child.trim().length > 0)
-        object[key] = child.trim()
+        requireValue(trimMetadata(child).length > 0)
+        object[key] = trimMetadata(child)
       }
       if (['path_ids', 'evidence_ids'].includes(key) && Array.isArray(child)) {
-        object[key] = child.map((id: string) => { requireValue(id.trim().length > 0); return id.trim() })
+        object[key] = child.map((id: string) => { requireValue(trimMetadata(id).length > 0); return trimMetadata(id) })
       }
       if (['path', 'previous_path', 'source_path', 'source', 'target'].includes(key) && typeof child === 'string') path(child)
       if (key === 'nodes' && Array.isArray(child)) child.forEach((p: string) => path(p))
