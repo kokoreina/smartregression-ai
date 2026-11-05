@@ -31,3 +31,12 @@ def mapping_inputs():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.mapping_inputs
+
+
+@pytest.fixture(scope="session")
+def index_inputs():
+    helper = Path(__file__).parent / "fixtures/index_inputs.py"
+    spec = importlib.util.spec_from_file_location("index_fixture_inputs", helper)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.index_inputs

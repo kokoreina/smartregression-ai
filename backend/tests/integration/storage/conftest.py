@@ -132,4 +132,21 @@ def migrated(engines):
         connection.execute(
             sa.text("REVOKE ALL ON smartregression.alembic_version FROM smartregression_runtime")
         )
+        connection.execute(
+            sa.text(
+                "GRANT SELECT, INSERT ON smartregression.index_chunks TO smartregression_runtime"
+            )
+        )
+        connection.execute(
+            sa.text(
+                "GRANT SELECT, INSERT ON smartregression.knowledge_indexes "
+                "TO smartregression_runtime"
+            )
+        )
+        connection.execute(
+            sa.text(
+                "GRANT UPDATE (state, attempt_id, error_code) ON smartregression.knowledge_indexes "
+                "TO smartregression_runtime"
+            )
+        )
     return owner, runtime, failure

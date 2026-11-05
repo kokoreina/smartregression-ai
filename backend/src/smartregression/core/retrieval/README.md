@@ -1,5 +1,18 @@
 # Retrieval
 
+## KH exclusions/storage boundary — 2026-11-05
+
+`exclusions.py` provides the versioned whole-file pre-index policy. The application
+`index_publication` boundary independently reacquires authorized Git bytes, checks
+manifest/config/exclusions/eligible physical coverage, publishes an immutable local
+artifact and commits PostgreSQL ready metadata. Verified loading repeats source,
+config, metadata/chunk-row and exact artifact checks. This is an additional explicit
+application path; provisional `IndexBuild.ready()` remains closed. H2 retains chunk
+generation/query/scoring/search and H1 workflow wiring. No public contract changes.
+See [KH handoff](../../../../../docs/development/task-2.10-khanh.md) for internal API,
+budgets, false-positive/unknown-secret limits, migration and recovery commands.
+Baseline descriptions below remain historical where this section supersedes them.
+
 ## Accepted integration decisions — 2026-11-05
 
 [ADR 0004](../../../../../docs/architecture/decisions/0004-sprint-2-integration-decisions.md)
