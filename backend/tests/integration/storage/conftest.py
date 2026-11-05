@@ -118,7 +118,7 @@ def migrated(engines):
             sa.text(
                 "GRANT SELECT, INSERT ON smartregression.repositories, smartregression.snapshots, "
                 "smartregression.analysis_runs, smartregression.artifacts, "
-                "smartregression.run_reports "
+                "smartregression.run_reports, smartregression.evidence_bundles "
                 "TO smartregression_runtime"
             )
         )

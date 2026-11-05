@@ -9,6 +9,7 @@ from pathlib import Path
 
 from sqlalchemy import Connection
 
+from smartregression.adapters.storage.evidence_store import BoundEvidenceStore
 from smartregression.adapters.storage.inventory_store import BoundInventoryStore
 from smartregression.adapters.storage.run_store import BoundRunReportStore
 from smartregression.adapters.storage.schema import repositories
@@ -22,6 +23,11 @@ from smartregression.application.run_store import (
 from smartregression.application.stage_conversion import identity_from_snapshots, snapshots_result
 from smartregression.contracts.stages import (
     AnalysisStages,
+    ChangePayload,
+    EvidenceBundle,
+    EvidencePayload,
+    GraphPayload,
+    ImpactPayload,
     InventoryPayload,
     StageAnalysisReport,
     StageResult,
@@ -47,6 +53,19 @@ def seed_recovery_fixture(connection: Connection, artifact_root: Path) -> dict:
         )
     }
     stages = AnalysisStages(snapshots=snapshots_result(pair), **absent)
+    bundle = EvidenceBundle(
+        identity=identity,
+        changes=ChangePayload(components=[], files=[]),
+        graph=GraphPayload(snapshot=identity.target, nodes=[], edges=[], unresolved=[]),
+        impact=ImpactPayload(snapshot=identity.target, candidates=[], paths=[]),
+        evidence=EvidencePayload(items=[]),
+    )
+    stages = stages.model_copy(
+        update={
+            name: StageResult(status="completed", data=getattr(bundle, name))
+            for name in ("changes", "graph", "impact", "evidence")
+        }
+    )
     # Task-owned demo rows for recovery only; these IDs/image token are fixture
     # data, not claimed observations of a candidate or an executed collection.
     stages = stages.model_copy(
@@ -94,6 +113,7 @@ def seed_recovery_fixture(connection: Connection, artifact_root: Path) -> dict:
         repositories.insert().values(repository_id=identity.repository_id, source_kind="local")
     )
     BoundRunReportStore(connection).save(write)
+    BoundEvidenceStore(connection).save(bundle)
     BoundInventoryStore(connection).save(
         prepare_inventory(
             identity=identity,
@@ -109,4 +129,9 @@ def seed_recovery_fixture(connection: Connection, artifact_root: Path) -> dict:
             ),
         )
     )
-    return {"storage_key": artifact.storage_key, "sha256": artifact.sha256, "size_bytes": len(raw)}
+    return {
+        "storage_key": artifact.storage_key,
+        "sha256": artifact.sha256,
+        "size_bytes": len(raw),
+        "evidence_identity": identity.model_dump(mode="json"),
+    }
