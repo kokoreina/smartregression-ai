@@ -50,6 +50,7 @@ def snapshot_rows(connection):
         "analysis_runs",
         "artifacts",
         "run_reports",
+        "evidence_bundles",
         "test_inventories",
         "test_cases",
         "alembic_version",
@@ -182,6 +183,8 @@ def execute():
                 "no:cacheprovider",
                 "--junitxml",
                 str(output / "postgresql-tests.xml"),
+                "--basetemp",
+                str(output / "pytest"),
             ],
             cwd=PROJECT,
             env=test_env,
@@ -276,9 +279,20 @@ def execute():
                 descriptor["sha256"],
                 descriptor["size_bytes"],
             )
+            from smartregression.application.evidence_store import decode_evidence
+            from smartregression.contracts.stages import RunIdentity
+
+            bundle_row = restored.execute(
+                "SELECT payload,bundle_format,payload_sha256 FROM smartregression.evidence_bundles"
+            ).fetchone()
+            restored_bundle = decode_evidence(
+                *bundle_row, RunIdentity.model_validate(descriptor["evidence_identity"])
+            )
+            assert restored_bundle.identity.run_id == "recovery-run"
+        evidence["checks"]["evidence_restore_decode_and_identity"] = True
         evidence["checks"]["artifact_restore_digest_and_catalog"] = True
         evidence["backup_sha256"] = hashlib.sha256(dump).hexdigest()
-        evidence["checks"]["revision_head"] = "20261104_03"
+        evidence["checks"]["revision_head"] = "20261104_04"
         evidence["passed"] = True
     except Exception as exc:
         # Do not echo SQL, credentials or exception chains at this operator boundary.
