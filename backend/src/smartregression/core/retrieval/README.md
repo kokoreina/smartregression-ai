@@ -1,5 +1,15 @@
 # Retrieval
 
+## Accepted integration decisions — 2026-11-05
+
+[ADR 0004](../../../../../docs/architecture/decisions/0004-sprint-2-integration-decisions.md)
+records the team-approved chunk/query/scoring direction, initial budgets (not
+benchmarked), assigned reviews, trusted publication/recovery, internal manifest
+compatibility and work packages W02–W05/W08. Implementation notes below remain
+baseline descriptions, not pending backend choices. Shapes still require actual
+producer-consumer review before freeze; ready acquisition/persistence is not
+implemented by this documentation change.
+
 ## Accepted P5 direction — 2026-11-05
 
 [ADR 0003](../../../../../docs/architecture/decisions/0003-local-lexical-retrieval.md)
@@ -42,8 +52,9 @@ retrieval source or persisted ready index. Task 2.14 must approve the provisiona
 `index/1` and `chunk/1` shapes. Implement the accepted P5 configuration, acquisition
 and persistence boundaries before downstream integration or metadata publication.
 
-This module deliberately does not choose a chunking policy, embedding model, vector
-database, retrieval backend, retention policy or PostgreSQL tables. Source bytes are
+This module has not implemented the accepted chunking/query/default-budget policy
+or PostgreSQL index tables. Backend and initial policy are selected in ADR 0003/0004;
+embedding/provider and production retention remain outside this slice. Source bytes are
 only accepted transiently to verify a manifest; they are not stored in the manifest.
 Retrieval consumers must continue to treat source content as untrusted data.
 

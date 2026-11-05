@@ -1,9 +1,12 @@
 # Sprint 2 team guide — SmartRegression AI
 
-Ngày đối chiếu: **2026-10-31**. Mục tiêu: **Change impact + dependency analysis +
+Ngày đối chiếu kế hoạch ban đầu: **2026-10-31**; cập nhật quyết định **2026-11-05**. Mục tiêu: **Change impact + dependency analysis +
 RAG retrieval core**. Đây là hướng dẫn thực thi kế hoạch hiện hành; task scope,
-phân bổ giờ và reviewer trong workbook vẫn là **proposed**, chưa phải cam kết
-capacity, nghiệm thu của nhóm hoặc phê duyệt mentor.
+phân bổ giờ là baseline kế hoạch, chưa phải actual capacity/remaining effort.
+**Quyết định 1–11 và phân công review đã accepted** theo H1 truyền đạt đồng ý cả
+nhóm: [ADR 0004](../architecture/decisions/0004-sprint-2-integration-decisions.md).
+Assigned reviewer không có nghĩa review đã chạy; implementation/acceptance và
+mentor approval không suy ra từ quyết định thiết kế.
 
 **PostgreSQL đã chốt ngày 2026-10-31; tooling/minimum foundation P1/P2/P4 đã chốt
 ngày 2026-11-03.** Python/FastAPI giữ nguyên. **P5 accepted 2026-11-05** theo H1
@@ -71,9 +74,10 @@ cho thay đổi mới. Kết quả Sprint 1 trong handoff/verified-commands là 
 
 ### 2.3. Các điểm tài liệu còn lệch trạng thái
 
-- [Decision register][decisions] D06, [rule 04][r04] và Architecture còn mô tả DB
-  pending; riêng **DB engine** đã được thay bằng quyết định PostgreSQL từ người dùng,
-  được ghi tại `Sprint 2 Reports!E11`. Tooling/schema/retention vẫn cần quyết định.
+- [Decision register][decisions] D06 và [rule 04][r04] đã phân biệt lịch sử với
+  D13/D14 PostgreSQL/tooling, D16 P3, D17/D18 retrieval/integration. Workbook
+  `Sprint 2 Reports!E11:E48` đã đồng bộ các quyết định liên quan; production retention
+  vẫn ngoài slice. DB Design §3.4.8 còn chữ NOT NULL lịch sử, xem handoff Office.
 - [Agent setup][agent-setup] và phần lịch sử [verified commands][commands] còn ghi
   không có Git. Phiên đối chiếu này có Git, branch
   `work/sprint-1-local-closeout-20261031`, HEAD `3d9f98b`; phải kiểm lại ở phiên sau.
@@ -117,7 +121,9 @@ thể đã được giao.
 
 Hai người tên Huy luôn dùng họ tên đầy đủ trong prompt/handoff. Accountable owner
 không nhất thiết thực hiện toàn bộ effort của task. Bảng dưới dùng **giờ từng người**;
-tổng mỗi hàng bằng estimate task. Reviewer đều chưa được xác nhận nhận việc.
+tổng mỗi hàng bằng estimate task. Review assignment Sprint 2 dùng ADR 0004 §5;
+những mục không có phân công mới giữ trạng thái cũ. Lịch và remaining estimates
+cần thành viên cung cấp theo ADR §7; không gọi 264h là actual capacity.
 
 <a id="tasks"></a>
 ### 3.1. Tổng quan 20 task
@@ -125,23 +131,23 @@ tổng mỗi hàng bằng estimate task. Reviewer đều chưa được xác nh�
 PB tại cột dưới ưu tiên traceability chi tiết trong brief workbook; ví dụ 2.14 có
 PB04 ở bảng chính nhưng brief liệt kê thêm các PB producer/consumer liên quan.
 
-| Task / PB | Công việc và deliverable | Accountable | Phân bổ | Reviewer đề xuất | Dependency chính |
+| Task / PB | Công việc và deliverable | Accountable | Phân bổ | Reviewer (assigned khi ADR 0004 xác nhận) | Dependency chính |
 | --- | --- | --- | --- | --- | --- |
 | [2.01](#task-201) / PB05 | Changed file/module/class/function records | AN | AN 20h | Pending | 2.14, 2.15 |
 | [2.02](#task-202) / PB05 | Expected locations và mismatch record độc lập | VI | VI 8h | Pending | 2.01, 2.14 |
-| [2.03](#task-203) / PB06 | Static graph có semantics/phạm vi | H2 | H2 16h | Pending | 2.01, 2.14, 2.15 |
-| [2.04](#task-204) / PB06 | Direct/indirect candidates và paths | H2 | H2 12h | Pending | 2.03, 2.14 |
+| [2.03](#task-203) / PB06 | Static graph có semantics/phạm vi | H2 | H2 16h | AN | 2.01, 2.14, 2.15 |
+| [2.04](#task-204) / PB06 | Direct/indirect candidates và paths | H2 | H2 12h | AN | 2.03, 2.14 |
 | [2.05](#task-205) / PB06 | Paths/evidence persistence | H1 | H1 8h | Pending | 2.04, 2.14, checkpoint 2.20 |
 | [2.06](#task-206) / PB07 | Explanation payload + evidence-item component | H1 | H1 6h; VI 6h | Pending | 2.04, 2.14; 2.05 cho persisted inspection |
-| [2.07](#task-207) / PB08 | Manual-review ordering ổn định | VI | VI 8h | Pending | 2.01, 2.04, 2.14 |
+| [2.07](#task-207) / PB08 | Manual-review ordering ổn định | VI | VI 8h | H1; H2 semantics | 2.01, 2.04, 2.14 |
 | [2.08](#task-208) / PB09 | Isolated target inventory | KH | KH 12h | Pending | 2.14, 2.15; 2.20 cho durable inventory |
 | [2.09](#task-209) / PB09 | Empty/partial/failed discovery rõ ràng | KH | KH 6h | Pending | 2.08, 2.14 |
-| [2.10](#task-210) / PB19 | Snapshot index và chunk manifest | H2 | H2 12h; KH 4h | Pending | 2.14, 2.15, retrieval decision, checkpoint 2.20 |
-| [2.11](#task-211) / PB20 | Context theo diff/candidates có provenance | H2 | H2 12h | Pending | 2.10, 2.01, 2.04, 2.14 |
+| [2.10](#task-210) / PB19 | Snapshot index và chunk manifest | H2 | H2 12h; KH 4h | VI; AN identity, KH exclusions | 2.14, 2.15, P5 accepted interface, checkpoint 2.20 |
+| [2.11](#task-211) / PB20 | Context theo diff/candidates có provenance | H2 | H2 12h | VI; AN identity | 2.10, 2.01, 2.04, 2.14 |
 | [2.12](#task-212) / PB20 | Ranked/deduplicated/validated context | VI | VI 8h | Pending | 2.11, 2.14 |
-| [2.13](#task-213) / PB04 | Application workflow, CLI, smoke/demo | H1 | H1 12h | Pending | 2.14; tích hợp từng stage khi có |
-| [2.14](#task-214) / PB04/PB05–09/PB19/PB20 | Stage contracts được producer/consumer review | H1 | H1 12h | AN, VI | Contracts và quyết định Sprint 1 |
-| [2.15](#task-215) / PB03; hỗ trợ PB05/PB19 | Authorized immutable snapshots | AN | AN 10h | KH | Identity contract 2.14, revision policy |
+| [2.13](#task-213) / PB04 | Application workflow, CLI, smoke/demo | H1 | H1 12h | AN; VI consumer | 2.14; tích hợp từng stage khi có |
+| [2.14](#task-214) / PB04/PB05–09/PB19/PB20 | Stage contracts được producer/consumer review | H1 | H1 12h | AN; VI consumer | Contracts và quyết định Sprint 1 |
+| [2.15](#task-215) / PB03; hỗ trợ PB05/PB19 | Authorized immutable snapshots | AN | AN 10h | H1 | Identity contract 2.14, revision policy |
 | [2.16](#task-216) / PB06/PB09; chuẩn bị PB22 | Component → existing target test IDs | KH | KH 8h | H2 | 2.03/04, 2.08/09, 2.14 |
 | [2.17](#task-217) / PB06/PB07/PB09/PB20 | Analysis-scope/limitations manifest | AN | AN 6h; KH 4h | H1 | Thiết kế 2.14; nối từng stage |
 | [2.18](#task-218) / PB05/PB07 | Real-report loading/navigation/states | VI | VI 10h | H1 | 2.14, component 2.06, stage outputs thật |
@@ -154,6 +160,12 @@ không điền actual effort vào cột completed estimate. Không có progress/
 được đo chỉ bằng việc viết guide.
 
 ## 4. Dependency, checkpoint và tích hợp
+
+**Kế hoạch hiện hành sau quyết định nhóm:** [ADR 0004 — work packages](../architecture/decisions/0004-sprint-2-integration-decisions.md#work-packages-và-thứ-tự-pr).
+W01 semantics; W02 acquisition/manifest; W03 config/chunks và W04 metadata; W05
+retrieval; W06 mapping artifact; W07 UI; W08 workflow; W09 acceptance. H1 bắt đầu
+W02 bằng đối chiếu resolver/compound code cũ, không viết lại trước khi kiểm tra.
+Shared contracts/analysis do H1 điều phối, migration chain do KH giữ một writer.
 
 Trình tự ba tuần dưới đây là **đề xuất tương đối**, theo `Sprint 2 Reports!E22:E25`;
 không tạo ngày bắt đầu/kết thúc mới từ lịch cũ.
@@ -290,7 +302,7 @@ implementation mới bên trong các vùng đó là **dự kiến**, chưa phả
 ### 2.03 — Supported static dependency graph
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B67:Z71`; PB06; H2 16h, accountable H2;
-  reviewer pending.
+  reviewer assigned theo ADR 0004 §5: AN; actual review chưa xác nhận.
 - **Input/dependency:** 2.01, 2.14, 2.15; chốt component identity, graph snapshot và
   edge direction trước implementation liên module.
 - **Output/consumer:** components/edges + supported/unresolved semantics → 2.04/16/17.
@@ -307,7 +319,7 @@ implementation mới bên trong các vùng đó là **dự kiến**, chưa phả
 ### 2.04 — Reverse-reachable potential impact
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B73:Z77`; PB06; H2 12h, accountable H2;
-  reviewer pending.
+  reviewer assigned theo ADR 0004 §5: AN; actual review chưa xác nhận.
 - **Input/dependency:** graph 2.03 và contract 2.14.
 - **Output/consumer:** changed/direct/indirect candidates cùng paths → 2.05/06/07/11/16.
   Paths: [core impact][impact], [tests][tests]; implementation traversal dự kiến.
@@ -361,7 +373,7 @@ implementation mới bên trong các vùng đó là **dự kiến**, chưa phả
 ### 2.07 — Deterministic manual-review ordering
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B91:Z95`; PB08; VI 8h, accountable VI;
-  reviewer pending.
+  reviewer assigned theo ADR 0004 §5: H1; H2 semantics; actual review chưa xác nhận.
 - **Input/dependency:** 2.01, 2.04 và 2.14.
 - **Output/consumer:** ordered review starting points + rule/limitations → 2.13/18.
   Paths: [core impact][impact], [application][application], [tests][tests]; logic mới dự kiến.
@@ -432,9 +444,10 @@ artifact publication. `ready()` guard hiện có phải được thay bằng ver
 không bỏ guard để mở khóa. Các ghi chú “chưa chốt backend” dưới đây là baseline cũ.
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B109:Z113`; PB19; accountable H2;
-  H2 12h index, KH 4h exclusions/leakage checks; reviewer pending.
+  H2 12h index, KH 4h exclusions/leakage checks; reviewer assigned theo ADR 0004 §5: VI; AN identity, KH exclusions; actual review chưa xác nhận.
 - **Input/dependency:** 2.14/15, retrieval decision và metadata checkpoint 2.20.
-  Chưa chốt backend thì thiết kế interface/fixtures, không tự cài vector DB/model.
+  Backend đã chốt P5/ADR 0004; triển khai interface/config có giới hạn, không tự
+  thêm vector DB/model hoặc bỏ trusted ready guard.
 - **Output/consumer:** index/chunk manifest + metadata → 2.11/12/13/17;
   domain metadata persistence thuộc task này. Paths: [retrieval][retrieval],
   [storage][storage], [tests][tests]; index/adapter implementation mới dự kiến.
@@ -456,7 +469,7 @@ mặc định, base cho deleted/comparison với identity riêng. Builder metada
 chưa thay local search/resolver và workflow wiring; không hỏi chọn backend lại.
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B115:Z119`; PB20; H2 12h, accountable H2;
-  reviewer pending.
+  reviewer assigned theo ADR 0004 §5: VI; AN identity; actual review chưa xác nhận.
 - **Input/dependency:** index 2.10, changed/candidates 2.01/04 và contract 2.14.
 - **Output/consumer:** context/source metadata + limitations → 2.12/13/17;
   [retrieval][retrieval], [application][application], [tests][tests].
@@ -472,7 +485,7 @@ chưa thay local search/resolver và workflow wiring; không hỏi chọn backen
 ### 2.12 — Rank, deduplicate và verify context
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B121:Z125`; PB20; VI 8h, accountable VI;
-  reviewer pending.
+  reviewer độc lập thuật toán chưa gán trong kế hoạch gốc; H1 kiểm consumer theo ADR 0004, không suy actual review.
 - **Input/dependency:** retrieved context 2.11 và contract 2.14; ranking design
   phải phù hợp retrieval decision, không tự thay backend.
 - **Output/consumer:** deterministic validated context list → 2.13/17 và consumers
@@ -488,7 +501,7 @@ chưa thay local search/resolver và workflow wiring; không hỏi chọn backen
 ### 2.13 — Incremental workflow, CLI và demo
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B127:Z131`; PB04; H1 12h, accountable H1;
-  reviewer pending.
+  reviewer assigned theo ADR 0004 §5: AN; VI consumer; actual review chưa xác nhận.
 - **Input/dependency:** 2.14 trước; nhận stage outputs tăng dần, không đợi cả sprint.
 - **Output/consumer:** shared application flow, CLI entrypoint và reproducible
   report/demo → VI 2.18, KH/AN 2.19 và nhóm review. Paths: [application][application],
@@ -505,7 +518,7 @@ chưa thay local search/resolver và workflow wiring; không hỏi chọn backen
 ### 2.14 — Integration contracts và stage reports
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B133:Z137`; PB04/PB05–09/PB19/PB20;
-  H1 12h, accountable H1; reviewer đề xuất AN và VI, chưa xác nhận.
+  H1 12h, accountable H1; reviewer assigned theo ADR 0004 §5: AN; VI consumer; actual review chưa xác nhận.
 - **Input/dependency:** [models][models], [contract docs][contract-docs], Sprint 1
   decisions và actual consumers; không cần đợi task Sprint 2 khác hoàn tất.
 - **Output/consumer:** repo/run/base-target identity, changed/impact/evidence,
@@ -524,7 +537,7 @@ chưa thay local search/resolver và workflow wiring; không hỏi chọn backen
 ### 2.15 — Authorized immutable snapshots
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B139:Z143`; PB03 prerequisite, hỗ trợ PB05/PB19;
-  AN 10h, accountable AN; reviewer đề xuất KH.
+  AN 10h, accountable AN; reviewer assigned theo ADR 0004 §5: H1; actual review chưa xác nhận.
 - **Input/dependency:** identity checkpoint 2.14 và revision decisions được chấp
   thuận; xem [Q01–Q10][revision] và workbook `Sprint 2 Reports!E47`.
 - **Output/consumer:** immutable base/target materialization + identity manifest
@@ -543,7 +556,7 @@ chưa thay local search/resolver và workflow wiring; không hỏi chọn backen
 ### 2.16 — Component-to-existing-test mapping
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B145:Z149`; PB06/PB09, chuẩn bị PB22;
-  KH 8h, accountable KH; reviewer đề xuất H2.
+  KH 8h, accountable KH; reviewer assigned theo ADR 0004 §5: H2; actual review chưa xác nhận.
 - **Input/dependency:** graph/impact 2.03/04, inventory/completeness 2.08/09, 2.14.
 - **Output/consumer:** relationships có provenance/granularity và unresolved
   mappings → 2.13/17 và selector Sprint 3. Paths: [core selection][selection],
@@ -561,7 +574,7 @@ chưa thay local search/resolver và workflow wiring; không hỏi chọn backen
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B151:Z155`; PB06/PB07/PB09/PB20;
   accountable AN; AN 6h analysis status, KH 4h inventory propagation;
-  reviewer đề xuất H1.
+  reviewer assigned theo ADR 0004 §5: H1; actual review chưa xác nhận.
 - **Input/dependency:** thiết kế cùng 2.14; nhận từng stage khi có, không đợi cuối sprint.
 - **Output/consumer:** analyzed files/modules và partial/unsupported/error reasons
   xuyên workflow/report → 2.13/18/19. Paths: [application][application],
@@ -578,7 +591,7 @@ chưa thay local search/resolver và workflow wiring; không hỏi chọn backen
 ### 2.18 — Real-report inspection UI
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B157:Z161`; PB05/PB07, hỗ trợ 2.13;
-  VI 10h, accountable VI; reviewer đề xuất H1.
+  VI 10h, accountable VI; reviewer assigned theo ADR 0004 §5: H1; actual review chưa xác nhận.
 - **Input/dependency:** contract 2.14, component 2.06 và real stage outputs.
   Có thể chuẩn bị states với fixture có nhãn; nghiệm thu thật cần actual stage report.
 - **Output/consumer:** report loading/validation/navigation/states cho thành viên
@@ -597,7 +610,7 @@ chưa thay local search/resolver và workflow wiring; không hỏi chọn backen
 ### 2.19 — Cross-module integrity regressions
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B163:Z167`; Integration; accountable KH;
-  AN 4h identity/evidence cases, KH 4h inventory/runner cases; reviewer đề xuất VI.
+  AN 4h identity/evidence cases, KH 4h inventory/runner cases; reviewer assigned theo ADR 0004 §5: VI; actual review chưa xác nhận.
 - **Input/dependency:** expectations 2.14 và integrated boundaries từ 2.13.
   Thiết kế expected behavior trước khi quan sát output.
 - **Output/consumer:** cross-module SmartRegression tests và reproduction evidence
@@ -616,7 +629,7 @@ chưa thay local search/resolver và workflow wiring; không hỏi chọn backen
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B169:Z173`; hỗ trợ PB04/06/09/19/20;
   accountable H1; H1 12h contracts/connection, KH 12h migration mechanism/integration
-  checks; reviewer đề xuất AN. **24h là preliminary estimate.**
+  checks; reviewer assigned theo ADR 0004 §5: AN; actual review chưa xác nhận. **24h là preliminary estimate.**
 - **Input/dependency:** 2.14, minimum-schema/tooling decision checkpoint;
   [DB Design][database-doc] §3 cùng các prerequisite. Không chọn ORM/migration tool ngầm.
 - **Output/consumer:** backend config/connection, versioned migrations, transaction
@@ -714,7 +727,8 @@ AC: authorized immutable base/target snapshots đúng full SHA/commit object,
 không dirty-tree input; reject invalid identity, traversal và unsupported entries.
 Giới hạn sửa: Git/snapshot adapter, application interface và SmartRegression
 fixtures/tests/docs trực tiếp của 2.15. Không làm arbitrary-repo/PR ingestion,
-không thực thi code/hooks của repository đầu vào hoặc tự chốt Q01–Q10 còn pending.
+không thực thi code/hooks input. A01/1.06 đã accepted; triển khai đúng quyết định
+revision và D15 candidate scope, không mở lại Q01–Q10 lịch sử như một gói chưa duyệt.
 Xác nhận interface/writer với H1; thiếu policy thì làm guard design/fixtures độc lập,
 chưa nối behavior phụ thuộc policy đó. Chạy checks phù hợp từ verified-commands.
 Bàn giao manifest/byte identity, files, actual checks, pending và bước tiếp theo
@@ -1048,11 +1062,11 @@ source nhạy cảm hoặc DSN/secret vào nhật ký chia sẻ.
 | P3/EvidenceBundle 2.05 và lifecycle 2.06/2.13 | [Spec P3](task-2.05-p3.md#p3-status) accepted ngày 2026-11-04 theo H1 xác nhận cả nhóm đồng ý; implementation/acceptance riêng | Đã chốt bounded bytea 2 MiB, immutable lifecycle và compound SQL integration; H1 adapter, KH migration/harness từ head hiện tại |
 | Candidate/environment/inventory persistence 2.08/2.09 | Accepted 2026-11-04 theo H1; [quyết định chung](task-2.08-2.09-decisions.md) | KH triển khai collector/profile/domain tables; H1 native-ID contract; thực hiện đủ acceptance trước đóng task |
 | Retrieval P5 và non-null model | Accepted 2026-11-05 theo xác nhận cả nhóm qua H1; [ADR 0003](../architecture/decisions/0003-local-lexical-retrieval.md) thay pending `E40`/DB §3.4.8 cho lựa chọn backend | H2/AN/H1 acquisition/config; H2/KH metadata/artifacts; VI 2.12; H1 wiring. embedding_model NULL cho lexical; migrations/ready lifecycle/runtime acceptance vẫn cần làm, LLM provider/model riêng |
-| Revision policy/authorization | Cần review Q01–Q10 và candidate scope; `E47` | AN cùng consumers xác minh quyết định đủ cho snapshot slice; không tự mở live PR/arbitrary input |
-| Capacity, sprint dates, commitment | Pending; `E16`, `E19`, `E46` | Nhóm đối chiếu availability từng người với giờ task; không tự dời sprint/cắt task hoặc gán 264h là capacity |
-| Reviewers và human acceptance | Đề xuất/pending; task briefs, `E17`, `E26` | Nhóm xác nhận người nhận review/nghiệm thu; không ghi approval giả |
+| Revision policy/authorization | A01/1.06 đã accepted; candidate scope theo D15 | AN/H1 triển khai trusted boundary theo ADR 0004 §8; không yêu cầu duyệt lại toàn bộ Q01–Q10 lịch sử, không mở arbitrary input |
+| Capacity, sprint dates, commitment | Phương pháp accepted ADR 0004 §7; availability/remaining estimates/dates chưa cung cấp | Dùng bảng remaining work trong ADR; bảo vệ integration/review, chỉ đặt calendar dates từ availability thực |
+| Reviewers và human acceptance | Review assignments accepted ADR 0004 §5; actual reviews/acceptance cần evidence | Owner bàn giao, reviewer khác tác giả review, H1 tổng hợp; không ghi assigned thành completed |
 | 24h PostgreSQL estimate | Preliminary; `E43`, task 2.20 | Nếu prerequisite vượt slice, đề xuất scope/giờ/lý do riêng; giữ baseline tới quyết định mới |
-| Đồng bộ tài liệu cũ | Follow-up ngoài phạm vi tạo guide | Update D06, storage/rule status notes, agent setup/commands lịch sử và DOCX có liên quan trong task riêng được giao |
+| Đồng bộ tài liệu cũ | Task quyết định 1–11 cập nhật nguồn liên quan; lịch sử ngoài scope giữ nguyên | Xem ADR 0004 và handoff kết quả Office; không coi mọi note pending lịch sử là current decision |
 
 Không cần thêm function/task mới để lấp khoảng trống chưa khảo sát. Các cải tiến
 trong scope ở guide là làm rõ interface, expected fixtures, status propagation và

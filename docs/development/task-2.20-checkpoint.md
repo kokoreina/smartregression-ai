@@ -15,6 +15,10 @@
 > transaction integration. Các mô tả “chưa có DB/adapter” bên dưới là mốc checkpoint
 > 2026-11-03, không phải hiện trạng; P3/P5 và human acceptance vẫn riêng.
 
+> **Quyết định 1–11 accepted:** [ADR 0004](../architecture/decisions/0004-sprint-2-integration-decisions.md)
+> chốt budgets, trusted ready/publication/recovery, internal manifests và review
+> assignments. Các đề xuất lịch sử bên dưới không mở lại backend/P5.
+
 ## 1. Trạng thái, nguồn và baseline
 
 **Checkpoint thiết kế để review; chưa triển khai database.** PostgreSQL engine đã
@@ -359,10 +363,10 @@ index version; không chỉ repo/commit để reuse index khác config.
 index, relative path, ordered positive range, content_sha256, source kind và scoped
 content artifact ref; không chứa vector/source text lớn trong metadata DB.
 
-Proposed reconciliation §3.4.8: embedding_model NULL với lexical backend thật;
-embedding backend yêu cầu actual model/version trong config. Backend chưa chốt thì
-chưa build/ready, không dùng giá trị “none/demo-model” để thỏa NOT NULL. Đây không
-phải quyết định chọn lexical/embedding hoặc pgvector. State building/ready/failed
+Accepted reconciliation §3.4.8 theo ADR 0003/0004: embedding_model NULL với
+lexical backend thật, không dùng “none/demo-model”. Backend đã chọn; chưa build/ready
+cho tới khi trusted acquisition, metadata/artifact publication và verification có
+implementation thực. Embedding/provider nằm ngoài slice này. State building/ready/failed
 là producer lifecycle riêng, không đổi StageStatus. Ready chỉ sau manifest/chunks
 cùng snapshot/config đã publish/commit/verify. Retrieval item/source identities
 map đúng index/config; stale/incomplete builds không ready. Index metadata migration
@@ -380,11 +384,12 @@ map đúng index/config; stale/incomplete builds không ready. Index metadata mi
 | §3.4.4 một impact/component, một dependency_path | Canonical cho nhiều changed origins/paths và evidence IDs; review ordering là stage khác, không bắt rank/explanation giả |
 | §3.4.5 unverified/verified/invalid | Giữ riêng resolution + support; resolved không đồng nghĩa supported; producer assertion không thay trusted resolver |
 | §3.4.6 inventory status chưa partial | Mapping §6.2, không success_empty khi chưa chạy/failed |
-| §3.4.8 embedding_model NOT NULL | Nullable có điều kiện backend/config như §6.3; chưa chọn retrieval backend |
+| §3.4.8 embedding_model NOT NULL | Superseded bởi ADR 0003/0004: lexical dùng NULL, PostgreSQL metadata + hashed local artifacts; Office reconciliation ghi ở handoff |
 
 Đề xuất không đổi schema public 2.0.0/1.0.0, OpenAPI/types hoặc legacy CLI. Nếu
 implementation thấy cần breaking contract change, quay về checkpoint với consumer
-impact; không sửa generated files tay. DB Design DOCX chưa được sửa trong phiên này.
+impact; không sửa generated files tay. Trạng thái sửa DB Design DOCX ở mốc checkpoint là chưa sửa; kết quả/giới hạn mới
+xem [handoff quyết định 1–11](sprint-2-decisions-handoff.md).
 
 ## 8. Transaction, retry và DB/file publication
 

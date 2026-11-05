@@ -1,6 +1,9 @@
 # Đề xuất 5 vùng trách nhiệm
 
-Chưa gán tên người và không tạo CODEOWNERS giả. Nhóm tự thống nhất và luân phiên review.
+Đề xuất vùng công việc bên dưới là lịch sử bootstrap; không tạo CODEOWNERS giả.
+Phân công Sprint 2 theo [ADR 0004 §5](../architecture/decisions/0004-sprint-2-integration-decisions.md)
+đã accepted ngày 2026-11-05 qua H1 truyền đạt cả nhóm. Assigned khác review completed;
+contract/analysis writer H1, migration writer KH, module owners theo team guide.
 
 Phân công theo tên, task và dependency cho Sprint 1 được đề xuất trong
 [hướng dẫn phối hợp Sprint 1](sprint-1-team-guide.md); chưa phải quyết định nhóm đã duyệt.

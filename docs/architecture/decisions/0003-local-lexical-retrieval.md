@@ -11,6 +11,14 @@
 - Phạm vi: thiết kế cho 2.10/2.11/2.12 và tích hợp 2.13/2.17/2.18;
   không thay estimate, lịch sprint hoặc ghi task Done.
 
+## Cập nhật quyết định tích hợp
+
+[ADR 0004](0004-sprint-2-integration-decisions.md) accepted cùng ngày theo xác nhận
+cả nhóm qua H1, bổ sung initial budgets, chunk/query policy, trust/publication,
+manifest compatibility, assigned reviewers và work packages. Numeric defaults đã
+chọn ở mức khởi đầu chưa benchmark; các đoạn dưới giao chi tiết implementation
+không còn là pending chọn hướng. Freeze shape và runtime acceptance vẫn cần làm.
+
 ## Context và phương án
 
 Baseline đã kiểm tra: main `07452660ab37699b0fbc28864601ea9e653f1bd3`.
@@ -136,7 +144,7 @@ không tự khởi chạy sub-agents.
 
 ## Migration, khôi phục và trạng thái bàn giao
 
-Task hiện hành chỉ cập nhật Markdown, không đổi runtime/contracts/generated types,
+Mốc ghi ADR 0003 chỉ cập nhật Markdown, không đổi runtime/contracts/generated types,
 dependencies, migrations, workbook hoặc DOCX. DB Design v1.5 `embedding_model NOT NULL`
 được supersede ở mức **thiết kế** cho lexical backend; DOCX/SQL reconciliation làm
 trong slice triển khai. Numeric config defaults và schema chi tiết là implementation
