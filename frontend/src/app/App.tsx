@@ -6,7 +6,6 @@ import {
   loadStageReportFixture,
   loadStageReportFromFile,
   type ReportLoadState,
-  type StageAnalysisReport,
 } from '../features/reports/stageReport'
 import { StageReportView } from '../features/reports/StageReportView'
 import { checkHealth } from '../lib/api'
@@ -26,6 +25,7 @@ export function App() {
   const [mode, setMode] = useState<AppMode>('demo-v1')
   const [stageState, setStageState] = useState<ReportLoadState>({ kind: 'idle' })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const loadRequest = useRef(0)
 
   // Health check
   useEffect(() => {
@@ -51,36 +51,39 @@ export function App() {
   }, [mode])
 
   function handleLoadFixture(variant: 'partial' | 'empty' | 'failed' | 'not-implemented') {
+    const request = ++loadRequest.current
     setMode('stage-v2')
     setStageState({ kind: 'loading' })
     loadStageReportFixture(variant)
-      .then((r) => setStageState({ kind: 'loaded', report: r }))
+      .then((r) => { if (request === loadRequest.current) setStageState({ kind: 'loaded', report: r }) })
       .catch((e: unknown) =>
-        setStageState({ kind: 'error', message: e instanceof Error ? e.message : 'Lỗi không xác định.' }),
+        { if (request === loadRequest.current) setStageState({ kind: 'error', message: e instanceof Error ? e.message : 'Lỗi không xác định.' }) },
       )
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    const request = ++loadRequest.current
     // Reset input so the same file can be loaded again
     e.target.value = ''
     setMode('stage-v2')
     setStageState({ kind: 'loading' })
     loadStageReportFromFile(file)
-      .then((r) => setStageState({ kind: 'loaded', report: r }))
+      .then((r) => { if (request === loadRequest.current) setStageState({ kind: 'loaded', report: r }) })
       .catch((err: unknown) =>
-        setStageState({ kind: 'error', message: err instanceof Error ? err.message : 'Lỗi không xác định.' }),
+        { if (request === loadRequest.current) setStageState({ kind: 'error', message: err instanceof Error ? err.message : 'Lỗi không xác định.' }) },
       )
   }
 
   function handleBackToDemo() {
+    ++loadRequest.current
     setMode('demo-v1')
     setStageState({ kind: 'idle' })
   }
 
   const stageReport =
-    stageState.kind === 'loaded' ? (stageState.report as StageAnalysisReport) : null
+    stageState.kind === 'loaded' ? stageState.report : null
 
   return (
     <>
