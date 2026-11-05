@@ -3,7 +3,11 @@
 ## Phạm vi
 
 Retrieval/index/chunking, prompt, provider adapters và thực nghiệm có LLM.
-Hiện chưa có provider/index implementation; GPT-6 Astra dùng để coding không chốt model sản phẩm.
+Provider sản phẩm chưa được chọn/triển khai. Hướng retrieval/index local structural
+và lexical đã accepted theo [ADR 0003](../architecture/decisions/0003-local-lexical-retrieval.md)
+và [ADR 0004](../architecture/decisions/0004-sprint-2-integration-decisions.md);
+manifest/context modules chưa đồng nghĩa ready index/search/workflow đã nghiệm thu.
+Model dùng để coding không chốt model sản phẩm.
 
 ## Yêu cầu
 

@@ -3,7 +3,11 @@
 ## Phạm vi
 
 Repository snapshots, index/cache, report/artifacts, benchmark và migration khi có storage.
-DB, vector DB, retention/persistence schema hiện pending; API contract có sẵn không chốt DB schema.
+Ghi chú pending ở mốc bootstrap đã được cập nhật: PostgreSQL theo D13/D14,
+P3 theo D16, local lexical/index metadata theo D17/D18 của
+[decision register](../development/decision-register.md). Production retention/ACL
+vẫn ngoài slice. Schema/domain implementation và acceptance không suy từ quyết
+định thiết kế hoặc public API contract.
 
 ## Yêu cầu
 
