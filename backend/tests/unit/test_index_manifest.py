@@ -250,6 +250,16 @@ def test_empty_file_has_no_valid_source_range():
         build(value, (ChunkInput("empty.py", 1, 1, b""),))
 
 
+def test_mixed_physical_boundaries_preserve_control_bytes_and_final_line():
+    from smartregression.core.retrieval.index_manifest import _range_bytes
+
+    raw = b"one\r\ntwo\rthree\nfour\x0b\x0cfive"
+    assert _range_bytes(raw, 2, 3) == b"two\rthree\n"
+    assert _range_bytes(raw, 4, 4) == b"four\x0b\x0cfive"
+    with pytest.raises(ValueError, match="invalid_source_range"):
+        _range_bytes(raw, 5, 5)
+
+
 def test_manifest_objects_validate_identity_and_serialization():
     with pytest.raises(ValueError, match="invalid_repository_identity"):
         ChunkManifest("f" * 64, "", "a" * 40, "f" * 64, "a.py", 1, 1, "f" * 64)

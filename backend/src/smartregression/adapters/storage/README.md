@@ -1,5 +1,16 @@
 # PostgreSQL foundation và inventory 2.08/2.09
 
+## Current P5 implementation
+
+`lexical_index.PostgresLexicalStore` now implements verified building/ready/failed
+index lifecycle, scoped metadata/chunks, immutable local content packs and
+ready read-back verification. Revision `20261105_05` extends evidence revision
+`20261104_04`; lexical backend uses `embedding_model = NULL`. No startup migration.
+See [retrieval handoff](../../../../../docs/development/task-2.13-retrieval.md)
+for exact grants, recovery procedure, real checks and review limitations.
+The older foundation/inventory notes below are historical module-specific evidence;
+EvidenceStore/compound report persistence were subsequently implemented by H1.
+
 PostgreSQL và P1/P2/P4 đã được nhóm chốt; nguồn tại
 [checkpoint](../../../../../docs/development/task-2.20-checkpoint.md) và
 [decision register](../../../../../docs/development/decision-register.md).

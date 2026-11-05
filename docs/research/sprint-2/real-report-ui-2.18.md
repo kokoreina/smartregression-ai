@@ -7,6 +7,12 @@
 
 ---
 
+> **Cập nhật quyết định 2026-11-05:** [ADR 0004 §1–6](../../architecture/decisions/0004-sprint-2-integration-decisions.md)
+> đã chốt ordering/completeness/projection/file-based inspection và H1 reviewer.
+> Handoff dưới đây giữ mốc implementation/checks cũ; fixture success không chứng
+> minh full runtime schema validation. W07 cần kiểm malformed nested report, đúng
+> identity.run_id (không dùng report_id thay run ID), limitations và browser thật.
+
 ## Task và trạng thái
 
 - **Task/brief:** Mở `StageAnalysisReport` (schema v2 `2.0.0`), validate contract tại runtime,
@@ -125,7 +131,9 @@ File flow:
 
 **Demo/mock hay dữ liệu thật:**
 - Fixtures = demo (bundled JSON, `data_kind: "demo"`)
-- Mở file JSON từ user = thật nếu file có `data_kind: "real"` và `schema_version: "2.0.0"`
+- File user tự gắn `data_kind: "real"` không chứng minh nguồn thật. Validator kiểm
+  shape, evidence/acquisition identity kiểm nguồn; UI hiển thị declared data_kind
+  và limits, không tự chứng thực real chỉ từ nhãn hoặc schema_version.
 - Không có mock metrics; không claim pass khi chưa có browser test
 
 **Phần AI hỗ trợ:** Agent viết code, chạy typecheck/lint/build/pytest và ghi kết quả thực tế.  
@@ -136,20 +144,22 @@ File flow:
 
 ## Tiếp tục
 
-**Quyết định pending:**
+**Quyết định đã chốt và phần ngoài scope:**
 
 | Câu hỏi | Người quyết định |
 |---|---|
-| "Gần trước" (distance-based sort) có ưu tiên trong review ordering không? | An + Phan Hoang Huy (pending từ Task 2.07) |
-| Định nghĩa chính thức của `partial_graph` vs `no_dependency_edges_observed` | Phan Hoang Huy + Huy Nguyen Tan (pending từ Task 2.07) |
+| Distance-first | Đã đóng: giữ tier/path/symbol, distance chỉ giải thích; ADR 0004 §2 |
+| partial_graph vs no_dependency_edges_observed | Đã đóng ADR 0004 §1; W01/W07 còn implementation/verification |
 | Khi nào backend có API endpoint để lấy report (thay cho mở file thủ công)? | H2/DevOps (nằm ngoài sprint 2 MVP) |
 
 **Bước tiếp theo:**
 
 - [ ] User chạy browser thật để xác nhận UI states (xem checklist checks chưa chạy)
 - [ ] Khi có real report (`data_kind: "real"`): load qua "Mở file JSON..." và nghiệm thu
-- [ ] Task 2.12 vẫn BLOCKED do Task 2.11 (H2/Phan Hoàng Huy) chưa hoàn thành
-- [ ] Push 3 nhánh (2.07, 2.06, 2.18) và tạo PRs khi user ready
+- [ ] Mốc BLOCKED 2.12 ở handoff cũ đã lỗi thời: module 2.11/2.12 đã có trên main;
+  trusted index/retrieval/workflow vẫn cần W02–W08, không coi module riêng là acceptance.
+- [ ] Không push lại các nhánh lịch sử chỉ theo handoff: đối chiếu main và PR slices
+  W01/W07/W08 trước publication; task tài liệu này không commit/push.
 
 **Dịch vụ/process local:** Không có process nền nào cần chạy liên tục cho task này.
 

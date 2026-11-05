@@ -35,25 +35,15 @@ def _canonical(value: object) -> bytes:
 
 
 def _range_bytes(content: bytes, line_start: int, line_end: int) -> bytes:
-    lines: list[bytes] = []
-    start = 0
-    index = 0
-    while index < len(content):
-        if content[index : index + 2] == b"\r\n":
-            end = index + 2
-        elif content[index : index + 1] in {b"\r", b"\n"}:
-            end = index + 1
-        else:
-            index += 1
-            continue
-        lines.append(content[start:end])
-        start = end
-        index = end
-    if start < len(content):
-        lines.append(content[start:])
-    if line_start < 1 or line_end < line_start or line_end > len(lines):
+    # Find physical boundaries in C rather than scanning every byte in Python for
+    # every retrieved span. bytes.splitlines would also split VT/FF, incorrectly.
+    ends = [match.end() for match in re.finditer(rb"\r\n|\r|\n", content)]
+    if content and (not ends or ends[-1] != len(content)):
+        ends.append(len(content))
+    if line_start < 1 or line_end < line_start or line_end > len(ends):
         raise ValueError("invalid_source_range")
-    return b"".join(lines[line_start - 1 : line_end])
+    start = 0 if line_start == 1 else ends[line_start - 2]
+    return content[start : ends[line_end - 1]]
 
 
 def _validate_digest(value: str, code: str) -> None:

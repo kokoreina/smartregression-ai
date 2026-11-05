@@ -108,3 +108,14 @@ class ReportFiles:
             return report
         except OSError, ValueError:
             raise RunStorageError() from None
+
+    def read_bytes(self, artifact: ReportArtifact) -> bytes:
+        """Verified bounded bytes for authorized internal sidecar/index consumers.
+
+        Content interpretation/identity checks remain with the specific consumer;
+        this method never treats arbitrary JSON as a canonical report.
+        """
+        try:
+            return self._bytes(artifact)
+        except OSError, ValueError:
+            raise RunStorageError() from None

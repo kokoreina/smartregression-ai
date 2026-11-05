@@ -18,7 +18,7 @@ from uuid import uuid4
 
 import psycopg
 from psycopg import sql
-from recovery_fixture import seed_recovery_fixture
+from recovery_fixture import lexical_recovery_snapshot, seed_recovery_fixture
 
 from smartregression.adapters.bounded_process import bounded_command
 
@@ -51,6 +51,8 @@ def snapshot_rows(connection):
         "artifacts",
         "run_reports",
         "evidence_bundles",
+        "knowledge_indexes",
+        "knowledge_chunks",
         "test_inventories",
         "test_cases",
         "alembic_version",
@@ -188,7 +190,10 @@ def execute():
             ],
             cwd=PROJECT,
             env=test_env,
-            timeout=180,
+            # Opt-in candidate cases each add Git acquisition, a bounded isolated
+            # collector and index publication. This is the suite process deadline,
+            # not any product build/query/runner limit (which remain unchanged).
+            timeout=420 if os.environ.get("SMARTREGRESSION_P5_CANDIDATE_IMAGE") else 180,
             check=False,
         )
         evidence["checks"]["postgresql_pytest_exit"] = test.returncode
@@ -221,6 +226,16 @@ def execute():
         artifact_root = output / "artifacts"
         with database_engine(settings) as engine, engine.begin() as connection:
             descriptor = seed_recovery_fixture(connection, artifact_root)
+        from smartregression.adapters.storage.lexical_index import IndexFiles, PostgresLexicalStore
+        from smartregression.core.retrieval.lexical import LexicalConfig, search_lexical
+
+        lexical_source = output / "owned-lexical-source"
+        lexical_source.mkdir()
+        lexical_snapshot = lexical_recovery_snapshot()
+        with database_engine(settings) as engine:
+            original_plan = PostgresLexicalStore(
+                engine, IndexFiles(artifact_root, source_repository=lexical_source)
+            ).ensure(lexical_snapshot, LexicalConfig())
         # No writers are active now. Back up this complete metadata+artifact fixture,
         # not the intentionally incomplete negative constraint-test rows.
         dump = docker(
@@ -290,9 +305,24 @@ def execute():
             )
             assert restored_bundle.identity.run_id == "recovery-run"
         evidence["checks"]["evidence_restore_decode_and_identity"] = True
+        restored_settings = DatabaseSettings(
+            settings.url.set(
+                database="smartregression_kh_restore",
+                username="postgres",
+                password=context["admin_password"],
+            ),
+            allow_loopback_test=True,
+        )
+        with database_engine(restored_settings) as engine:
+            restored_plan = PostgresLexicalStore(
+                engine, IndexFiles(restored_root, source_repository=lexical_source)
+            ).load(lexical_snapshot, LexicalConfig())
+            assert restored_plan == original_plan
+            assert search_lexical(restored_plan, lexical_snapshot, terms=("recovery",)).data.items
+        evidence["checks"]["lexical_metadata_and_artifact_restore"] = True
         evidence["checks"]["artifact_restore_digest_and_catalog"] = True
         evidence["backup_sha256"] = hashlib.sha256(dump).hexdigest()
-        evidence["checks"]["revision_head"] = "20261104_04"
+        evidence["checks"]["revision_head"] = "20261105_05"
         evidence["passed"] = True
     except Exception as exc:
         # Do not echo SQL, credentials or exception chains at this operator boundary.

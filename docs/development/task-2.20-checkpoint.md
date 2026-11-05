@@ -1,5 +1,11 @@
 # Task 2.20-A — Checkpoint PostgreSQL foundation
 
+> **P5 accepted 2026-11-05:** Nguyễn Tấn Huy xác nhận cả nhóm đồng ý với
+> [ADR 0003 — local structural + lexical retrieval](../architecture/decisions/0003-local-lexical-retrieval.md).
+> Đây là nguồn hiện hành cho retrieval/config/storage direction; ghi chú pending
+> P5 bên dưới giữ lịch sử. Acquisition-to-ready, schema/migrations, wiring và runtime
+> acceptance vẫn cần triển khai; không suy Sprint 2 Done hoặc LLM provider đã chọn.
+
 > Cập nhật đối chiếu 2026-11-04: foundation/schema/adapter đã merge qua PR #25;
 > inventory revision `20261104_03` và run/report wiring PR #30 đã có trên main
 > `9bcd6a4`. Xem [handoff adapter](task-2.20-adapter.md) và
@@ -8,6 +14,10 @@
 > xác nhận cả nhóm đồng ý, là nguồn hiện hành cho 2.05/lifecycle và
 > transaction integration. Các mô tả “chưa có DB/adapter” bên dưới là mốc checkpoint
 > 2026-11-03, không phải hiện trạng; P3/P5 và human acceptance vẫn riêng.
+
+> **Quyết định 1–11 accepted:** [ADR 0004](../architecture/decisions/0004-sprint-2-integration-decisions.md)
+> chốt budgets, trusted ready/publication/recovery, internal manifests và review
+> assignments. Các đề xuất lịch sử bên dưới không mở lại backend/P5.
 
 ## 1. Trạng thái, nguồn và baseline
 
@@ -338,6 +348,12 @@ SQL constraints không chứng minh discovery đã chạy cô lập.
 
 ### 6.3. 2.10–12 — index/chunk metadata checkpoint
 
+**Cập nhật P5:** [ADR 0003](../architecture/decisions/0003-local-lexical-retrieval.md)
+đã chốt local structural + lexical, PostgreSQL metadata và hashed local artifacts;
+`embedding_model` nullable cho lexical. Schema/query chi tiết và consumer review là
+deliverables triển khai của H2/KH/H1/VI. Đề xuất dưới đây phải reconcile với ADR,
+không phải schema đã migrate hoặc ready-index evidence.
+
 Future `knowledge_indexes`: scoped PK(repo,index_id text), FK(repo,commit,snapshot);
 configuration_id text + canonical configuration hash, producer/index version,
 namespace key unique, backend_kind, embedding_model nullable, build state,
@@ -347,10 +363,10 @@ index version; không chỉ repo/commit để reuse index khác config.
 index, relative path, ordered positive range, content_sha256, source kind và scoped
 content artifact ref; không chứa vector/source text lớn trong metadata DB.
 
-Proposed reconciliation §3.4.8: embedding_model NULL với lexical backend thật;
-embedding backend yêu cầu actual model/version trong config. Backend chưa chốt thì
-chưa build/ready, không dùng giá trị “none/demo-model” để thỏa NOT NULL. Đây không
-phải quyết định chọn lexical/embedding hoặc pgvector. State building/ready/failed
+Accepted reconciliation §3.4.8 theo ADR 0003/0004: embedding_model NULL với
+lexical backend thật, không dùng “none/demo-model”. Backend đã chọn; chưa build/ready
+cho tới khi trusted acquisition, metadata/artifact publication và verification có
+implementation thực. Embedding/provider nằm ngoài slice này. State building/ready/failed
 là producer lifecycle riêng, không đổi StageStatus. Ready chỉ sau manifest/chunks
 cùng snapshot/config đã publish/commit/verify. Retrieval item/source identities
 map đúng index/config; stale/incomplete builds không ready. Index metadata migration
@@ -368,11 +384,12 @@ map đúng index/config; stale/incomplete builds không ready. Index metadata mi
 | §3.4.4 một impact/component, một dependency_path | Canonical cho nhiều changed origins/paths và evidence IDs; review ordering là stage khác, không bắt rank/explanation giả |
 | §3.4.5 unverified/verified/invalid | Giữ riêng resolution + support; resolved không đồng nghĩa supported; producer assertion không thay trusted resolver |
 | §3.4.6 inventory status chưa partial | Mapping §6.2, không success_empty khi chưa chạy/failed |
-| §3.4.8 embedding_model NOT NULL | Nullable có điều kiện backend/config như §6.3; chưa chọn retrieval backend |
+| §3.4.8 embedding_model NOT NULL | Superseded bởi ADR 0003/0004: lexical dùng NULL, PostgreSQL metadata + hashed local artifacts; Office reconciliation ghi ở handoff |
 
 Đề xuất không đổi schema public 2.0.0/1.0.0, OpenAPI/types hoặc legacy CLI. Nếu
 implementation thấy cần breaking contract change, quay về checkpoint với consumer
-impact; không sửa generated files tay. DB Design DOCX chưa được sửa trong phiên này.
+impact; không sửa generated files tay. Trạng thái sửa DB Design DOCX ở mốc checkpoint là chưa sửa; kết quả/giới hạn mới
+xem [handoff quyết định 1–11](sprint-2-decisions-handoff.md).
 
 ## 8. Transaction, retry và DB/file publication
 
@@ -523,12 +540,13 @@ không chuyển 2.05/domain data vào 2.20 để làm như đủ 24h. EvidenceSt
 | P2 | Accepted 2026-11-03: nhóm theo xác nhận H1, nguồn §1 | 5-table foundation, text IDs, inline immutable config, defer auth/full design; reconciliation §7 |
 | P3 | Accepted 2026-11-04: Nguyễn Tấn Huy xác nhận cả nhóm đồng ý, nguồn P3 §1 | [Đặc tả P3](task-2.05-p3.md#p3-status): bounded bytea 2 MiB, lifecycle và compound transaction; KH chọn revision từ head thật, không dùng slot M003 cũ; chưa implementation acceptance |
 | P4 | Accepted 2026-11-03: nhóm theo xác nhận H1, nguồn §1; giữ allocation hiện có | H1 manifest/config/connection/ports, KH Table metadata/migrations/shared DB fixture; không hai writer |
-| P5 | Pending domain decisions; không chặn minimum foundation | Retrieval backend/config và domain queries; nullable embedding_model conditional/mapping inventory partial trước migrations consumer |
+| P5 | Accepted 2026-11-05: nhóm theo xác nhận Nguyễn Tấn Huy; [ADR 0003](../architecture/decisions/0003-local-lexical-retrieval.md) | Local structural + lexical; PostgreSQL metadata + hashed local artifacts; embedding_model NULL, trusted ready lifecycle và bounded config. Schema/query details, acquisition bridge, wiring và runtime acceptance là implementation riêng; inventory theo D15 |
 
 P1/P2/P4 đã được chốt, đủ đầu vào quyết định để bắt đầu H1/KH implementation.
 P3 đã đủ quyết định để triển khai evidence migration/2.05 khi được giao code,
-không cần hỏi chốt lại; P5 chặn retrieval/index schema, không chặn inventory đã có
-quyết định D15 và migration riêng. Phạm vi thiết kế này chưa cấp quyền triển khai code; prompt sau
+không cần hỏi chốt lại. P5 đã đủ quyết định hướng retrieval; schema chi tiết và
+acquisition-to-ready vẫn cần triển khai/kiểm chứng, inventory theo D15 và migration
+riêng. Phạm vi thiết kế này chưa cấp quyền triển khai code; prompt sau
 cần giao slice implementation cụ thể. Không hỏi lại permission cho việc viết
 tài liệu đã giao; đây là nơi nhóm quyết định tooling/schema mới.
 

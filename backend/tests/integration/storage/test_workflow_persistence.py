@@ -116,6 +116,77 @@ def test_mapping_sidecar_and_compound_report_share_exact_identity(migrated, work
     assert catalog_digest == mapping["report_sha256"]
 
 
+def test_actual_cli_retrieval_uses_verified_ready_postgresql_index(
+    migrated, workflow_input, capsys
+):
+    owner, _, _ = migrated
+    kwargs, _ = workflow_input
+    root = kwargs["artifact_root"]
+    with owner.begin() as connection:
+        connection.execute(
+            repositories.insert().values(repository_id=kwargs["repository_id"], source_kind="local")
+        )
+    args = cli_arguments(kwargs) + ["--index-root", str(root)]
+    assert main(args) == 1  # Inventory remains explicitly unconfigured.
+    report = StageAnalysisReport.model_validate_json(capsys.readouterr().out)
+    assert report.stages.retrieval.status == "completed"
+    assert report.stages.retrieval.data.items
+    assert all(i.snapshot == report.identity.target for i in report.stages.retrieval.data.items)
+    assert all(
+        i.location.line_end >= i.location.line_start for i in report.stages.retrieval.data.items
+    )
+    from smartregression.adapters.storage.schema import knowledge_indexes
+
+    with owner.connect() as connection:
+        indexes = (
+            connection.execute(
+                sa.select(knowledge_indexes).where(
+                    knowledge_indexes.c.repository_id == report.identity.repository_id
+                )
+            )
+            .mappings()
+            .all()
+        )
+    assert len(indexes) == 1 and indexes[0]["state"] == "ready"
+    assert indexes[0]["embedding_model"] is None
+    # Corrupt persisted manifest: a fresh run must fail retrieval, not report safe empty.
+    (root / indexes[0]["manifest_key"]).write_bytes(b"tampered")
+    assert main(args) == 2
+    failed = StageAnalysisReport.model_validate_json(capsys.readouterr().out)
+    assert failed.stages.retrieval.status == "failed"
+    assert failed.stages.retrieval.error_code == "retrieval_storage_failed"
+
+
+def test_deleted_context_keeps_separate_base_and_target_sources(migrated, workflow_input):
+    owner, _, _ = migrated
+    kwargs, _ = workflow_input
+    repo = kwargs["repository"]
+    subprocess.check_call(["git", "-C", str(repo), "rm", "-f", "a.py"])
+    subprocess.check_call(["git", "-C", str(repo), "commit", "-qm", "owned deletion"])
+    deleted = subprocess.check_output(
+        ["git", "-C", str(repo), "rev-parse", "HEAD"], text=True
+    ).strip()
+    with owner.begin() as connection:
+        connection.execute(
+            repositories.insert().values(repository_id=kwargs["repository_id"], source_kind="local")
+        )
+    report = composition.analyze_local(
+        **(kwargs | dict(target=deleted)), index_root=kwargs["artifact_root"]
+    )
+    retrieval = report.stages.retrieval
+    assert retrieval.status == "partial"
+    assert {s.snapshot for s in retrieval.data.sources} == {
+        report.identity.base,
+        report.identity.target,
+    }
+    assert any(
+        i.path == "a.py" and i.snapshot == report.identity.base for i in retrieval.data.items
+    )
+    assert not any(
+        i.path == "a.py" and i.snapshot == report.identity.target for i in retrieval.data.items
+    )
+
+
 @pytest.fixture
 def workflow_input(migrated, storage_context, tmp_path, monkeypatch):
     root = tmp_path / "input"

@@ -85,7 +85,8 @@ def test_thin_flow_uses_real_producers_and_honest_statuses(tmp_path):
         assert getattr(report.stages, name).status == "completed"
         assert getattr(report.stages, name).data is not None
     for name in ("retrieval",):
-        assert getattr(report.stages, name).status == "not_implemented"
+        assert getattr(report.stages, name).status == "not_run"
+        assert getattr(report.stages, name).reason == "retrieval_backend_not_configured"
         assert getattr(report.stages, name).data is None
     assert report.stages.inventory.status == "not_run"
     assert report.stages.inventory.reason == "inventory_collector_not_configured"
