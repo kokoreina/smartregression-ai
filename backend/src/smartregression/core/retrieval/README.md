@@ -1,8 +1,22 @@
 # Retrieval
 
+## Accepted P5 direction — 2026-11-05
+
+[ADR 0003](../../../../../docs/architecture/decisions/0003-local-lexical-retrieval.md)
+records H1's confirmation that the team accepted local structural + lexical
+retrieval, PostgreSQL metadata and hashed local chunk/manifest artifacts, without
+embeddings or an external provider in Sprint 2. Target is the default context;
+base context for deletions/comparison keeps separate revision provenance.
+
+Backend selection is no longer pending. The notes below describe the implementation
+baseline: provisional shape/consumer review, trusted acquisition-to-ready integration,
+chunk/query configuration, metadata migrations, local search/resolution and workflow
+wiring remain implementation work. `IndexBuild.ready()` still fails closed; this
+documentation does not bypass it or claim retrieval/LLM runtime acceptance.
+
 `index_manifest.py` contains provisional, backend-neutral snapshot/index/chunk metadata
 primitives for Task 2.10 coordination. These are not canonical Task 2.14 stage
-contracts until the pending retrieval decision and consumer review are accepted.
+contracts until consumer review accepts their shapes under the approved P5 direction.
 It validates repository, commit, snapshot, path, source-range and content-hash
 consistency, and emits deterministic JSON. `IndexBuild` supports building and failed
 states, but ready publication is blocked until Task 2.15 provides independently
@@ -25,8 +39,8 @@ Before that boundary exists, the module is suitable for provisional in-memory
 manifest construction, exact-byte consistency checks, deterministic identity
 fixtures, and failed-build handling only. It must not be used as a production
 retrieval source or persisted ready index. Task 2.14 must approve the provisional
-`index/1` and `chunk/1` shapes, and Task 2.20 P5 must resolve retrieval backend and
-configuration decisions before downstream integration or metadata persistence.
+`index/1` and `chunk/1` shapes. Implement the accepted P5 configuration, acquisition
+and persistence boundaries before downstream integration or metadata publication.
 
 This module deliberately does not choose a chunking policy, embedding model, vector
 database, retrieval backend, retention policy or PostgreSQL tables. Source bytes are
@@ -53,7 +67,7 @@ This builder is not a retrieval backend and does not authorize an index. It must
 be used to bypass `IndexBuild.ready()`: ready publication remains blocked until
 Task 2.15/H1 supplies independently acquired snapshot evidence. Backend selection,
 ranking/deduplication/verification, persistence and workflow integration remain
-outside Task 2.11 pending the approved Task 2.20 P5 and downstream task boundaries.
+outside this builder and follow the accepted P5 and downstream task boundaries.
 
 ## Task 2.12 context ranking, deduplication, and verification boundary
 

@@ -1,5 +1,11 @@
 # Task 2.20-A — Checkpoint PostgreSQL foundation
 
+> **P5 accepted 2026-11-05:** Nguyễn Tấn Huy xác nhận cả nhóm đồng ý với
+> [ADR 0003 — local structural + lexical retrieval](../architecture/decisions/0003-local-lexical-retrieval.md).
+> Đây là nguồn hiện hành cho retrieval/config/storage direction; ghi chú pending
+> P5 bên dưới giữ lịch sử. Acquisition-to-ready, schema/migrations, wiring và runtime
+> acceptance vẫn cần triển khai; không suy Sprint 2 Done hoặc LLM provider đã chọn.
+
 > Cập nhật đối chiếu 2026-11-04: foundation/schema/adapter đã merge qua PR #25;
 > inventory revision `20261104_03` và run/report wiring PR #30 đã có trên main
 > `9bcd6a4`. Xem [handoff adapter](task-2.20-adapter.md) và
@@ -338,6 +344,12 @@ SQL constraints không chứng minh discovery đã chạy cô lập.
 
 ### 6.3. 2.10–12 — index/chunk metadata checkpoint
 
+**Cập nhật P5:** [ADR 0003](../architecture/decisions/0003-local-lexical-retrieval.md)
+đã chốt local structural + lexical, PostgreSQL metadata và hashed local artifacts;
+`embedding_model` nullable cho lexical. Schema/query chi tiết và consumer review là
+deliverables triển khai của H2/KH/H1/VI. Đề xuất dưới đây phải reconcile với ADR,
+không phải schema đã migrate hoặc ready-index evidence.
+
 Future `knowledge_indexes`: scoped PK(repo,index_id text), FK(repo,commit,snapshot);
 configuration_id text + canonical configuration hash, producer/index version,
 namespace key unique, backend_kind, embedding_model nullable, build state,
@@ -523,12 +535,13 @@ không chuyển 2.05/domain data vào 2.20 để làm như đủ 24h. EvidenceSt
 | P2 | Accepted 2026-11-03: nhóm theo xác nhận H1, nguồn §1 | 5-table foundation, text IDs, inline immutable config, defer auth/full design; reconciliation §7 |
 | P3 | Accepted 2026-11-04: Nguyễn Tấn Huy xác nhận cả nhóm đồng ý, nguồn P3 §1 | [Đặc tả P3](task-2.05-p3.md#p3-status): bounded bytea 2 MiB, lifecycle và compound transaction; KH chọn revision từ head thật, không dùng slot M003 cũ; chưa implementation acceptance |
 | P4 | Accepted 2026-11-03: nhóm theo xác nhận H1, nguồn §1; giữ allocation hiện có | H1 manifest/config/connection/ports, KH Table metadata/migrations/shared DB fixture; không hai writer |
-| P5 | Pending domain decisions; không chặn minimum foundation | Retrieval backend/config và domain queries; nullable embedding_model conditional/mapping inventory partial trước migrations consumer |
+| P5 | Accepted 2026-11-05: nhóm theo xác nhận Nguyễn Tấn Huy; [ADR 0003](../architecture/decisions/0003-local-lexical-retrieval.md) | Local structural + lexical; PostgreSQL metadata + hashed local artifacts; embedding_model NULL, trusted ready lifecycle và bounded config. Schema/query details, acquisition bridge, wiring và runtime acceptance là implementation riêng; inventory theo D15 |
 
 P1/P2/P4 đã được chốt, đủ đầu vào quyết định để bắt đầu H1/KH implementation.
 P3 đã đủ quyết định để triển khai evidence migration/2.05 khi được giao code,
-không cần hỏi chốt lại; P5 chặn retrieval/index schema, không chặn inventory đã có
-quyết định D15 và migration riêng. Phạm vi thiết kế này chưa cấp quyền triển khai code; prompt sau
+không cần hỏi chốt lại. P5 đã đủ quyết định hướng retrieval; schema chi tiết và
+acquisition-to-ready vẫn cần triển khai/kiểm chứng, inventory theo D15 và migration
+riêng. Phạm vi thiết kế này chưa cấp quyền triển khai code; prompt sau
 cần giao slice implementation cụ thể. Không hỏi lại permission cho việc viết
 tài liệu đã giao; đây là nơi nhóm quyết định tooling/schema mới.
 

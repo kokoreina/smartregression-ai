@@ -5,9 +5,11 @@ RAG retrieval core**. Đây là hướng dẫn thực thi kế hoạch hiện h�
 phân bổ giờ và reviewer trong workbook vẫn là **proposed**, chưa phải cam kết
 capacity, nghiệm thu của nhóm hoặc phê duyệt mentor.
 
-**PostgreSQL đã được người dùng chốt ngày 2026-10-31.** Python/FastAPI giữ nguyên.
-ORM/driver, migration tool, minimum schema và retrieval/embedding backend còn
-pending. Guide này không tự lựa chọn chúng và không chứng minh đã có DB integration.
+**PostgreSQL đã chốt ngày 2026-10-31; tooling/minimum foundation P1/P2/P4 đã chốt
+ngày 2026-11-03.** Python/FastAPI giữ nguyên. **P5 accepted 2026-11-05** theo H1
+xác nhận cả nhóm: [ADR 0003 — local structural + lexical retrieval](../architecture/decisions/0003-local-lexical-retrieval.md).
+PostgreSQL lưu metadata, hashed local artifacts giữ chunk/manifest; chưa thêm
+embedding/provider. Quyết định không thay bằng chứng triển khai/nghiệm thu.
 
 ## 1. Bắt đầu trong một phiên làm việc
 
@@ -424,6 +426,11 @@ có runner và PostgreSQL thật theo [acceptance](task-2.08-2.09-decisions.md#8
 <a id="task-210"></a>
 ### 2.10 — Snapshot index và chunk manifest
 
+**P5 đã accepted:** dùng [ADR 0003](../architecture/decisions/0003-local-lexical-retrieval.md).
+H2/AN/H1 bàn giao trusted acquisition/config; H2/KH nối local index, metadata và
+artifact publication. `ready()` guard hiện có phải được thay bằng verification thật,
+không bỏ guard để mở khóa. Các ghi chú “chưa chốt backend” dưới đây là baseline cũ.
+
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B109:Z113`; PB19; accountable H2;
   H2 12h index, KH 4h exclusions/leakage checks; reviewer pending.
 - **Input/dependency:** 2.14/15, retrieval decision và metadata checkpoint 2.20.
@@ -442,6 +449,11 @@ có runner và PostgreSQL thật theo [acceptance](task-2.08-2.09-decisions.md#8
 
 <a id="task-211"></a>
 ### 2.11 — Change-relevant context retrieval
+
+**P5 đã accepted:** local structural + lexical theo
+[ADR 0003](../architecture/decisions/0003-local-lexical-retrieval.md); target context
+mặc định, base cho deleted/comparison với identity riêng. Builder metadata hiện có
+chưa thay local search/resolver và workflow wiring; không hỏi chọn backend lại.
 
 - **Nguồn/nhân sự:** `Sprint 2 Backlog!B115:Z119`; PB20; H2 12h, accountable H2;
   reviewer pending.
@@ -1035,7 +1047,7 @@ source nhạy cảm hoặc DSN/secret vào nhật ký chia sẻ.
 | ORM/driver, migration tool, minimum schema/FKs | P1/P2/P4 accepted 2026-11-03; Core + psycopg + Alembic, five-table foundation đã merge qua PR #25 | Dùng [handoff adapter](task-2.20-adapter.md); DB verification được ghi ở handoff, không phải chạy lại trong guide; human acceptance riêng |
 | P3/EvidenceBundle 2.05 và lifecycle 2.06/2.13 | [Spec P3](task-2.05-p3.md#p3-status) accepted ngày 2026-11-04 theo H1 xác nhận cả nhóm đồng ý; implementation/acceptance riêng | Đã chốt bounded bytea 2 MiB, immutable lifecycle và compound SQL integration; H1 adapter, KH migration/harness từ head hiện tại |
 | Candidate/environment/inventory persistence 2.08/2.09 | Accepted 2026-11-04 theo H1; [quyết định chung](task-2.08-2.09-decisions.md) | KH triển khai collector/profile/domain tables; H1 native-ID contract; thực hiện đủ acceptance trước đóng task |
-| Retrieval/embedding/backend và non-null model | Pending; `E40`, DB §3.4.8 | H2 nêu phương án/config/data policy, phối hợp H1/KH; quyết định lexical/embedding và schema reconciliation trước implementation phụ thuộc |
+| Retrieval P5 và non-null model | Accepted 2026-11-05 theo xác nhận cả nhóm qua H1; [ADR 0003](../architecture/decisions/0003-local-lexical-retrieval.md) thay pending `E40`/DB §3.4.8 cho lựa chọn backend | H2/AN/H1 acquisition/config; H2/KH metadata/artifacts; VI 2.12; H1 wiring. embedding_model NULL cho lexical; migrations/ready lifecycle/runtime acceptance vẫn cần làm, LLM provider/model riêng |
 | Revision policy/authorization | Cần review Q01–Q10 và candidate scope; `E47` | AN cùng consumers xác minh quyết định đủ cho snapshot slice; không tự mở live PR/arbitrary input |
 | Capacity, sprint dates, commitment | Pending; `E16`, `E19`, `E46` | Nhóm đối chiếu availability từng người với giờ task; không tự dời sprint/cắt task hoặc gán 264h là capacity |
 | Reviewers và human acceptance | Đề xuất/pending; task briefs, `E17`, `E26` | Nhóm xác nhận người nhận review/nghiệm thu; không ghi approval giả |
