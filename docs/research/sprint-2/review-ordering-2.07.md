@@ -10,6 +10,13 @@
 
 ---
 
+> **Cập nhật 2026-11-05:** [ADR 0004 §1–2](../../architecture/decisions/0004-sprint-2-integration-decisions.md)
+> accepted theo xác nhận cả nhóm qua H1: giữ tier/path/symbol, distance chỉ giải
+> thích; no-edges không tự partial. VI owner, H1 reviewer và H2 semantics.
+> §2.6 và fixtures A/B bên dưới ghi behavior implementation lịch sử chưa sửa;
+> W01 phải đổi các entrypoints/expected cases cho hội tụ. Checks cũ không chứng
+> minh semantics mới đã implemented.
+
 ## 1. Mục tiêu và phạm vi
 
 Task 2.07 xây dựng thuật toán xếp hạng **deterministic** cho danh sách components cần review sau khi phân tích impact. Đầu ra là danh sách `ReviewCandidate` có thứ tự ổn định, phục vụ:
@@ -60,7 +67,7 @@ Trong cùng một tier, sắp xếp **alphabetically ascending** theo `(path, sy
 
 BFS dùng `visited` set — mọi path chỉ được thăm một lần, không vòng lặp vô hạn với cyclic imports.
 
-### 2.6 Partial graph detection
+### 2.6 Partial graph detection — implementation lịch sử, cần W01
 
 Khi `edges` rỗng → tự động thêm `"partial_graph"` vào `limitations` output. Caller-supplied limitations được giữ nguyên và merge vào output.
 
@@ -238,7 +245,7 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
      - **Tín hiệu producer:** Khi `graph.unresolved` có phần tử $\to$ gán `"partial_graph"` và các lý do cụ thể.
      - **Suy luận cấu trúc:** Khi đồ thị có nodes nhưng 0 edges $\to$ dùng nhãn riêng `"no_dependency_edges_observed"` (vì repo nhỏ hoàn toàn có thể không có module nào import nhau, không thể vội kết luận là partial).
      - **Mâu thuẫn dữ liệu:** Khi có candidate direct/indirect nhưng 0 paths $\to$ dùng nhãn riêng `"inconsistent_impact_payload"`.
-   - **Câu hỏi mở cho Phan Hoàng Huy (H2) và Huy Nguyễn Tấn (H1):** Cần thống nhất định nghĩa chính thức của `"partial"` trong toàn bộ pipeline để tránh hiểu lầm giữa một đồ thị độc lập (0 edges) và một đồ thị phân tích thiếu.
+   - **Đã chốt ADR 0004 §1:** producer-confirmed incompleteness mới dẫn partial; no-edges không đủ. Thiếu metadata phải expose unknown completeness; failed/not_run giữ đúng trạng thái. W01 còn phải sửa raw/stage-changes entrypoints, không hỏi định nghĩa lại.
 
 ### 5.2 Trạng thái các mục:
 
@@ -249,7 +256,7 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
 | Test tích hợp chạy qua code THẬT của 2.03 và 2.04 | **Đã hoàn thành** | `test_real_integration_through_task_203_and_204_code` chạy qua `build_dependency_graph` và `build_potential_impact` thật |
 | Integration với workflow H1 (2.13) | Đã sẵn sàng | H1 có thể gọi trực tiếp `order_from_impact_payload` |
 | CI Python 3.14 pass | PR #16 đã merge | Nhánh mới đã test pass |
-| Review độc lập của người khác | Pending | Chờ reviewer nghiệm thu |
+| Review độc lập của người khác | Assigned, chưa xác nhận completed | H1 review, H2 kiểm semantics theo ADR 0004; không giả approval |
 
 ---
 
@@ -257,7 +264,7 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
 
 | File | Mô tả |
 |------|-------|
-| [`backend/src/smartregression/core/impact/review_ordering.py`](../../../backend/src/smartregression/core/impact/review_ordering.py) | Logic chính + 2 thin adapters `order_from_impact_payload` & `order_from_stage_changes` (thêm trường `distance: int | None`) |
+| [`backend/src/smartregression/core/impact/review_ordering.py`](../../../backend/src/smartregression/core/impact/review_ordering.py) | Logic chính + 2 thin adapters `order_from_impact_payload` & `order_from_stage_changes` (thêm trường `distance: int \| None`) |
 | [`backend/tests/unit/test_review_ordering.py`](../../../backend/tests/unit/test_review_ordering.py) | 50 unit & integration tests (43 unit tests + 7 tests adapter & integration code thật 2.03/2.04) |
 | [`docs/research/sprint-2/review-ordering-2.07.md`](review-ordering-2.07.md) | Tài liệu đặc tả và kết quả kiểm chứng |
 

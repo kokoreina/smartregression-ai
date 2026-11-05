@@ -1,6 +1,7 @@
 # Task 2.16 — component-to-existing-test mapping
 
-Ngày 2026-11-04. Khánh, estimate 8h, reviewer đề xuất H2 theo
+Mốc implementation 2026-11-04. Khánh, estimate 8h; H2 reviewer **assigned**
+ngày 2026-11-05 theo [ADR 0004 §4–5](../architecture/decisions/0004-sprint-2-integration-decisions.md), chưa xác nhận review completed. Theo
 [team guide](sprint-2-team-guide.md#task-216). User giao bắt đầu 2.16 sau khi kiểm
 dependencies; nhánh `feat/khanh-task-2.16-test-mapping` từ main
 `53356e6ada1a145a3cb988a926928e838136e152`. Baseline đã merge 2.04, inventory
@@ -73,8 +74,11 @@ observation phải của cùng attempt/stage/config. API không có quyền auth
 chỉ từ JSON. Nếu chỉ có inventory legacy không có source metadata, bỏ receipt để
 nhận explicit unresolved; không bịa item.path từ nodeid. Canonical InventoryPayload
 và DB inventory rows không thay đổi, không nhét metadata mới vào schema dùng chung.
-Nếu muốn durable mapping/source manifest hoặc public report field, H1/consumers cần
-checkpoint version/ownership riêng; task này xuất internal sidecar qua harness.
+Quyết định tích hợp đã accepted ADR 0004 §4: H1 nối API và xuất versioned,
+run/report-bound mapping artifact đi kèm report; KH giữ API, H2 review semantics.
+Task implementation gốc mới xuất sidecar qua harness, workflow chưa tích hợp.
+Public report field/UI chỉ khi có consumer cụ thể và compatibility review; không
+mở rộng contract hoặc thêm mapping dashboard trong task tài liệu này.
 
 Result provenance: repository/run/full target SHA/snapshot, inventory ID, collector
 config digest, inventory-stage content hash, changes/graph/impact stage hashes,
