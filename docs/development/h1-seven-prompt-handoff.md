@@ -118,13 +118,22 @@ python -m smartregression.cli.main analyze --help
 ## Remaining sequence
 
 1. Prompts 1–3 published separately; team review/merge pending.
-2. Prompt 4 publication after final DB gate.
+2. Prompt 4 published as PR #50 after final DB gate; see publication section above.
 5. Inventory/mapping sidecar.
 6. Actual retrieval integration; verify producer/storage dependencies first.
 7. A01–A07 checks, bounded fixes and H1 acceptance evidence.
 
 If a dependency is absent, complete independent work and record the specific missing
 deliverable; never mark a mock integration or missing runtime gate as complete.
+
+Prompt 5: [mapping workflow handoff](task-2.13-mapping.md) records implementation,
+actual candidate Git-to-Docker-collection-to-mapping evidence and PostgreSQL checks.
+
+Temporary keep-awake helper PID 17648 runs from
+`D:/smart-regression-ai/var/sprint2-h1-execution/keep-awake.ps1`, started
+2026-11-05T09:13Z, with a 12-hour safety expiry. Revalidate/renew during continued
+work; stop at completion via the task-owned stop-awake sentinel. No power plan
+changed. Do not infer a running process from this note; check its actual PID.
 
 OpenAI Codex assisted implementation/tests/docs and self-review. The team retains
 responsibility for understanding the diff; no independent approval is fabricated.

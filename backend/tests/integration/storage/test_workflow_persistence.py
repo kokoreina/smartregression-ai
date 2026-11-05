@@ -3,7 +3,7 @@
 import hashlib
 import json
 import subprocess
-from dataclasses import replace
+from dataclasses import asdict, replace
 from uuid import uuid4
 
 import pytest
@@ -23,10 +23,12 @@ from smartregression.adapters.storage.schema import (
     snapshots,
 )
 from smartregression.application.evidence_store import EvidenceStorageError, prepare_evidence
+from smartregression.application.inventory_store import InventoryConfiguration
 from smartregression.application.persistence import bundle_from_report
 from smartregression.application.run_store import ReportArtifact, RunConflict
 from smartregression.cli.main import main
 from smartregression.contracts.stages import StageAnalysisReport
+from smartregression.core.execution.inventory import finalize_discovery
 
 
 def cli_arguments(kwargs):
@@ -47,6 +49,71 @@ def cli_arguments(kwargs):
         ],
         "--persist",
     ]
+
+
+def test_mapping_sidecar_and_compound_report_share_exact_identity(migrated, workflow_input):
+    """SQL/Git/files real; collection receipt double, real collection verified separately."""
+    owner, runtime, _ = migrated
+    kwargs, _ = workflow_input
+
+    class Collector:
+        configuration = InventoryConfiguration(
+            "candidate-inventory/2",
+            "owned-storage",
+            "sha256:" + "a" * 64,
+            "b" * 64,
+            "c" * 64,
+            "d" * 64,
+        )
+        configuration_digest = configuration.digest
+        last_observation = None
+
+        def collect(self, snapshot, *, identity):
+            payload = dict(
+                ids=["b.py::test_fixture"],
+                exit_code=0,
+                collection_finished=True,
+                collection_errors=0,
+            )
+            self.last_observation = dict(
+                configuration_sha256=self.configuration_digest,
+                configuration=json.loads(self.configuration.canonical_bytes()),
+                result=dict(
+                    protocol="inventory/2",
+                    mode="collect",
+                    identity=asdict(identity),
+                    collection=payload,
+                    test_sources=dict(
+                        version="pytest-item-path/1",
+                        items=[dict(test_id="b.py::test_fixture", path="b.py")],
+                    ),
+                ),
+            )
+            return finalize_discovery(expected=identity, observed=identity, payload=payload)
+
+    with owner.begin() as connection:
+        connection.execute(
+            repositories.insert().values(repository_id=kwargs["repository_id"], source_kind="local")
+        )
+    report = composition.analyze_local(**kwargs, mapping_collector=Collector())
+    root = kwargs["artifact_root"] / report.identity.run_id
+    raw_report = (root / (report.report_id + ".json")).read_bytes()
+    mapping = json.loads((root / (report.report_id + ".mapping.json")).read_bytes())
+    assert mapping["identity"] == report.identity.model_dump(mode="json")
+    assert mapping["report_sha256"] == hashlib.sha256(raw_report).hexdigest()
+    assert {item["test_id"] for item in mapping["mapping"]["relationships"]} == {
+        "b.py::test_fixture"
+    }
+    assert PostgresEvidenceStore(runtime).load(report.identity) == bundle_from_report(report)
+    with runtime.connect() as connection:
+        catalog_digest = connection.scalar(
+            sa.select(artifacts.c.sha256).where(
+                artifacts.c.repository_id == report.identity.repository_id,
+                artifacts.c.run_id == report.identity.run_id,
+                artifacts.c.artifact_id == report.report_id,
+            )
+        )
+    assert catalog_digest == mapping["report_sha256"]
 
 
 @pytest.fixture

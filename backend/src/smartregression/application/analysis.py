@@ -12,6 +12,11 @@ from smartregression.application.changed_components import identify_changes
 from smartregression.application.evidence import EVIDENCE_VERSION, explain_impact
 from smartregression.application.frozen_reader import DiffSource, FrozenReader
 from smartregression.application.inventory import InventoryCollector, collect_inventory
+from smartregression.application.mapping_artifact import (
+    MappingArtifact,
+    MappingCollector,
+    prepare_mapping_artifact,
+)
 from smartregression.application.run_store import RunConfiguration
 from smartregression.application.snapshots import (
     RepositoryAuthorization,
@@ -95,6 +100,7 @@ class AnalysisExecution:
     report: StageAnalysisReport
     configuration: RunConfiguration
     snapshot_manifests: tuple[SnapshotManifest, ...]
+    mapping_artifact: MappingArtifact | None = None
 
 
 def _error_code(exc: ValueError, fallback: str) -> str:
@@ -192,6 +198,7 @@ def analyze_execution(
     data_kind: Literal["demo", "real"] = "real",
     limits: SnapshotLimits | None = None,
     inventory_collector: InventoryCollector | None = None,
+    mapping_collector: MappingCollector | None = None,
 ) -> AnalysisExecution:
     """Authorize and freeze once, then call existing producers on that exact pair.
 
@@ -199,6 +206,10 @@ def analyze_execution(
     multi-user access-control service. Discovery is opt-in through an explicitly
     injected isolated collector; the default read-only flow executes no input code.
     """
+    if mapping_collector is not None:
+        if inventory_collector is not None:
+            raise AnalysisError("conflicting_inventory_collectors")
+        inventory_collector = mapping_collector
     try:
         TypeAdapter(RepositoryId).validate_python(repository_id)
         TypeAdapter(Commit).validate_python(base)
@@ -359,6 +370,16 @@ def analyze_execution(
         analysis_status=aggregate_status(stages),
         stages=stages,
     )
+    mapping_artifact = None
+    if mapping_collector is not None:
+        try:
+            if inventory_digest is None:
+                raise ValueError("mapping_configuration_unavailable")
+            mapping_artifact = prepare_mapping_artifact(
+                report, pair.target, mapping_collector, configuration_digest=inventory_digest
+            )
+        except ValueError, TypeError, AttributeError:
+            raise AnalysisError("mapping_validation_failed") from None
     return AnalysisExecution(
         report=StageAnalysisReport.model_validate_json(report.model_dump_json()),
         configuration=RunConfiguration(
@@ -376,6 +397,7 @@ def analyze_execution(
             inventory_configuration_digest=inventory_digest,
         ),
         snapshot_manifests=(pair.base.manifest, pair.target.manifest),
+        mapping_artifact=mapping_artifact,
     )
 
 
