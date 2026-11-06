@@ -1,17 +1,16 @@
 # Lệnh đã đối chiếu với repository
 
-## KH index exclusions/storage 2.10 ngày 2026-11-05
+## Integrity 2.19 ngày 2026-11-05
 
-`scripts/index/verify.ps1 -PythonExe <locked-backend-python>` chạy default source
-gates và dedicated PostgreSQL harness. Observed: default 771 passed/113 opt-in/
-platform skips, Ruff/format/exporter pass. Sau sửa keyword-map false positive,
-policy/publication subset 50 passed; default gate trước sửa được giữ là kết quả
-lịch sử, source CI kiểm commit cuối riêng. `-DatabaseOnly` sau sửa Windows basetemp
-đạt 110 passed/2 existing candidate-specific skips, migration head `20261105_05`,
-consistent metadata/chunk/artifact restore và cleanup pass. Static exclusions
-measurement trên pinned sqlparse/TinyDB bằng `scripts/index/measure_exclusions.py`
-không execute input source hoặc benchmark chunker/search. Chi tiết
-[handoff](task-2.10-khanh.md), [evidence](../research/sprint-2/index-verification-20261105.md).
+`scripts/integrity/verify.ps1 -PythonExe <locked-backend-python>` chạy full suite,
+Ruff/format/contracts rồi cùng 26 ca cross-module qua Docker fixture worker.
+Full suite quan sát 748 passed/94 opt-in/platform skips; source checks pass.
+Sau sửa Windows fixture paths/ACL workspace, `-RuntimeOnly` đạt 26 passed, 82.99s,
+actual worker và cleanup kiểm chứng. Không chạy lại default suite sau sửa test setup;
+không đổi production source/DB/contracts. Default suite dùng transport double;
+runtime dùng Docker thật, SQL vẫn recording port. Evidence/giới hạn ở
+[handoff KH](task-2.19-khanh.md) và
+[verification](../research/sprint-2/integrity-verification-20261105.md).
 
 ## Mapping 2.16 ngày 2026-11-04
 
