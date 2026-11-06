@@ -267,3 +267,6 @@ def test_accepted_chunk_cap_roundtrips_without_postgresql_parameter_overflow(lex
     plan = store.ensure(snapshot, config)
     assert len(plan.chunks) == 10_000
     assert store.load(snapshot, config) == plan
+    context = search_lexical(plan, snapshot, terms=("alpha",))
+    assert context.status == "partial" and len(context.data.items) == config.context_chunks
+    assert any(issue.code == "retrieval_context_limit" for issue in context.limitations)

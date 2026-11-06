@@ -214,3 +214,30 @@ uv run smartregression validate-report examples/reports/stage-report.partial.jso
 
 Commands yêu cầu đúng checkout/environment; kết quả thực và giới hạn ở handoff.
 Runtime cross-field validation không được diễn đạt đầy đủ bởi OpenAPI/TypeScript.
+
+## File consumer validation — Prompt 7
+
+Dashboard v2 validates nested values against the canonical generated schema and
+checks stage-state, aggregate-status, revision and cross-reference relationships
+before rendering. It uses `stageReportValidation.ts`; backend models remain the
+source of truth. `Text` metadata is trimmed before identifier comparisons, while
+native `test_ids` retain exact whitespace/case/Unicode. Unknown nested fields and
+foreign evidence/retrieval references are rejected. Errors do not echo file content.
+
+The file consumer bounds input at 16 MiB, schema traversal at 250,000 visits and
+64 levels, and accepts only safe JS integers for source ranges/ranks. Exceeding
+these consumer limits rejects the file; it does not produce an empty success.
+Schema keyword drift is checked by `npm --prefix frontend run contracts:check`.
+No public schema/generated type or dependency changes are needed for this fix.
+
+Structural/semantic consistency does not attest that uploaded source bytes exist,
+that a verification claim is true or that executing tests is authorized. The UI
+shows the report's claims and limitations; trusted snapshot resolution stays in
+the backend/application boundary. File inspection grants no dispatch permission.
+
+`npm --prefix frontend run test:reports` checks fixture/negative contracts and
+server-rendered components using existing TypeScript/React/Vite dependencies.
+Those checks cover Run ID versus Report ID, changed docs/config visibility,
+partial/error states and escaped untrusted text. They do not replace browser
+keyboard/responsive/file-picker checks. Current actual results and remaining
+browser gate are recorded in [the acceptance checkpoint](../development/h1-acceptance-checkpoint.md).

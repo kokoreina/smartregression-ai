@@ -133,6 +133,11 @@ Prompt 6: [retrieval handoff](task-2.13-retrieval.md) records the explicitly
 authorized completion of missing H2/KH dependencies, actual lexical workflow,
 PostgreSQL migration/publication/recovery, candidate checks and remaining UI gate.
 
+Prompt 6 published commit `2f5c517` as PR #52; both source CI check runs succeeded.
+Prompt 7 local fixes/checks and the still-unverified browser A07 gate are recorded
+in [acceptance checkpoint](h1-acceptance-checkpoint.md). Neither SSR/component checks
+nor green source CI substitute for the blocked actual browser flow.
+
 Temporary keep-awake helper PID 17648 runs from
 `D:/smart-regression-ai/var/sprint2-h1-execution/keep-awake.ps1`, started
 2026-11-05T09:13Z, with a 12-hour safety expiry. Revalidate/renew during continued

@@ -236,6 +236,43 @@ def execute():
             original_plan = PostgresLexicalStore(
                 engine, IndexFiles(artifact_root, source_repository=lexical_source)
             ).ensure(lexical_snapshot, LexicalConfig())
+        with connect(context, database="smartregression_kh_fresh") as connection:
+            before_restart = snapshot_rows(connection)
+        # Restart only the exact disposable container owned by this invocation.
+        labels = json.loads(docker("inspect", "--format", "{{json .Config.Labels}}", container))
+        if labels.get("smartregression.kh-storage-test") != nonce:
+            raise RuntimeError("container_ownership_mismatch")
+        docker("restart", container, timeout=45)
+        # Docker Desktop may reassign an ephemeral published port on restart.
+        # Reacquire it from the same owned container, keeping loopback-only access.
+        restarted_ports = json.loads(
+            docker("inspect", "--format", "{{json .NetworkSettings.Ports}}", container)
+        )
+        bindings = restarted_ports["5432/tcp"]
+        assert len(bindings) == 1 and bindings[0]["HostIp"] == "127.0.0.1"
+        context["port"] = int(bindings[0]["HostPort"])
+        settings = DatabaseSettings(
+            settings.url.set(port=context["port"]), allow_loopback_test=True
+        )
+        restarted = False
+        for _ in range(40):
+            try:
+                with connect(context, database="smartregression_kh_fresh") as connection:
+                    assert snapshot_rows(connection) == before_restart
+                restarted = True
+                break
+            except psycopg.OperationalError:
+                time.sleep(0.5)
+        if not restarted:
+            raise RuntimeError("postgresql_fixture_not_ready")
+        with database_engine(settings) as engine:
+            restarted_plan = PostgresLexicalStore(
+                engine, IndexFiles(artifact_root, source_repository=lexical_source)
+            ).load(lexical_snapshot, LexicalConfig())
+            assert restarted_plan == original_plan
+            assert search_lexical(restarted_plan, lexical_snapshot, terms=("recovery",)).data.items
+        evidence["checks"]["postgresql_restart_exact_rows"] = True
+        evidence["checks"]["lexical_restart_verified_ready"] = True
         # No writers are active now. Back up this complete metadata+artifact fixture,
         # not the intentionally incomplete negative constraint-test rows.
         dump = docker(
