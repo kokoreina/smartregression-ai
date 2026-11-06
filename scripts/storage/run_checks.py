@@ -53,6 +53,8 @@ def snapshot_rows(connection):
         "evidence_bundles",
         "test_inventories",
         "test_cases",
+        "knowledge_indexes",
+        "index_chunks",
         "alembic_version",
     ):
         rows = connection.execute(
@@ -171,6 +173,11 @@ def execute():
             SMARTREGRESSION_KH_TEST_CONTEXT=json.dumps(context),
             PYTHONPATH=str(PROJECT / "backend/src"),
         )
+        # Keep Git templates below MAX_PATH; use an invocation-owned short workspace.
+        index_root = PROJECT / "var" / ("x-" + nonce)
+        index_root.mkdir()
+        test_env["SMARTREGRESSION_INDEX_TEST_ROOT"] = str(index_root)
+        evidence["index_test_workspace"] = str(index_root)
         test = subprocess.run(
             [
                 sys.executable,
@@ -184,7 +191,7 @@ def execute():
                 "--junitxml",
                 str(output / "postgresql-tests.xml"),
                 "--basetemp",
-                str(output / "pytest"),
+                str(index_root / "t"),
             ],
             cwd=PROJECT,
             env=test_env,
@@ -290,9 +297,37 @@ def execute():
             )
             assert restored_bundle.identity.run_id == "recovery-run"
         evidence["checks"]["evidence_restore_decode_and_identity"] = True
+        from smartregression.adapters.storage.index_artifacts import IndexArtifactFiles
+        from smartregression.adapters.storage.index_store import BoundIndexStore
+        from smartregression.application.index_store import decode_index_record
+
+        restored_settings = DatabaseSettings(
+            URL.create(
+                "postgresql+psycopg",
+                username="postgres",
+                password=context["admin_password"],
+                host="127.0.0.1",
+                port=context["port"],
+                database="smartregression_kh_restore",
+                query={"sslmode": "disable"},
+            ),
+            allow_loopback_test=True,
+        )
+        original_record = decode_index_record(descriptor["index_record"])
+        with database_engine(restored_settings) as engine, engine.begin() as connection:
+            restored_index = BoundIndexStore(connection).load(original_record.key)
+            assert restored_index.state == "ready" and restored_index.record == original_record
+        restored_index_files = IndexArtifactFiles(
+            restored_root,
+            source_repository=output / "recovery-index-source",
+        )
+        assert hashlib.sha256(restored_index_files.read(original_record)).hexdigest() == (
+            original_record.artifact_sha256
+        )
+        evidence["checks"]["index_metadata_chunks_artifact_restore"] = True
         evidence["checks"]["artifact_restore_digest_and_catalog"] = True
         evidence["backup_sha256"] = hashlib.sha256(dump).hexdigest()
-        evidence["checks"]["revision_head"] = "20261104_04"
+        evidence["checks"]["revision_head"] = "20261105_05"
         evidence["passed"] = True
     except Exception as exc:
         # Do not echo SQL, credentials or exception chains at this operator boundary.
