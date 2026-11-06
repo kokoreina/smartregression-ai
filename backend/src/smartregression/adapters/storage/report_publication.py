@@ -21,6 +21,8 @@ def _no_links(path: Path) -> None:
 
 
 class ReportFiles:
+    _max_bytes = MAX_REPORT_BYTES
+
     def __init__(self, root: Path, *, source_repository: Path) -> None:
         try:
             root = root.absolute()
@@ -40,7 +42,7 @@ class ReportFiles:
         ReportArtifact(
             artifact.artifact_id, artifact.storage_key, artifact.sha256, artifact.size_bytes
         )
-        if artifact.size_bytes > MAX_REPORT_BYTES:
+        if artifact.size_bytes > self._max_bytes:
             raise RunStorageError()
         path = self.root / artifact.storage_key
         _no_links(path)
@@ -55,7 +57,7 @@ class ReportFiles:
         if path.stat().st_size != artifact.size_bytes:
             raise _ArtifactMismatch()
         with path.open("rb") as stream:
-            raw = stream.read(MAX_REPORT_BYTES + 1)
+            raw = stream.read(self._max_bytes + 1)
         if len(raw) != artifact.size_bytes or hashlib.sha256(raw).hexdigest() != artifact.sha256:
             raise _ArtifactMismatch()
         return raw

@@ -365,3 +365,73 @@ test_cases = sa.Table(
     ),
     _check("ordinal BETWEEN 0 AND 9999", "ck_test_case_ordinal"),
 )
+
+
+knowledge_indexes = sa.Table(
+    "knowledge_indexes",
+    metadata,
+    sa.Column("repository_id", sa.Text, primary_key=True),
+    sa.Column("commit_sha", sa.Text, primary_key=True),
+    sa.Column("snapshot_id", sa.Text, primary_key=True),
+    sa.Column("index_version", sa.Text, primary_key=True),
+    sa.Column("configuration_sha256", sa.Text, primary_key=True),
+    sa.Column("index_id", sa.Text, nullable=False),
+    sa.Column("backend", sa.Text, nullable=False),
+    sa.Column("embedding_model", sa.Text),
+    sa.Column("record", JSONB, nullable=False),
+    sa.Column("state", sa.Text, nullable=False),
+    sa.Column("attempt_id", sa.Text, nullable=False),
+    sa.Column("error_code", sa.Text),
+    _created(),
+    sa.UniqueConstraint("repository_id", "index_id", name="uq_knowledge_index_identity"),
+    _fk(
+        ["repository_id", "commit_sha", "snapshot_id"],
+        ["snapshots.repository_id", "snapshots.commit_sha", "snapshots.snapshot_id"],
+        "fk_knowledge_index_snapshot",
+    ),
+    _check(
+        f"index_id ~ '{_DIGEST}' AND configuration_sha256 ~ '{_DIGEST}'",
+        "ck_knowledge_index_digests",
+    ),
+    _check("index_version ~ '^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$'", "ck_knowledge_index_version"),
+    _check("backend = 'local-lexical' AND embedding_model IS NULL", "ck_knowledge_index_backend"),
+    _check(
+        "jsonb_typeof(record) = 'object' AND octet_length(record::text) <= 4194304",
+        "ck_knowledge_index_record",
+    ),
+    _check("attempt_id ~ '^[a-f0-9]{32}$'", "ck_knowledge_index_attempt"),
+    _check(
+        "state IN ('building','ready','failed') AND ((state = 'failed' "
+        "AND error_code IS NOT NULL AND error_code ~ '^[a-z][a-z0-9_]{0,127}$') "
+        "OR (state <> 'failed' AND error_code IS NULL))",
+        "ck_knowledge_index_state",
+    ),
+)
+
+index_chunks = sa.Table(
+    "index_chunks",
+    metadata,
+    sa.Column("repository_id", sa.Text, primary_key=True),
+    sa.Column("index_id", sa.Text, primary_key=True),
+    sa.Column("chunk_id", sa.Text, primary_key=True),
+    sa.Column("ordinal", sa.Integer, nullable=False),
+    sa.Column("path", sa.Text, nullable=False),
+    sa.Column("line_start", sa.Integer, nullable=False),
+    sa.Column("line_end", sa.Integer, nullable=False),
+    sa.Column("content_sha256", sa.Text, nullable=False),
+    sa.Column("size_bytes", sa.Integer, nullable=False),
+    sa.UniqueConstraint("repository_id", "index_id", "ordinal", name="uq_index_chunk_ordinal"),
+    _fk(
+        ["repository_id", "index_id"],
+        ["knowledge_indexes.repository_id", "knowledge_indexes.index_id"],
+        "fk_index_chunk_index",
+    ),
+    _check(f"chunk_id ~ '{_DIGEST}' AND content_sha256 ~ '{_DIGEST}'", "ck_index_chunk_hashes"),
+    _check("ordinal BETWEEN 0 AND 9999", "ck_index_chunk_ordinal"),
+    _check(
+        "line_start > 0 AND line_end >= line_start AND line_end-line_start < 128",
+        "ck_index_chunk_range",
+    ),
+    _check("size_bytes BETWEEN 1 AND 8192", "ck_index_chunk_size"),
+    _check("octet_length(path) BETWEEN 1 AND 4096", "ck_index_chunk_path"),
+)

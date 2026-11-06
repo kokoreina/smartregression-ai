@@ -113,6 +113,25 @@ require a database, even if DB environment variables are invalid. No automatic
 migrations or repository provisioning are introduced. Actual verification and
 limitations are recorded in [task 2.13](task-2.13.md#persistence-wiring).
 
+## Lexical index metadata (KH 2.10/W04)
+
+Migration `20261105_05` adds snapshot-scoped `knowledge_indexes` and `index_chunks`
+after evidence revision `20261104_04`. Apply the usual authorized migration command;
+no application startup migration or repository provisioning is added. Source/chunk
+bytes remain in a separate guarded local artifact root. SQL has no embeddings;
+`embedding_model` is NULL for `local-lexical`.
+
+Grant SELECT/INSERT on these two tables to the runtime role, and UPDATE only on
+header columns `(state, attempt_id, error_code)`. Do not grant payload/chunk UPDATE,
+DELETE or DDL. Exact statements, application API and lost-ack/retry/reconciliation
+semantics are in [KH handoff](task-2.10-khanh.md). The opt-in harness applies only
+these grants to its disposable test DB; no existing database is modified by tests.
+
+Run `scripts/index/verify.ps1 -PythonExe <locked-backend-python>` for source gates
+and the dedicated PostgreSQL harness. It extends recovery to index metadata/chunks
+and exact artifact bytes alongside report/evidence/inventory. This does not wire
+H2's search or H1's CLI automatically or prove whole-sprint acceptance.
+
 ## Failure and recovery
 
 Transactional DDL keeps migration/version changes atomic. The test injects failure

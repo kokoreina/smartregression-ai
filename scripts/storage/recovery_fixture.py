@@ -10,10 +10,17 @@ from pathlib import Path
 from sqlalchemy import Connection
 
 from smartregression.adapters.storage.evidence_store import BoundEvidenceStore
+from smartregression.adapters.storage.index_artifacts import IndexArtifactFiles
+from smartregression.adapters.storage.index_store import BoundIndexStore
 from smartregression.adapters.storage.inventory_store import BoundInventoryStore
 from smartregression.adapters.storage.run_store import BoundRunReportStore
 from smartregression.adapters.storage.schema import repositories
 from smartregression.application.analysis import aggregate_status
+from smartregression.application.index_store import (
+    IndexConfiguration,
+    prepare_index_publication,
+    record_value,
+)
 from smartregression.application.inventory_store import InventoryConfiguration, prepare_inventory
 from smartregression.application.run_store import (
     ReportArtifact,
@@ -32,7 +39,13 @@ from smartregression.contracts.stages import (
     StageAnalysisReport,
     StageResult,
 )
-from smartregression.core.git.snapshots import SnapshotLimits, SnapshotPair, freeze_snapshot
+from smartregression.core.git.snapshots import (
+    SnapshotLimits,
+    SnapshotPair,
+    TreeEntry,
+    freeze_snapshot,
+)
+from smartregression.core.retrieval.index_manifest import ChunkInput, build_index_manifest
 
 
 def seed_recovery_fixture(connection: Connection, artifact_root: Path) -> dict:
@@ -129,9 +142,41 @@ def seed_recovery_fixture(connection: Connection, artifact_root: Path) -> dict:
             ),
         )
     )
+    # Synthetic fixed recovery bytes, not a candidate/indexer acceptance claim.
+    index_content = b"value = 1\r\n"
+    blob = hashlib.sha1(
+        b"blob " + str(len(index_content)).encode() + b"\0" + index_content
+    ).hexdigest()
+    index_snapshot = freeze_snapshot(
+        "recovery-fixture",
+        "c" * 40,
+        (TreeEntry("src/recovery.py", "100644", blob, len(index_content)),),
+        (index_content,),
+    )
+    index_config = IndexConfiguration(*("recovery-fixture/1",) * 6)
+    index_manifest = build_index_manifest(
+        index_snapshot,
+        [ChunkInput("src/recovery.py", 1, 1, index_content)],
+        index_version="recovery-fixture/1",
+        configuration_id=index_config.digest,
+    )
+    index_publication = prepare_index_publication(
+        index_snapshot,
+        index_manifest,
+        index_config,
+        expected_chunks=1,
+    )
+    index_source = artifact_root.parent / "recovery-index-source"
+    index_source.mkdir()
+    index_files = IndexArtifactFiles(artifact_root, source_repository=index_source)
+    index_store = BoundIndexStore(connection)
+    index_store.begin(index_publication.record, "a" * 32)
+    index_files.publish(index_publication)
+    index_store.finish(index_publication.record, "a" * 32)
     return {
         "storage_key": artifact.storage_key,
         "sha256": artifact.sha256,
         "size_bytes": len(raw),
         "evidence_identity": identity.model_dump(mode="json"),
+        "index_record": record_value(index_publication.record),
     }
