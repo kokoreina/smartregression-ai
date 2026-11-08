@@ -1,15 +1,18 @@
 # 1.10 Conservative selection and fallback policy
 
-Integration note 2026-10-24: [RAG scope](rag-scope.md) supplies the missing metadata/
-leakage design dependency. G1 guards validate snapshot/ID membership and distinct
-empty/error discovery on synthetic fixtures; this policy itself remains a proposed
-design, not a production selector or approved fallback decision.
+**Accepted design baseline, 2026-11-08; policy revision s1-selection-v1.**
+Nguyen Tan Huy authorized finalizing this policy by executing the three Sprint 1
+closeout prompts. This accepts the bounded design, not a production selector,
+independent code review, mentor approval or whole-sprint acceptance.
 
-Prepared for Tran Hung Khanh, 2026-10-24. PB22 design deliverable, not a production
-selector implementation. Proposed reviewer: Pham Phan Hoang Huy. Sources:
+Originally prepared for Tran Hung Khanh, 2026-10-24; remaining closeout work is
+taken over by Nguyen Tan Huy. Proposed historical reviewer: Pham Phan Hoang Huy.
+The [RAG scope](rag-scope.md) supplies metadata/leakage requirements. G1 exercises
+snapshot/ID guards and empty/error discovery, not the whole decision table. Sources:
 [rule 09](../../rules/09-impact-selection.md), [environment](test-environment.md),
 [evaluation protocol](../evaluation-protocol.md), [RAG boundary rule](../../rules/08-llm-rag.md).
-Policy below is proposed for review, not a claim that group/mentor approval exists.
+Proposal v1.4 §12.6 was read directly for this update. See
+[current closeout decisions](closeout-decisions.md) for scope and implementation limits.
 
 ## Inputs available before execution
 
@@ -41,13 +44,13 @@ applicable, target SHA, inventory/config/policy version/hash and fallback mode.
 Public report schema cannot express all these fields yet; keep internal spike
 metadata separate and propose a contract task before changing models/generated files.
 
-## Proposed decision table
+## Accepted decision table
 
 Correction 2026-10-31: Proposal v1.4 §12.6 distinguishes provider failure from
 invalid evidence affecting selection. The previous draft grouped both under
 dependency_modified; that was inconsistent with the proposal. The table below
-aligns the design with that source; it does not claim production policy approval
-or an implemented selector. See [closeout decisions](closeout-decisions.md).
+aligns the design with that source. The 2026-11-08 authorization accepts this
+design; production implementation and acceptance remain separate.
 
 | Condition | Selection mode / action | Recorded reason |
 | --- | --- | --- |
@@ -59,19 +62,41 @@ or an implemented selector. See [closeout decisions](closeout-decisions.md).
 | Rename/delete cannot be mapped reliably | full_suite if T complete; otherwise stop | incomplete_change_mapping |
 | Discovery failed or inventory is partial/unknown | stop | discovery_failed / incomplete_inventory; T is not trustworthy |
 | Successful discovery produces T = empty | stop as no_tests | empty_inventory; no claim of zero regression risk |
-| S = empty with nonempty T and no verified exclusion policy | full_suite | empty_selection; absence of candidates is not evidence of safety |
+| S = empty with nonempty T and no verified exclusion policy | full_suite if execution is feasible; otherwise stop | empty_selection; absence of candidates is not evidence of safety |
 | Wrong repository/commit provenance or unverifiable snapshot | stop | invalid_snapshot; do not attach results to a different commit |
 | Full-suite fallback cannot build/start, times out or crashes | execution/infrastructure failure | preserve actual mode and failure, never safe/passed |
 
 Any full-suite mode is conditional on a complete inventory and enforced runner
 limits. If a failed LLM leaves D ∪ M empty, the empty-selection rule upgrades the
-mode to full_suite. Production fallback acceptance remains a team decision.
+mode to full_suite when eligible, otherwise stop. Production implementation is
+outside task 1.10 and must be verified separately.
 Snapshot/provenance and inventory validity are prerequisites: wrong repo/SHA or
 failed discovery always stops before considering a full-suite fallback. Budget
 exhaustion uses the configured valid fallback only if it can finish within hard
 limits; otherwise stop. A duplicate valid L ID is recorded and deduplicated;
 deduplication does not excuse invalid IDs or evidence. This precedence avoids
 choosing a permissive row when more than one condition applies.
+
+Apply overlapping conditions in this order:
+
+1. Unverifiable repository/snapshot identity, failed/partial inventory or invalid
+   required D/M IDs always stop; another row cannot override these failures.
+2. Only after those prerequisites pass, a valid empty T produces no_tests.
+3. Invalid L membership/support or incomplete analysis requires eligible full
+   suite or stop, even when a provider timeout also occurred.
+4. Provider failure alone permits configured dependency_modified only when D/M
+   are complete and valid. If its result is empty with nonempty T, use step 3.
+5. Otherwise freeze the valid hybrid selection. Missing runner/resource eligibility
+   prevents dispatch regardless of selection mode.
+
+Full-suite eligibility means authorized execution of the exact frozen target,
+complete trusted T, a compatible prebuilt environment and enforced isolation,
+time/output/resource limits. Budget exhaustion cannot bypass any prerequisite.
+Duplicates of valid D/M/L IDs are recorded and deduplicated, preserving inventory
+order; duplicates never repair invalid IDs. Missing/unresolved mapping is partial
+analysis, whereas a mapping with a wrong identity or invalid required ID is invalid
+and stops. A reference belonging to a different repository or disallowed snapshot
+stops; unsupported semantic evidence within the allowed snapshot follows step 3.
 
 ## Evidence validation
 
@@ -112,7 +137,7 @@ become tests when the implementation task is assigned. [Protocol](../evaluation-
 keeps planned reduction separate from dispatched reduction; unknown metrics stay
 null/N/A and one failing test is not a verified fault.
 
-Handoff to Pham Phan Hoang Huy for evidence/leakage review, An for dependency/M
-mapping, Nguyen Tan Huy for lifecycle/protocol and Viet for evaluation consumer
-consistency. AI assistance: Codex drafted/self-reviewed; independent review,
-signatures and final policy approval are not asserted.
+Historical consumer/reviewer roles remain recorded above; Nguyen Tan Huy now
+owns the remaining closeout and does not wait for those members to implement.
+AI assistance: Codex drafted and self-reviewed this update. Independent review,
+mentor signatures and sprint acceptance are not asserted.

@@ -1,7 +1,34 @@
 # Sprint 1 — scope, decisions and acceptance checkpoints
 
-Updated 2026-10-31 by Codex assisting the user. This is a decision index and a
-review proposal, not a new approval on behalf of task owners or mentor.
+## Current closeout decisions — 2026-11-08
+
+Baseline: fetched `origin/main` at `3ab7d6603a191e46ce86d3ca04ffb520374bc639`.
+Nguyen Tan Huy takes over remaining Sprint 1 work and authorized sequential
+execution of the three closeout prompts: checklist/policy, verification, then
+review/demo and Sprint 1 workbook synchronization. Historical authorship remains.
+Follow-up authorization on 2026-11-08: Huy explicitly confirmed Done and requested
+all three publication steps: update acceptance, commit/push/PR, then merge after
+checks. This supersedes the earlier no-publication restriction; no mentor approval,
+fabricated independent review or ruleset bypass is authorized.
+
+| Item | Current decision / evidence | Boundary |
+| --- | --- | --- |
+| Scope | Research foundation + technical spike, 1.01–1.12/G1 | Not production PB01–04/PB23, dataset enrollment or Sprint 2–3 implementation |
+| 1.06 | A01 accepted specification in [revision semantics](revision-semantics.md) | Live PR resolver, race handling and durable lifecycle are separate implementation |
+| Candidates | D15 accepts fixed sqlparse primary and TinyDB backup; [source](../../development/task-2.08-2.09-decisions.md) | Reuse fixed snapshots for Sprint 1 reproduction, not a labeled research cohort |
+| 1.10 | Huy authorizes final design `s1-selection-v1`, [policy](selection-policy.md) | No production selector, model call or empirical safety claim |
+| Previous integration | [PR #13](https://github.com/kokoreina/smartregression-ai/pull/13) merged 2026-10-31, merge `0e79079649e3f508b534098b867d5ead4bb21ff6`; KaiTrann APPROVED | Fetched main contains that merge; review applies to PR revision, not today's changes or whole sprint |
+| Sprint acceptance | Huy's explicit Done confirmation, 2026-11-08: 12/12 tasks Done | Bounded Sprint 1 scope; not mentor approval or production feature acceptance |
+| Current delivery | Publish from the isolated main clone; [review/checklist](review.md) records verification and acceptance | Merge requires CI and actual GitHub rules; self-review is not independent approval |
+| Workbook | Update Sprint 1 in local renamed workbook and repository's existing `_v1.4.xlsx` | Preserve forecast effort as estimates and actual-hour logs; do not copy local Sprint 2 changes onto main |
+
+The sections below preserve the **2026-10-31 decision snapshot**. Their pending
+candidate/specification/integration wording is superseded by the current table.
+Future-stage design decisions still require their own implementation evidence.
+
+## Historical closeout brief — 2026-10-31
+
+Prepared by Codex assisting the user; not approval on behalf of owners or mentor.
 
 ## Scope authorized in this task
 

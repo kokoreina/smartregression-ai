@@ -1,5 +1,13 @@
 # 1.03 — Candidate reproducibility, 2026-10-31
 
+**Current note, 2026-11-08:** D15 accepts the fixed sqlparse/TinyDB snapshots;
+their candidate status is no longer proposed. Both were reproduced again on main
+baseline `3ab7d660`: 509/228 stable IDs, both smoke tests passed; sqlparse full
+506 passed/2 xfailed/1 xpassed, TinyDB 227 passed/1 optional skip.
+Exact new commands, environment and evidence are in the
+[2026-11-08 handoff](closeout-handoff-20261108.md). The sections below retain the
+2026-10-31 observations and timestamps, not a new run or benchmark result.
+
 This is evidence for two proposed spike repositories, not dataset enrollment or
 method evaluation. sqlparse is proposed primary because of its parsing modules and
 larger inventory; TinyDB is backup with a smaller suite. No fault labels, commit-pair
