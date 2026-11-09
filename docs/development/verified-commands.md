@@ -1,5 +1,34 @@
 # Lệnh đã đối chiếu với repository
 
+## Sprint 2 completion workflow/mapping/retrieval — 2026-11-09
+
+Cwd `D:/smart-regression-ai/var/s2c`, Python 3.14.3 reused from
+`D:/smart-regression-ai/var/task-2.20-b-venv/Scripts/python.exe`,
+`PYTHONPATH=backend/src`, `PYTHONDONTWRITEBYTECODE=1`, portable Git prepended.
+No clean install is claimed. Exact source/evidence and intermediate failures are in
+[the completion plan](sprint-2-completion-plan.md).
+
+```powershell
+python -m pytest backend/tests -q -p no:cacheprovider --tb=short --basetemp var/p4-full
+python scripts/storage/run_checks.py
+ruff check .
+ruff format --check .
+python scripts/export_contracts.py --check
+```
+
+Full backend: **867 passed / 120 skipped**, one existing warning. Dedicated SQL
+campaign: **119 passed / no skips**, including actual candidate CLI collection,
+mapping and retrieval; restart and populated metadata/artifact restore queries
+passed. The SQL command used `SMARTREGRESSION_INVENTORY_CANDIDATES` and
+`SMARTREGRESSION_MAPPING_WORKFLOW` pointing to successful current-checkout evidence
+from `verify_candidates.py` and `scripts/mapping/verify_workflow.py`. Without those
+inputs the four candidate cases skip and are not acceptance. No external DSN is
+accepted; the script provisions and removes only its owned PostgreSQL container.
+
+CLI options/use are in [mapping](task-2.13-mapping.md) and
+[retrieval](task-2.13-retrieval.md). Browser A07 and final integrated closeout are
+separate remaining gates. Old dated results below remain historical.
+
 ## Integrity 2.19 ngày 2026-11-05
 
 `scripts/integrity/verify.ps1 -PythonExe <locked-backend-python>` chạy full suite,

@@ -4,6 +4,7 @@ Caller authorizes the repository directory. Only ordinary UTF-8 file paths are
 supported; ambiguous modes/names are rejected instead of silently normalised.
 """
 
+import hashlib
 import os
 import re
 import subprocess
@@ -15,8 +16,15 @@ from smartregression.core.git.snapshots import TreeEntry
 
 
 class LocalGit:
-    def __init__(self, repository: Path) -> None:
+    def __init__(self, repository: Path, *, cache_bytes: int = 0) -> None:
+        if type(cache_bytes) is not int or not 0 <= cache_bytes <= 64 * 1024 * 1024:
+            raise ValueError("invalid_blob_cache_limit")
         self.repository = repository.resolve(strict=True)
+        # Opt-in, command-local immutable object reuse. Commit/root/tree acquisition
+        # still runs each time; this cannot supply authorization or ready metadata.
+        self._cache_limit = cache_bytes
+        self._cached_bytes = 0
+        self._blobs: dict[str, bytes] = {}
 
     def _git(self, *args: str) -> bytes:
         # Do not inherit Git redirect/config/credential variables from the caller.
@@ -76,10 +84,24 @@ class LocalGit:
     def read_blob(self, oid: str, *, max_bytes: int) -> bytes:
         if not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", oid):
             raise ValueError("invalid_blob")
+        cached = self._blobs.get(oid)
+        if cached is not None:
+            if len(cached) > max_bytes:
+                raise ValueError("snapshot_limit")
+            return cached
         size = int(self._git("cat-file", "-s", oid))
         if size > max_bytes:
             raise ValueError("snapshot_limit")
-        return self._git("cat-file", "blob", oid)
+        raw = self._git("cat-file", "blob", oid)
+        if self._cache_limit:
+            algorithm = "sha1" if len(oid) == 40 else "sha256"
+            actual = hashlib.new(algorithm, b"blob " + str(len(raw)).encode() + b"\0" + raw)
+            if len(raw) != size or actual.hexdigest() != oid:
+                raise ValueError("snapshot_mismatch")
+            if self._cached_bytes + len(raw) <= self._cache_limit:
+                self._blobs[oid] = raw
+                self._cached_bytes += len(raw)
+        return raw
 
     def _commit(self, sha: str) -> None:
         if not re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", sha):

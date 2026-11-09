@@ -11,11 +11,17 @@ from pydantic import TypeAdapter, ValidationError
 from smartregression.application.changed_components import identify_changes
 from smartregression.application.evidence import EVIDENCE_VERSION, explain_impact
 from smartregression.application.frozen_reader import DiffSource, FrozenReader
+from smartregression.application.index_store import IndexConfiguration
 from smartregression.application.inventory import InventoryCollector, collect_inventory
 from smartregression.application.mapping_artifact import (
     MappingArtifact,
     MappingCollector,
     prepare_mapping_artifact,
+)
+from smartregression.application.retrieval import (
+    RetrievalIndexStore,
+    lexical_configuration,
+    retrieve_context,
 )
 from smartregression.application.run_store import RunConfiguration
 from smartregression.application.snapshots import (
@@ -50,6 +56,7 @@ from smartregression.core.impact.potential_impact import (
 )
 from smartregression.core.impact.python_snapshot import MAX_PYTHON_SOURCE_BYTES
 from smartregression.core.impact.review_ordering import RULE_VERSION, order_from_impact_payload
+from smartregression.core.retrieval.lexical import INDEX_VERSION as RETRIEVAL_VERSION
 
 _SAFE_ERRORS = frozenset(
     {
@@ -199,6 +206,8 @@ def analyze_execution(
     limits: SnapshotLimits | None = None,
     inventory_collector: InventoryCollector | None = None,
     mapping_collector: MappingCollector | None = None,
+    retrieval_store: RetrievalIndexStore | None = None,
+    retrieval_configuration: IndexConfiguration | None = None,
 ) -> AnalysisExecution:
     """Authorize and freeze once, then call existing producers on that exact pair.
 
@@ -206,6 +215,8 @@ def analyze_execution(
     multi-user access-control service. Discovery is opt-in through an explicitly
     injected isolated collector; the default read-only flow executes no input code.
     """
+    if retrieval_store is None and retrieval_configuration is not None:
+        raise AnalysisError("retrieval_store_required")
     if mapping_collector is not None:
         if inventory_collector is not None:
             raise AnalysisError("conflicting_inventory_collectors")
@@ -350,13 +361,21 @@ def analyze_execution(
         except ValueError, OSError:
             inventory = StageResult(status="failed", error_code="inventory_configuration_invalid")
 
+    retrieval = absent()
+    retrieval_config = None
+    if retrieval_store is not None:
+        retrieval_config = retrieval_configuration or lexical_configuration()
+        retrieval_config.canonical_bytes()
+        retrieval = retrieve_context(
+            retrieval_store, pair, changes=changes, impact=impact, config=retrieval_config
+        )
     stages = AnalysisStages(
         snapshots=snapshots,
         changes=changes,
         graph=graph,
         impact=impact,
         inventory=inventory,
-        retrieval=absent(),
+        retrieval=retrieval,
         evidence=evidence,
         review_ordering=review,
     )
@@ -393,8 +412,10 @@ def analyze_execution(
                 ("impact", IMPACT_VERSION),
                 ("evidence", EVIDENCE_VERSION),
                 ("review_ordering", RULE_VERSION),
-            ),
+            )
+            + ((("retrieval", RETRIEVAL_VERSION),) if retrieval_config is not None else ()),
             inventory_configuration_digest=inventory_digest,
+            retrieval_configuration_digest=retrieval_config.digest if retrieval_config else None,
         ),
         snapshot_manifests=(pair.base.manifest, pair.target.manifest),
         mapping_artifact=mapping_artifact,

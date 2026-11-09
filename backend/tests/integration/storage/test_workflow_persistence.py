@@ -103,14 +103,21 @@ def test_actual_candidate_cli_persists_report_mapping_and_inventory(
             evidence["image_id"],
             "--inventory-workspace",
             str(worker),
+            "--index-artifact-root",
+            str(kwargs["artifact_root"]),
         ]
     )
     captured = capsys.readouterr()
     report = StageAnalysisReport.model_validate_json(captured.out)
-    assert code == 1  # Retrieval is not implemented in this slice; never claim complete.
+    assert code == 1  # Real candidate graph/scope limitations remain explicit.
     assert "Persistence saved" in captured.err
     assert report.stages.inventory.status == "completed"
     assert len(report.stages.inventory.data.test_ids) == record["native_ids"]
+    assert report.stages.retrieval.status in {"completed", "partial"}
+    assert report.stages.retrieval.data.items
+    assert all(
+        item.snapshot == report.identity.target for item in report.stages.retrieval.data.items
+    )
     collector = CandidateInventoryCollector(
         name, evidence["image_id"], Path(__file__).resolve().parents[4], worker
     )
