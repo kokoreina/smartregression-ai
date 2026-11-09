@@ -45,8 +45,10 @@ The paths above are local generated P4 report inputs, not literal shell argument
 Actual-input runs passed **87 validation / 13 SSR checks**; all 71 rejected
 mutations were also rejected by backend validation. The normal contracts script
 runs 85 validation / 11 SSR checks. Build includes TypeScript checking. All commands
-exited 0. **SSR is not browser acceptance: A07 remains pending Browser access.**
-The source UI is published for review as Draft PR #61.
+exited 0. **SSR is not browser acceptance. Huy waived A07 and the A02/A03 browser
+subchecks on 2026-11-09 after the Browser connection remained unavailable.** They
+were not performed and no browser pass is claimed. PR #61 can proceed to source
+review under that explicit waiver; human review and merge remain separate.
 
 ## Sprint 2 completion workflow/mapping/retrieval — 2026-11-09
 
@@ -74,8 +76,9 @@ inputs the four candidate cases skip and are not acceptance. No external DSN is
 accepted; the script provisions and removes only its owned PostgreSQL container.
 
 CLI options/use are in [mapping](task-2.13-mapping.md) and
-[retrieval](task-2.13-retrieval.md). Browser A07 and final integrated closeout are
-separate remaining gates. Old dated results below remain historical.
+[retrieval](task-2.13-retrieval.md). At this historical checkpoint, Browser A07 and
+final closeout were still pending; the final checkpoint above and completion plan
+record the subsequent waiver and verification. Old dated results remain historical.
 
 ## Integrity 2.19 ngày 2026-11-05
 
