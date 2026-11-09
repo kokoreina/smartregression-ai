@@ -7,6 +7,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import insert
 
 from smartregression.adapters.storage.connection import database_transaction
+from smartregression.adapters.storage.payload_claims import claim_payloads
 from smartregression.adapters.storage.schema import (
     analysis_runs,
     artifacts,
@@ -114,6 +115,12 @@ class BoundRunReportStore:
                 "analysis_duration_seconds": write.analysis_duration_seconds,
                 "llm_cost_usd": write.llm_cost_usd,
             },
+        )
+        claim_payloads(
+            connection,
+            identity,
+            json.loads(write.payload_digests_json),
+            verified_report_id=write.report_id,
         )
 
 

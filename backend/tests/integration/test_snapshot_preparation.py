@@ -86,6 +86,30 @@ def test_authorization_before_any_git_read(revisions, tmp_path, monkeypatch):
             )
 
 
+def test_warm_blob_cache_preserves_authorization_revision_and_bounds(revisions, tmp_path):
+    repo, base, target = revisions
+    reader = LocalGit(repo, cache_bytes=64 * 1024 * 1024)
+    args = dict(
+        authorization=RepositoryAuthorization("fixture", repo),
+        repository_id="fixture",
+        base=base,
+        target=target,
+    )
+    first = prepare_snapshots(reader, **args)
+    assert prepare_snapshots(reader, **args) == first
+    for changes in [
+        {"authorization": RepositoryAuthorization("foreign", repo)},
+        {"authorization": RepositoryAuthorization("fixture", tmp_path)},
+    ]:
+        with pytest.raises(ValueError, match="unauthorized_repository"):
+            prepare_snapshots(reader, **(args | changes))
+    for revision in ["HEAD", "0" * 40, git(repo, "rev-parse", target + ":code.py")]:
+        with pytest.raises(ValueError, match="invalid_commit"):
+            prepare_snapshots(reader, **(args | {"target": revision}))
+    with pytest.raises(ValueError, match="snapshot_limit"):
+        prepare_snapshots(reader, **args, limits=SnapshotLimits(max_file_bytes=1))
+
+
 @pytest.mark.parametrize("revision", ["HEAD", "a" * 40, "--help"])
 def test_invalid_commits_reject(revisions, revision):
     repo, _, target = revisions
