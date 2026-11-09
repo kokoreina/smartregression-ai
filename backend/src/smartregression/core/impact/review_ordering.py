@@ -59,7 +59,7 @@ class ReviewOrder:
     ``candidates`` is sorted: tier ascending, then (path, symbol or "") ascending
     for stable deterministic output even when ties exist.
     ``limitations`` collects both caller-supplied limitations and those discovered
-    during ordering (e.g. partial_graph when edges are absent).
+    during ordering. Empty edges alone do not establish graph incompleteness.
     ``rule_version`` pins the algorithm for traceability.
     """
 
@@ -79,7 +79,7 @@ def order_for_review(
         changed:     Changed components from task 2.01. Each contributes a Tier-1 entry.
         edges:       Directed import edges as (importer_path, importee_path) pairs,
                      as produced by ``module_edges`` from task 2.03/python_snapshot.
-                     An empty sequence signals a partial graph.
+                     Empty edges are an observation, not proof of a partial graph.
         limitations: Caller-supplied limitation strings (e.g. from 2.17 partial parsing).
                      These are preserved verbatim and merged with internally discovered ones.
 
@@ -119,8 +119,8 @@ def order_for_review(
     # --- Build adjacency: importee_path → set of importer_paths ---
     # Edge direction: (importer, importee) means importer depends on importee.
     # We want to find who depends on (imports) a Tier-1 path, so we index by importee.
-    if not edges:
-        extra_limitations.add(_LIMITATION_PARTIAL_GRAPH)
+    if not edges and changed:
+        extra_limitations.add("no_dependency_edges_observed")
 
     dependents_of: dict[str, set[str]] = {}  # importee_path → importer_paths
     for importer, importee in edges:

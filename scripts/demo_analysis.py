@@ -1,12 +1,19 @@
 """Reproduce 2.13 on an owned Git fixture; never execute the fixture's Python."""
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
 import sys
 from pathlib import Path
 
+from smartregression.application.evidence_store import (
+    EVIDENCE_FORMAT,
+    decode_evidence,
+    prepare_evidence,
+)
+from smartregression.application.persistence import bundle_from_report
 from smartregression.contracts.stages import StageAnalysisReport
 
 
@@ -141,6 +148,25 @@ def reproduce(output: Path) -> dict:
             or (name == "empty" and report.stages.changes.data.components)
         ):
             raise ValueError("demo_unexpected_analysis")
+        bundle = bundle_from_report(report)
+        bundle_record = None
+        if name != "failure":
+            if bundle is None or report.stages.review_ordering.data is None:
+                raise ValueError("demo_missing_integrated_producer")
+            raw_bundle = prepare_evidence(bundle)
+            digest = hashlib.sha256(raw_bundle).hexdigest()
+            if decode_evidence(raw_bundle, EVIDENCE_FORMAT, digest, report.identity) != bundle:
+                raise ValueError("demo_bundle_reload_failed")
+            bundle_path = output / f"{name}.evidence.json"
+            bundle_path.write_bytes(raw_bundle)
+            bundle_record = {
+                "path": bundle_path.name,
+                "sha256": digest,
+                "size_bytes": len(raw_bundle),
+                "scope": "local_codec_not_database",
+            }
+        elif bundle is not None:
+            raise ValueError("demo_failure_fabricated_bundle")
         evidence["runs"].append(
             {
                 "name": name,
@@ -148,6 +174,7 @@ def reproduce(output: Path) -> dict:
                 "exit_code": result.returncode,
                 "report": report_path.name,
                 "identity": report.identity.model_dump(mode="json"),
+                "evidence_bundle": bundle_record,
                 "stages": {
                     key: getattr(report.stages, key).status
                     for key in type(report.stages).model_fields
