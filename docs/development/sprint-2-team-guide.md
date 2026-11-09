@@ -1,5 +1,13 @@
 # Sprint 2 team guide — SmartRegression AI
 
+Checkpoint hoàn thiện **2026-11-09**: Huy nhận triển khai phần còn lại của cả nhóm;
+phân công và giờ dự kiến bên dưới là lịch sử kế hoạch. Xem
+[completion plan](sprint-2-completion-plan.md) để biết baseline main, bằng chứng
+theo 20 task và chuỗi PR hoàn thiện. Bản này không xác nhận đã merge/nghiệm thu.
+Huy yêu cầu bỏ A07 do Browser chưa kết nối; các ca browser chưa thực hiện, không
+được tính pass. Independent review vẫn chưa có. Office hiện dùng Architecture
+**1.4** và Database Design **1.6** bên trong các tên file cũ để giữ liên kết.
+
 Ngày đối chiếu kế hoạch ban đầu: **2026-10-31**; cập nhật quyết định **2026-11-05**. Mục tiêu: **Change impact + dependency analysis +
 RAG retrieval core**. Đây là hướng dẫn thực thi kế hoạch hiện hành; task scope,
 phân bổ giờ là baseline kế hoạch, chưa phải actual capacity/remaining effort.
@@ -50,7 +58,7 @@ phạm vi làm việc này. Không cần xin phép lại các bước cục bộ
 | [AGENTS.md][agents], [governance][r00], [decision register][decisions] | Routing, quyền, trạng thái quyết định và pending | Đọc cùng quyết định mới; không coi câu lịch sử là hiện trạng bất biến |
 | [Proposal v1.4][proposal] | §11.2–11.3, Appendix C/D | Mục tiêu, AI disclosure và trách nhiệm tác giả; chữ ký lịch sử không phê duyệt guide mới |
 | [Project Plan v1.1][project-plan] | Sprint 2 schedule, workstreams và resource assumptions | Lịch/estimate lịch sử không xác nhận capacity cho kế hoạch sửa đổi |
-| [Architecture v1.3][architecture-doc], [Database v1.5][database-doc] | Impact/retrieval boundaries; DB §3 và các FK prerequisite | Thiết kế để đối chiếu; không tự mở rộng scope implementation |
+| [Architecture v1.4][architecture-doc], [Database v1.6][database-doc] | Impact/retrieval boundaries; DB §3 và các FK prerequisite | Phân biệt implementation tại checkpoint với mô hình tương lai; tên file giữ nguyên |
 | [Sprint 1 guide][sprint1], [closeout handoff][closeout], [module ownership][ownership] | Bài học phối hợp, evidence và vùng trách nhiệm | Không sao chép trạng thái README-only/pending cũ mà bỏ qua code mới |
 | Source/manifests/scripts và [verified commands][commands] | Implementation và định nghĩa lệnh | Có code/lệnh không đồng nghĩa đã chạy thành công trong phiên này |
 

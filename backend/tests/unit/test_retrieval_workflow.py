@@ -42,6 +42,8 @@ def execute(tmp_path, *, config=None):
 def test_real_workflow_retrieves_and_binds_mapping_to_final_report(tmp_path):
     execution = execute(tmp_path)
     report = execution.report
+    assert report.analysis_status == "completed"
+    assert all(stage.status == "completed" for _, stage in report.stages)
     assert report.stages.retrieval.status == "completed"
     assert report.stages.retrieval.data.items
     assert all(

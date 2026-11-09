@@ -11,13 +11,16 @@ from smartregression.adapters.storage.inventory_store import BoundInventoryStore
 from smartregression.adapters.storage.run_store import BoundRunReportStore
 from smartregression.application.evidence_store import (
     EVIDENCE_FORMAT,
+    EvidenceConflict,
     decode_evidence,
     prepare_evidence,
 )
 from smartregression.application.inventory_store import InventoryWrite, validate_inventory_write
+from smartregression.application.payloads import BUNDLE_STAGES, payload_digest
 from smartregression.application.persistence import bundle_from_report, check_bundle_overlap
 from smartregression.application.run_store import (
     RunMetadataError,
+    RunPayloadConflict,
     RunReportWrite,
     validate_run_report_write,
 )
@@ -55,6 +58,12 @@ class PostgresAnalysisStore:
             or report.report_id != write.report_id
             or hashlib.sha256(self.report_bytes).hexdigest() != write.artifact.sha256
             or len(self.report_bytes) != write.artifact.size_bytes
+            or json.loads(write.payload_digests_json)
+            != {
+                name: payload_digest(getattr(report.stages, name).data)
+                for name in BUNDLE_STAGES
+                if getattr(report.stages, name).data is not None
+            }
         ):
             raise RunMetadataError()
         bundle = (
@@ -79,7 +88,10 @@ class PostgresAnalysisStore:
             existing = evidence_store.load(write.identity)
             if existing is not None:
                 check_bundle_overlap(report, existing)
-            BoundRunReportStore(connection).save(write)
+            try:
+                BoundRunReportStore(connection).save(write)
+            except RunPayloadConflict:
+                raise EvidenceConflict() from None
             if bundle is not None:
                 evidence_store.save(bundle)
             if self.inventory is not None:
