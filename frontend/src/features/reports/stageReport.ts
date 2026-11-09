@@ -5,6 +5,8 @@
  * Không gọi API mới — cách load cụ thể thống nhất với contract/use case.
  */
 import type { components } from '../../types/generated'
+import schema from '../../../../contracts/generated/openapi.json'
+import { readReportFile, validateReportValue } from './stageReportValidation'
 
 export type StageAnalysisReport = components['schemas']['StageAnalysisReport']
 export type StageStatus = components['schemas']['StageAnalysisReport']['analysis_status']
@@ -17,40 +19,13 @@ export type ReportLoadState =
 
 /** Validate một đối tượng JSON là StageAnalysisReport hợp lệ tại runtime */
 export function validateStageReport(raw: unknown): StageAnalysisReport {
-  if (raw === null || typeof raw !== 'object') {
-    throw new Error('Report không phải đối tượng JSON hợp lệ.')
-  }
-  const r = raw as Record<string, unknown>
-  if (r['schema_version'] !== '2.0.0') {
-    throw new Error(
-      `schema_version không hợp lệ: nhận được "${r['schema_version']}", yêu cầu "2.0.0".`,
-    )
-  }
-  if (!r['report_id'] || typeof r['report_id'] !== 'string') {
-    throw new Error('Thiếu trường report_id.')
-  }
-  if (r['data_kind'] !== 'demo' && r['data_kind'] !== 'real') {
-    throw new Error(`data_kind không hợp lệ: "${r['data_kind']}".`)
-  }
-  if (typeof r['stages'] !== 'object' || r['stages'] === null) {
-    throw new Error('Thiếu trường stages.')
-  }
-  if (typeof r['identity'] !== 'object' || r['identity'] === null) {
-    throw new Error('Thiếu trường identity.')
-  }
-  return raw as StageAnalysisReport
+  validateReportValue(raw, schema.components.schemas)
+  return raw
 }
 
 /** Load một StageAnalysisReport từ File do người dùng chọn */
 export async function loadStageReportFromFile(file: File): Promise<StageAnalysisReport> {
-  const text = await file.text()
-  let parsed: unknown
-  try {
-    parsed = JSON.parse(text)
-  } catch {
-    throw new Error('File không phải JSON hợp lệ.')
-  }
-  return validateStageReport(parsed)
+  return readReportFile(file, schema.components.schemas)
 }
 
 /** Load StageAnalysisReport từ fixture JSON (bundled, đánh nhãn DEMO) */
