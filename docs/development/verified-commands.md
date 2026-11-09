@@ -1,5 +1,53 @@
 # Lệnh đã đối chiếu với repository
 
+## Sprint 2 completion acceptance checkpoint — 2026-11-09
+
+Cwd `D:/smart-regression-ai/var/s2c`; same reused Python 3.14.3 and portable Git
+as below. No clean dependency install is claimed.
+
+```powershell
+python -m pytest backend/tests -q -p no:cacheprovider --tb=short --junitxml var/p6-final-full.xml --basetemp var/p6-final-full
+python scripts/storage/run_checks.py
+python scripts/integrity/verify.py --runtime-only
+ruff check .
+ruff format --check .
+python scripts/export_contracts.py --check
+```
+
+Default backend: **873 passed / 131 skipped**, one existing warning, exit 0.
+Dedicated PostgreSQL: **131 passed / no skips**, exit 0, including actual candidate
+CLI inventory/mapping/retrieval, conflicting and compatible concurrent writers,
+legacy upgrade/exact replay, new migration `20261109_06`, restart and populated
+metadata/artifact recovery. The default skips are 130 SQL cases subsequently run
+in that campaign and one Windows-inapplicable POSIX FIFO test. One additional SQL
+regression was added after default collection and passed in the dedicated campaign.
+The last SQL-only read-order fix was exercised by the full SQL rerun. No skipped
+case is counted as runtime acceptance. SQL inputs are the successful candidate and
+mapping evidence variables described below; no external DSN is accepted.
+
+The real isolated Docker integrity campaign passed **26 cases**; it deliberately
+uses a recording SQL port and does not replace the real PostgreSQL campaign.
+Ruff lint/format, exporter and diff checks passed. Failed intermediate runs, exact
+evidence paths and observed timing limits are recorded in
+[the completion plan](sprint-2-completion-plan.md).
+
+Frontend used reused Node 22.14.0/npm 10.9.2 dependencies:
+
+```powershell
+npm --prefix frontend run contracts:check
+npm --prefix frontend run lint
+npm --prefix frontend run build
+node frontend/scripts/test-reports.mjs <relative-sqlparse-report> <relative-tinydb-report>
+node frontend/scripts/test-report-view.mjs <relative-sqlparse-report> <relative-tinydb-report>
+```
+
+The paths above are local generated P4 report inputs, not literal shell arguments.
+Actual-input runs passed **87 validation / 13 SSR checks**; all 71 rejected
+mutations were also rejected by backend validation. The normal contracts script
+runs 85 validation / 11 SSR checks. Build includes TypeScript checking. All commands
+exited 0. **SSR is not browser acceptance: A07 remains pending Browser access.**
+The source UI is published for review as Draft PR #61.
+
 ## Sprint 2 completion workflow/mapping/retrieval — 2026-11-09
 
 Cwd `D:/smart-regression-ai/var/s2c`, Python 3.14.3 reused from

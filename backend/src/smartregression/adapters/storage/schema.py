@@ -226,6 +226,23 @@ run_reports = sa.Table(
     ],
 )
 
+run_stage_payloads = sa.Table(
+    "run_stage_payloads",
+    metadata,
+    sa.Column("repository_id", sa.Text, primary_key=True),
+    sa.Column("run_id", sa.Text, primary_key=True),
+    sa.Column("stage_name", sa.Text, primary_key=True),
+    sa.Column("payload_sha256", sa.Text, nullable=False),
+    _created(),
+    _fk(
+        ["repository_id", "run_id"],
+        ["analysis_runs.repository_id", "analysis_runs.run_id"],
+        "fk_stage_payload_run",
+    ),
+    _check("stage_name IN ('changes','graph','impact','evidence')", "ck_stage_payload_name"),
+    _check(f"payload_sha256 ~ '{_DIGEST}'", "ck_stage_payload_digest"),
+)
+
 evidence_bundles = sa.Table(
     "evidence_bundles",
     metadata,

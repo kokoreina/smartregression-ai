@@ -6,6 +6,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import insert
 
 from smartregression.adapters.storage.connection import database_transaction
+from smartregression.adapters.storage.payload_claims import claim_payloads
 from smartregression.adapters.storage.schema import analysis_runs, evidence_bundles
 from smartregression.application.evidence_store import (
     EVIDENCE_FORMAT,
@@ -14,7 +15,8 @@ from smartregression.application.evidence_store import (
     decode_evidence,
     prepare_evidence,
 )
-from smartregression.application.run_store import RunStorageError
+from smartregression.application.payloads import BUNDLE_STAGES, payload_digest
+from smartregression.application.run_store import RunPayloadConflict, RunStorageError
 from smartregression.contracts.stages import EvidenceBundle, RunIdentity
 
 
@@ -55,6 +57,11 @@ class BoundEvidenceStore:
         checked = decode_evidence(raw, EVIDENCE_FORMAT, digest, bundle.identity)
         try:
             self._run(checked.identity)
+            claim_payloads(
+                self.connection,
+                checked.identity,
+                {name: payload_digest(getattr(checked, name)) for name in BUNDLE_STAGES},
+            )
             inserted = self.connection.execute(
                 insert(evidence_bundles)
                 .values(
@@ -71,7 +78,9 @@ class BoundEvidenceStore:
                 stored = self.load(checked.identity)
                 if stored is None or prepare_evidence(stored) != raw:
                     raise EvidenceConflict()
-        except sa.exc.SQLAlchemyError:
+        except RunPayloadConflict:
+            raise EvidenceConflict() from None
+        except sa.exc.SQLAlchemyError, RunStorageError:
             raise EvidenceStorageError() from None
 
     def load(self, identity: RunIdentity) -> EvidenceBundle | None:

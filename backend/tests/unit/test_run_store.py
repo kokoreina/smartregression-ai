@@ -226,3 +226,25 @@ def test_mutated_nested_report_is_revalidated_before_boundary(stage_artifacts):
     args["report"].stages.impact.data.candidates[0].evidence_ids.append("unknown")
     with pytest.raises(RunMetadataError):
         prepare_run_report(**args)
+
+
+@pytest.mark.parametrize("digests", [{}, {"graph": "bad"}, {"foreign": "a" * 64}, []])
+def test_payload_fingerprints_must_match_active_core_stages(stage_artifacts, digests):
+    write = prepare_run_report(**inputs(stage_artifacts))
+    with pytest.raises(RunMetadataError):
+        validate_run_report_write(replace(write, payload_digests_json=canonical_json(digests)))
+
+
+def test_payload_fingerprints_are_canonical_and_reject_forged_compound_write(stage_artifacts):
+    from smartregression.adapters.storage.analysis_store import PostgresAnalysisStore
+    from smartregression.application.payloads import payload_digest
+
+    args = inputs(stage_artifacts)
+    write = prepare_run_report(**args)
+    digests = json.loads(write.payload_digests_json)
+    assert digests["graph"] == payload_digest(args["report"].stages.graph.data)
+    digests["graph"] = "f" * 64
+    with pytest.raises(RunMetadataError):
+        PostgresAnalysisStore(object(), args["report"]).save(
+            replace(write, payload_digests_json=canonical_json(digests))
+        )

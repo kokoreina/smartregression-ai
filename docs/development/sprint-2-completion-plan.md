@@ -103,15 +103,15 @@ merge-protection change. Keep a single evolving completion record here.
 
 ## Acceptance matrix
 
-| Gate | Required evidence on final integrated baseline |
-| --- | --- |
-| A01 | Controlled complete fixture and authorized actual candidates; actual producers, source identities and report/artifact digests |
-| A02 | Docs/config/no-change/no-edge expectations, all paths retained; report/browser semantics |
-| A03 | Partial, unresolved, build/query/runner budget failures propagated; no successful-empty substitution |
-| A04 | Wrong repo/run/revision/snapshot/config/version, forged/tampered bytes/ranges/metadata rejected |
-| A05 | Isolated inventory, exact IDs, receipt/membership guards and matching mapping artifact; dedicated DB checks |
-| A06 | Real PostgreSQL transactions/concurrency/ambiguous commit; restart and consistent nonempty metadata/artifact restore |
-| A07 | Actual browser file load, malformed nested rejection/recovery, identity/provenance, states, keyboard/focus and narrow viewport |
+| Gate | Required evidence on final integrated baseline | Current checkpoint |
+| --- | --- | --- |
+| A01 | Controlled complete fixture and authorized actual candidates; actual producers, source identities and report/artifact digests | Controlled eight-stage producer fixture passes with declared Git/collector/metadata doubles; both real candidates pass actual CLI/SQL with truthful partial limits |
+| A02 | Docs/config/no-change/no-edge expectations, all paths retained; report/browser semantics | Backend/SSR checks pass; browser part awaits A07 |
+| A03 | Partial, unresolved, build/query/runner budget failures propagated; no successful-empty substitution | Default, actual candidate/CLI failure, isolated Docker and SSR checks pass; browser recovery awaits A07 |
+| A04 | Wrong repo/run/revision/snapshot/config/version, forged/tampered bytes/ranges/metadata rejected | Default suite, warm-cache guards, real SQL and Docker integrity checks pass |
+| A05 | Isolated inventory, exact IDs, receipt/membership guards and matching mapping artifact; dedicated DB checks | Both actual candidates and runtime integrity/SQL checks pass |
+| A06 | Real PostgreSQL transactions/concurrency/ambiguous commit; restart and consistent nonempty metadata/artifact restore | Final 131-case SQL campaign, restart/re-query and populated restore pass |
+| A07 | Actual browser file load, malformed nested rejection/recovery, identity/provenance, states, keyboard/focus and narrow viewport | Unverified; Browser connection unavailable |
 
 Use existing scripts and [verified commands](verified-commands.md), inspecting
 their coverage before claiming a gate. Unit/mock passes and opt-in skips do not
@@ -211,12 +211,78 @@ and source. Input code executes only in approved isolated runner containers.
   rerun after its port fix; product source is unchanged from the full regression.
   Ruff lint/format, exporter, plan consistency and diff checks pass. Public schemas,
   generated files, dependency/lockfiles and the single migration head are unchanged.
-- Prompts 5–7: pending execution in order.
-- Acceptance follow-up (suspected, not reproduced): the compound writer currently
-  checks an existing bundle before catalog writes. Prompt 6 must exercise an
-  interleaved report-only and bundle-writing transaction for the same run, not
-  only identical/conflicting standalone bundle inserts; reject incompatible
-  overlap even if another writer commits while publication is in progress.
+- Prompt 4 publication: commit `bd659be`, PR #60 targeting #59's branch. Both
+  GitHub source CI runs succeeded (`42554303258`, `42554297771`).
+- Prompt 5 source work is on `feat/s2-completion-report-ui`, not yet published.
+  Nested validation uses the generated canonical schema plus cross-field checks;
+  report loading is bounded to 16 MiB, 250,000 schema visits and depth 64. Native
+  test IDs remain exact; metadata follows the backend Unicode whitespace policy.
+  Run ID and Report ID are distinct, retrieval provenance is inspectable, changed
+  docs/config paths remain visible and stale asynchronous loads cannot replace a
+  newer request. Actual P4 sqlparse/TinyDB reports passed **87 validation checks**
+  and **13 server-rendered checks** (including two actual reports). All **71**
+  rejected mutations were independently rejected by backend `StageAnalysisReport`.
+  SSR exposed a misleading successful-empty message for partial retrieval: the
+  focused test failed, the wording was corrected and the test passed. Canonical
+  contracts check, ESLint and production build/typecheck exit 0. Reused Node/npm
+  dependencies; no lockfile/dependency/public schema changes.
+  Source checkpoint `18e14c9` is published as Draft PR #61, base #60; this does
+  not close Prompt 5 or imply browser acceptance.
+  Both source CI runs succeeded (`42561543624`, `42561535127`); neither runs A07.
+  **A07 remains unverified:** Browser host is unavailable; native Chrome navigation
+  was stopped by the tool because URL permission could not be verified. Opening
+  Chrome did not restore that connection. SSR/HTTP checks do not replace A07;
+  browser load/error/recovery, keyboard and responsive checks remain required.
+- Prompt 6 independent acceptance work continues while A07 awaits the external
+  browser connection. The suspected overlap race is now **confirmed** on real
+  PostgreSQL: a report-only transaction paused after its absent-bundle read and
+  a concurrent compound/standalone bundle writer both saved incompatible graphs.
+  Red run: **2 failed / 2 passed**, harness
+  `var/storage-verification-608545c9cac247c497372ea733ca24c8/evidence.json`.
+  A lock alone cannot reject a contradictory writer arriving later. Under Huy's
+  delegated technical authority, add forward revision `20261109_06` after the
+  unchanged `20261105_05`: insert-only `run_stage_payloads` records canonical
+  SHA-256 fingerprints for the four core bundle stages, scoped to repository/run.
+  Report and evidence writers claim the same keys in their existing transaction;
+  stable claim order, unique constraints and committed-byte comparison arbitrate
+  overlap. Runtime needs SELECT/INSERT only; no UPDATE/DELETE or public DTO change.
+  Missing legacy claims are not guessed from a different report: exact immutable
+  report replay can seed its own claims; other legacy overlap fails explicitly
+  until reconciled. No existing migration, report body or historical data is
+  rewritten. Forward-only rollback requires a consistent metadata/artifact backup.
+  Initial fix checks: **33 focused unit tests passed**; all four controlled
+  concurrent SQL cases passed, fresh-head/restart/restore and owned cleanup passed
+  in `var/storage-verification-e5e5bf6e35c8407e9d22d0148ca0dc4f/evidence.json`.
+  Expanded PostgreSQL run: **129 passed / no skips**, 257.12s, including both
+  actual candidate CLI cases, legacy exact replay/rejection, runtime permissions,
+  fresh head, exact-row restart, lexical re-query and populated backup/restore.
+  Evidence: `var/storage-verification-d9d059c43d754c06be48e3f0459dd152/evidence.json`.
+  A supplemental populated `20261105_05` ? head upgrade/replay test then passed
+  (**1 passed / 129 deselected**) with exact existing rows preserved, no inferred
+  claims, idempotent upgrade and explicit exact-report replay. Its first fixture
+  attempt incorrectly rolled back the migration with its enclosing read transaction;
+  making that fixture transaction owner explicit resolved the setup failure.
+  Evidence: `var/storage-verification-703d531643644497966a00f9a2ab602b/evidence.json`.
+  Full backend first run: **871 passed / 130 skipped / 2 failed**, 496.24s; the two
+  failures were schema-inventory/head assertions still expecting revision 05. Those
+  assertions now include the new table/PK/FK and unchanged ordered prior revisions;
+  focused rerun **2 passed**. The isolated real-Docker integrity campaign achieved
+  **26 passed**, 357.93s, with worker cleanup assertions; its SQL boundary is a
+  recording port, not a substitute for the dedicated PostgreSQL campaign.
+  Evidence: `var/i-f292955f2a1f4f90abb055fccb857862/evidence.json`.
+  A new compatible-writer interleaving check exposed a READ COMMITTED observation
+  race in the initial legacy guard (**1 failed / 130 deselected**): selecting
+  claims before reports could mistake a newly committed compatible report for
+  legacy data. Reports are now materialized before reading claims; no isolation
+  gate or lock timeout was relaxed. The expanded SQL campaign and default full
+  rerun are in progress. An earlier focused attempt had an infrastructure-only
+  `postgresql_fixture_not_ready` failure and verified owned cleanup; its case did
+  not run and is not counted as a product failure or pass.
+  The controlled pipeline explicitly verifies all eight completed stages; its Git,
+  collector and metadata ports are declared doubles, distinct from the actual
+  candidate SQL campaign. Warm-cache authorization/revision/size guards passed in
+  that default campaign. Neither Prompt 6 nor final acceptance is yet closed.
+- Prompt 7: pending final evidence and targeted Office/document reconciliation.
 - AI assistance: OpenAI Codex reads/reconciles, implements and self-reviews under
   Huy's instruction. Proposal Appendix C/D remains applicable; Huy retains
   responsibility for understanding and verifying the contribution. No fabricated

@@ -51,6 +51,7 @@ def snapshot_rows(connection):
         "analysis_runs",
         "artifacts",
         "run_reports",
+        "run_stage_payloads",
         "evidence_bundles",
         "test_inventories",
         "test_cases",
@@ -195,6 +196,7 @@ def execute():
                 "smartregression_kh_failure",
                 "smartregression_kh_restore",
                 "smartregression_kh_fresh",
+                "smartregression_kh_legacy",
             ):
                 connection.execute(
                     sql.SQL("CREATE DATABASE {} OWNER smartregression_migrator").format(
@@ -411,7 +413,7 @@ def execute():
         evidence["checks"]["actual_lexical_query_after_restore"] = True
         evidence["checks"]["artifact_restore_digest_and_catalog"] = True
         evidence["backup_sha256"] = hashlib.sha256(dump).hexdigest()
-        evidence["checks"]["revision_head"] = "20261105_05"
+        evidence["checks"]["revision_head"] = "20261109_06"
         evidence["passed"] = True
     except subprocess.TimeoutExpired:
         evidence["error_code"] = "storage_verification_timeout"

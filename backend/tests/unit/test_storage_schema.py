@@ -17,6 +17,7 @@ def test_foundation_and_inventory_have_scoped_keys_and_foreign_keys():
             "analysis_runs",
             "artifacts",
             "run_reports",
+            "run_stage_payloads",
             "evidence_bundles",
             "test_inventories",
             "test_cases",
@@ -32,6 +33,11 @@ def test_foundation_and_inventory_have_scoped_keys_and_foreign_keys():
         ("repository_id", "run_id"),
         ("repository_id", "run_id", "artifact_id"),
     }
+    claims = metadata.tables["smartregression.run_stage_payloads"]
+    assert list(claims.primary_key.columns.keys()) == ["repository_id", "run_id", "stage_name"]
+    assert {tuple(fk.column_keys) for fk in claims.foreign_key_constraints} == {
+        ("repository_id", "run_id"),
+    }
     for table in metadata.tables.values():
         assert table.schema == "smartregression"
         for fk in table.foreign_key_constraints:
@@ -45,8 +51,9 @@ def test_migration_chain_has_one_head_and_ordered_revisions():
     root = Path(__file__).resolve().parents[3]
     config = Config(str(root / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ["20261105_05"]
+    assert script.get_heads() == ["20261109_06"]
     assert [(r.revision, r.down_revision) for r in script.walk_revisions()] == [
+        ("20261109_06", "20261105_05"),
         ("20261105_05", "20261104_04"),
         ("20261104_04", "20261104_03"),
         ("20261104_03", "20261103_02"),
