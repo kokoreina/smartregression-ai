@@ -18,7 +18,7 @@ Requirements remain the [team guide](sprint-2-team-guide.md#tasks), the tracked
 workbook `Sprint 2 Backlog!B8:G27` and briefs `B55:Z173`,
 [P3](task-2.05-p3.md), [P5](../architecture/decisions/0003-local-lexical-retrieval.md)
 and [ADR 0004](../architecture/decisions/0004-sprint-2-integration-decisions.md).
-Workbook progress is not acceptance evidence: tracked rows are all Not started;
+Workbook progress is not acceptance evidence: at the starting baseline tracked rows were all Not started;
 the separately edited local workbook marks only 2.02/2.13/2.18 Ongoing. Neither
 represents the actual missing integrations below. Estimates remain forecasts.
 
@@ -106,12 +106,12 @@ merge-protection change. Keep a single evolving completion record here.
 | Gate | Required evidence on final integrated baseline | Current checkpoint |
 | --- | --- | --- |
 | A01 | Controlled complete fixture and authorized actual candidates; actual producers, source identities and report/artifact digests | Controlled eight-stage producer fixture passes with declared Git/collector/metadata doubles; both real candidates pass actual CLI/SQL with truthful partial limits |
-| A02 | Docs/config/no-change/no-edge expectations, all paths retained; report/browser semantics | Backend/SSR checks pass; browser part awaits A07 |
-| A03 | Partial, unresolved, build/query/runner budget failures propagated; no successful-empty substitution | Default, actual candidate/CLI failure, isolated Docker and SSR checks pass; browser recovery awaits A07 |
+| A02 | Docs/config/no-change/no-edge expectations, all paths retained; report/browser semantics | Backend/SSR checks pass; browser subchecks not performed under Huy's A07 waiver |
+| A03 | Partial, unresolved, build/query/runner budget failures propagated; no successful-empty substitution | Default, actual candidate/CLI failure, isolated Docker and SSR checks pass; browser recovery not performed under Huy's A07 waiver |
 | A04 | Wrong repo/run/revision/snapshot/config/version, forged/tampered bytes/ranges/metadata rejected | Default suite, warm-cache guards, real SQL and Docker integrity checks pass |
 | A05 | Isolated inventory, exact IDs, receipt/membership guards and matching mapping artifact; dedicated DB checks | Both actual candidates and runtime integrity/SQL checks pass |
 | A06 | Real PostgreSQL transactions/concurrency/ambiguous commit; restart and consistent nonempty metadata/artifact restore | Final 131-case SQL campaign, restart/re-query and populated restore pass |
-| A07 | Actual browser file load, malformed nested rejection/recovery, identity/provenance, states, keyboard/focus and narrow viewport | Unverified; Browser connection unavailable |
+| A07 | Actual browser file load, malformed nested rejection/recovery, identity/provenance, states, keyboard/focus and narrow viewport | Waived by Huy on 2026-11-09 after Browser connection failure; not performed, no browser pass claimed |
 
 Use existing scripts and [verified commands](verified-commands.md), inspecting
 their coverage before claiming a gate. Unit/mock passes and opt-in skips do not
@@ -176,7 +176,7 @@ and source. Input code executes only in approved isolated runner containers.
   Public schemas, generated files, dependencies and migrations remain unchanged.
 - Prompt 3 publication: commit `6199de2`, PR #59 targeting #58's branch.
   Both GitHub source CI runs succeeded (`42551658602`, `42551651535`).
-- Prompt 4 is in progress on `feat/s2-completion-retrieval`. The historical lexical
+- Prompt 4 was implemented on `feat/s2-completion-retrieval`. The historical lexical
   algorithm is adapted to the existing `IndexConfiguration`, current whole-file
   exclusions and main `index-artifact/1` publication/ready store. No old lexical
   migration/schema is imported. Trusted acquisition is repeated before ready reuse;
@@ -213,7 +213,7 @@ and source. Input code executes only in approved isolated runner containers.
   generated files, dependency/lockfiles and the single migration head are unchanged.
 - Prompt 4 publication: commit `bd659be`, PR #60 targeting #59's branch. Both
   GitHub source CI runs succeeded (`42554303258`, `42554297771`).
-- Prompt 5 source work is on `feat/s2-completion-report-ui`, not yet published.
+- Prompt 5 source work is published on `feat/s2-completion-report-ui`.
   Nested validation uses the generated canonical schema plus cross-field checks;
   report loading is bounded to 16 MiB, 250,000 schema visits and depth 64. Native
   test IDs remain exact; metadata follows the backend Unicode whitespace policy.
@@ -232,9 +232,10 @@ and source. Input code executes only in approved isolated runner containers.
   **A07 remains unverified:** Browser host is unavailable; native Chrome navigation
   was stopped by the tool because URL permission could not be verified. Opening
   Chrome did not restore that connection. SSR/HTTP checks do not replace A07;
-  browser load/error/recovery, keyboard and responsive checks remain required.
-- Prompt 6 independent acceptance work continues while A07 awaits the external
-  browser connection. The suspected overlap race is now **confirmed** on real
+  browser load/error/recovery, keyboard and responsive checks were still pending
+  at this historical checkpoint. Huy subsequently waived them; see the final record.
+- Prompt 6 backend acceptance continued independently of the unavailable browser
+  connection. The suspected overlap race is now **confirmed** on real
   PostgreSQL: a report-only transaction paused after its absent-bundle read and
   a concurrent compound/standalone bundle writer both saved incompatible graphs.
   Red run: **2 failed / 2 passed**, harness
@@ -275,14 +276,110 @@ and source. Input code executes only in approved isolated runner containers.
   claims before reports could mistake a newly committed compatible report for
   legacy data. Reports are now materialized before reading claims; no isolation
   gate or lock timeout was relaxed. The expanded SQL campaign and default full
-  rerun are in progress. An earlier focused attempt had an infrastructure-only
+  rerun completed as recorded below. An earlier focused attempt had an infrastructure-only
   `postgresql_fixture_not_ready` failure and verified owned cleanup; its case did
   not run and is not counted as a product failure or pass.
   The controlled pipeline explicitly verifies all eight completed stages; its Git,
   collector and metadata ports are declared doubles, distinct from the actual
   candidate SQL campaign. Warm-cache authorization/revision/size guards passed in
-  that default campaign. Neither Prompt 6 nor final acceptance is yet closed.
-- Prompt 7: pending final evidence and targeted Office/document reconciliation.
+  that default campaign.
+- Prompt 6 final verification, source `21cdf84d711222f960fcf4e119904414fcccb794`:
+  full default backend **873 passed / 131 skipped / 1 existing warning**, exit 0
+  (`var/p6-final-full.xml`). The 130 opt-in SQL cases were exercised separately;
+  one POSIX FIFO case remains unavailable on Windows. A further compatible-writer
+  SQL regression was added after default collection and passed in the final SQL
+  campaign: **131 passed / no skips**, exit 0, evidence
+  `var/storage-verification-bcdf4aef248d4be28a66cb5db90b41bd/evidence.json`.
+  All harness checks passed: revision 06, exact rows after restart, actual lexical
+  re-query after restart and populated restore, evidence identity and artifact
+  integrity, owned cleanup. The last SQL-only report/claim read-order fix was
+  exercised by this full SQL campaign. Isolated Docker integrity **26 passed**,
+  exit 0 (`var/i-f292955f2a1f4f90abb055fccb857862/evidence.json`); its metadata
+  port is a declared double, distinct from actual PostgreSQL verification.
+  Observed durations 2354.96s/1993.86s/357.93s include a long workstation/tool
+  observation gap; they are not performance benchmarks and its cause is unproven.
+  Ruff lint/format (297 files), canonical exporter, plan links/fences and diff
+  checks passed. PR #62 targets #61; both source CI runs succeeded
+  (`42564342366`, `42564337167`). No merge or independent review is claimed.
+- User-directed exception, 2026-11-09: Huy explicitly instructed “bỏ qua phần a07
+  này và tiếp tục làm các phần khác”. A07 and A02/A03 browser subchecks are
+  **waived/not performed**, not passed. Browser host was unavailable; SSR,
+  validation and build results are the available substitute evidence and do not
+  establish real interaction, keyboard/focus or responsive behavior. Scope is
+  this completion campaign; revisit the omitted browser scenarios at the next
+  connected browser session before a UI release. Source CI for #61 is successful,
+  so the prior Draft blocker can be removed under this explicit instruction.
+  Human review and main integration remain separate; no formal Sprint 2 acceptance
+  is inferred from this waiver.
+- Prompt 7 reconciles Architecture (internal 1.4), Database Design (internal 1.6)
+  and the tracked Scrum workbook while retaining their existing filenames.
+  Current CLI/file-report behavior, PostgreSQL head 06, P3/P5 physical mapping,
+  concurrency/recovery and observed limits replace stale implementation claims.
+  Future API/auth/queue/LLM/selection/execution designs remain labelled future.
+  Revision authorship is OpenAI Codex, approval pending; old signatures do not
+  approve these edits. Proposal/Project Plan, code, contracts and dependencies are
+  unchanged in this closeout slice. The user's renamed/edited original workspace
+  files are preserved; no S1/S3 or estimated-effort changes are copied over them.
+  All 20 Sprint 2 status cells become Ongoing, with technical evidence in the
+  existing Reports cells; review/merge remain outstanding. Original owners,
+  estimates, completed/daily/effort formulas and native objects remain intact.
+  The 232h task plan plus 32h reserve equals 264h forecast, not measured effort.
+  Office QA: official `render_docx.py` completed, Architecture 27 pages / DB 36
+  pages; all page PNGs visually inspected. Revision tables fit, 52 cached TOC
+  references verified against rendered headings. A hidden default NULL cell was
+  corrected and re-rendered; only Architecture page 23 and DB page 21 changed
+  in the last iteration, with all other PNGs pixel-identical to the inspected
+  render. DOCX ZIP audits preserve every part except `word/document.xml`,
+  including original diagram/media bytes. Workbook values were authored with
+  Artifact Tool, recalculated and exported. Its native shutdown failed after
+  saving (one earlier process returned 0xC0000409; final runs exit 1 despite the
+  JS exit hook reporting 0), so the whole builder command is not claimed pass.
+  The export also rewrote unrelated Office parts; it was not delivered. Only
+  authorized string cells were transplanted into the exact original package.
+  Independent audits confirm all 14 sheets, all other cell values/formulas and
+  65 original ZIP parts preserved, with only two worksheet parts changed.
+  The final preserved workbook was opened/recalculated/saved by LibreOffice
+  26.2.7.3 in an isolated profile (exit 0), checked across 420 formula cells
+  without errors, and its forecast totals and all edited strings rechecked.
+  Final changed worksheet views were rendered for visual inspection. The Calc
+  round-trip and all backups/scripts/images/PDFs remain ignored QA artifacts;
+  the delivered workbook retains its original native charts, image, comments,
+  VML, print settings, styles and calculation chain. Microsoft Excel interactive
+  behavior was not tested. Product suites were not rerun for this docs-only slice.
+  QA manifest: `var/s2-completion-20261109/office-review/final-audit.json` in the
+  original workspace; code/runtime evidence paths above are relative to `var/s2c`.
+  Final preservation/TOC/native-recalculation audits, 20-row task reconciliation,
+  Markdown paths/fences and `git diff --check` passed. The task-table checker was
+  scoped to its baseline section after adding a final grouped disposition table;
+  a first generic link parser also needed angle-bracket paths with spaces. These
+  were authoring-check parser errors, not product failures. Main was fetched again
+  before closeout and remains `3ab7d6603a191e46ce86d3ca04ffb520374bc639`.
+  PR #61 is now ready for review under the explicit A07 waiver, not browser pass.
+
+## Final task disposition and handoff
+
+This is the technical completion checkpoint on the completion branch, not a claim
+that these changes are already on main or independently approved. All twenty
+requirements remain mapped in the baseline table above; final evidence groups:
+
+| Tasks | Technical completion evidence | Remaining acceptance |
+| --- | --- | --- |
+| 2.01–2.04, 2.07, 2.15, 2.17 | Retained actual source/graph producers and independent location checks; integrated reverse impact/order; default/integrity campaign and frozen candidate CLI checks, A01–A04 | Source review and merge |
+| 2.05–2.06 | Verified immutable P3 producer/resolver and SQL round-trip, atomicity, cross-writer claims and recovery; validation/SSR evidence inspection | Browser interaction waived, source review and merge |
+| 2.08–2.09, 2.16 | Both approved candidate collectors, exact native IDs, trusted receipts, mapping publication and atomic SQL inventory; negative Docker cases, A03–A06 | Source review and merge |
+| 2.10–2.12 | Actual bounded lexical build/search and deterministic ranking, guarded ready/artifact/source reuse; real candidate queries, restart and restore, A01/A03/A04/A06 | Source review and merge |
+| 2.13–2.14 | Integrated CLI/application/report consumer, controlled eight-stage fixture with declared doubles plus actual candidate/SQL campaign; canonical schema checks | Browser subchecks waived, source review and merge |
+| 2.18 | Nested/semantic validation, 87 actual-input checks, 13 SSR checks, 71 backend-rejected mutations, lint/typecheck/build and source CI | A07 not performed under Huy's waiver; source review and merge |
+| 2.19–2.20 | 873 default passes, 131 dedicated SQL passes, 26 isolated Docker passes; revision 06, legacy upgrade, concurrency, restart/re-query, populated restore and cleanup | One platform-inapplicable FIFO skip; A07 waived; source review and merge |
+
+Review dependencies in order: #57 (reconciliation) → #58 (workflow) → #59
+(inventory/mapping) → #60 (retrieval) → #61 (UI) → #62 (storage integrity) →
+the docs closeout PR. Each later PR targets the preceding branch. After integrating
+each dependency, check/retarget the next PR to the intended integration branch
+before merging; do not assume a feature-branch merge is main integration. The
+agent has not merged anything or changed protection. Before enabling persistence,
+the operator applies migration `20261109_06` and its documented SELECT/INSERT
+grant for `run_stage_payloads`; do not guess legacy hashes or rewrite old rows.
 - AI assistance: OpenAI Codex reads/reconciles, implements and self-reviews under
   Huy's instruction. Proposal Appendix C/D remains applicable; Huy retains
   responsibility for understanding and verifying the contribution. No fabricated
