@@ -1,5 +1,12 @@
 # Task 2.13 — Incremental application workflow, CLI và demo
 
+Follow-up 2026-11-05: [H1 prompt 4 handoff](h1-seven-prompt-handoff.md#publication-and-prompt-4-integration)
+records actual impact/evidence/ordering wiring and compound SQL report/evidence
+persistence. CLI `--persist` now requires the P3 evidence migration as well as
+foundation/inventory migrations. Local regression/DB checks are recorded there;
+review/merge and full inventory/retrieval acceptance remain separate. Historical
+thin/report-only results below are not the latest implementation verification.
+
 Follow-up [2.17](task-2.17.md): inventory producer đã có nhưng chưa cấu hình collector
 được ghi `not_run`/`inventory_collector_not_configured`; graph source failure giữ path
 trong stage limitations. Các kết quả kiểm chứng lịch sử bên dưới giữ theo baseline
