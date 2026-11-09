@@ -12,14 +12,18 @@ from sqlalchemy.engine import URL
 
 import smartregression.composition as composition
 from smartregression.adapters.storage.config import DatabaseSettings
+from smartregression.adapters.storage.evidence_store import PostgresEvidenceStore
 from smartregression.adapters.storage.report_publication import ReportFiles
 from smartregression.adapters.storage.schema import (
     analysis_runs,
     artifacts,
+    evidence_bundles,
     repositories,
     run_reports,
     snapshots,
 )
+from smartregression.application.evidence_store import EvidenceStorageError, prepare_evidence
+from smartregression.application.persistence import bundle_from_report
 from smartregression.application.run_store import ReportArtifact, RunConflict
 from smartregression.cli.main import main
 from smartregression.contracts.stages import StageAnalysisReport
@@ -119,7 +123,19 @@ def test_actual_cli_persists_partial_and_failed_stages(
             repositories.insert().values(repository_id=kwargs["repository_id"], source_kind="local")
         )
     observed = []
+    acquired_pairs = []
     acquire = composition.analyze_execution
+    import smartregression.application.analysis as workflow
+    from smartregression.application.evidence import inspect_bundle
+
+    prepare = workflow.prepare_snapshots
+
+    def observe_pair(*args, **kw):
+        pair = prepare(*args, **kw)
+        acquired_pairs.append(pair)
+        return pair
+
+    monkeypatch.setattr(workflow, "prepare_snapshots", observe_pair)
 
     def capture(*args, **kw):
         execution = acquire(*args, **kw)
@@ -177,6 +193,18 @@ def test_actual_cli_persists_partial_and_failed_stages(
     assert saved["stage_summary"]["graph"]["status"] == report.stages.graph.status
     assert saved["analysis_status"] == report.analysis_status
     assert saved["llm_cost_usd"] is None
+    expected_bundle = bundle_from_report(report)
+    loaded_bundle = PostgresEvidenceStore(runtime).load(report.identity)
+    assert loaded_bundle == expected_bundle
+    if expected_bundle is not None:
+        assert prepare_evidence(loaded_bundle) == prepare_evidence(expected_bundle)
+        before = prepare_evidence(loaded_bundle)
+        assert inspect_bundle(loaded_bundle, acquired_pairs[0]).status == "completed"
+        assert prepare_evidence(loaded_bundle) == before
+        assert prepare_evidence(PostgresEvidenceStore(runtime).load(report.identity)) == before
+        assert "evidence=saved" in captured.err
+    else:
+        assert "evidence=not_included_missing_stage_data" in captured.err
     assert {
         (
             row["commit_sha"],
@@ -234,7 +262,14 @@ def test_unprovisioned_repository_reports_failure_and_retains_orphan(
     assert "Persistence saved" not in captured.err
     assert len(list(kwargs["artifact_root"].glob("*/*.json"))) == 1
     with runtime.connect() as connection:
-        for table in (repositories, snapshots, analysis_runs, artifacts, run_reports):
+        for table in (
+            repositories,
+            snapshots,
+            analysis_runs,
+            artifacts,
+            run_reports,
+            evidence_bundles,
+        ):
             assert (
                 connection.scalar(
                     sa.select(sa.func.count())
@@ -243,3 +278,87 @@ def test_unprovisioned_repository_reports_failure_and_retains_orphan(
                 )
                 == 0
             )
+
+
+def test_cli_bundle_write_failure_rolls_back_report_and_run(migrated, workflow_input, capsys):
+    owner, runtime, _ = migrated
+    kwargs, _ = workflow_input
+    with owner.begin() as connection:
+        connection.execute(
+            repositories.insert().values(repository_id=kwargs["repository_id"], source_kind="local")
+        )
+
+    def fail_bundle(connection, cursor, statement, parameters, context, executemany):
+        if statement.startswith("INSERT INTO smartregression.evidence_bundles"):
+            raise EvidenceStorageError()
+
+    # Actual CLI creates its own engine, so instrument the SQL engine class for this
+    # bounded test scope; never intercept credentials or SQL parameter values.
+    sa.event.listen(sa.Engine, "before_cursor_execute", fail_bundle)
+    try:
+        assert main(cli_arguments(kwargs)) == 2
+    finally:
+        sa.event.remove(sa.Engine, "before_cursor_execute", fail_bundle)
+    captured = capsys.readouterr()
+    assert captured.out == "" and "Persistence failed: evidence_storage_failed" in captured.err
+    assert "Persistence saved" not in captured.err
+    assert len(list(kwargs["artifact_root"].glob("*/*.json"))) == 1
+    with runtime.connect() as connection:
+        for table in (snapshots, analysis_runs, artifacts, run_reports, evidence_bundles):
+            assert (
+                connection.scalar(
+                    sa.select(sa.func.count())
+                    .select_from(table)
+                    .where(table.c.repository_id == kwargs["repository_id"])
+                )
+                == 0
+            )
+
+
+def test_existing_bundle_prevents_divergent_report_even_without_new_bundle(
+    migrated,
+    workflow_input,
+    monkeypatch,
+):
+    from smartregression.application.analysis import aggregate_status
+    from smartregression.application.evidence_store import EvidenceConflict
+    from smartregression.contracts.stages import StageResult
+
+    owner, _, _ = migrated
+    kwargs, _ = workflow_input
+    with owner.begin() as connection:
+        connection.execute(
+            repositories.insert().values(repository_id=kwargs["repository_id"], source_kind="local")
+        )
+    captured = []
+    acquire = composition.analyze_execution
+
+    def record(*args, **kw):
+        execution = acquire(*args, **kw)
+        captured.append(execution)
+        return execution
+
+    monkeypatch.setattr(composition, "analyze_execution", record)
+    composition.analyze_local(**kwargs)
+    execution = captured[0]
+    graph = execution.report.stages.graph.data.model_copy(update={"edges": []})
+    stages = execution.report.stages.model_copy(
+        update={
+            "graph": StageResult(status="completed", data=graph),
+            "impact": StageResult(status="not_run", reason="dependency_failed"),
+            "evidence": StageResult(status="not_run", reason="dependency_failed"),
+            "review_ordering": StageResult(status="not_run", reason="dependency_failed"),
+        }
+    )
+    report = execution.report.model_copy(
+        update={
+            "report_id": "different-report",
+            "stages": stages,
+            "analysis_status": aggregate_status(stages),
+        }
+    )
+    monkeypatch.setattr(
+        composition, "analyze_execution", lambda *a, **k: replace(execution, report=report)
+    )
+    with pytest.raises(EvidenceConflict):
+        composition.analyze_local(**kwargs)

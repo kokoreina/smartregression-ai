@@ -13,9 +13,10 @@
 > **Cập nhật 2026-11-05:** [ADR 0004 §1–2](../../architecture/decisions/0004-sprint-2-integration-decisions.md)
 > accepted theo xác nhận cả nhóm qua H1: giữ tier/path/symbol, distance chỉ giải
 > thích; no-edges không tự partial. VI owner, H1 reviewer và H2 semantics.
-> §2.6 và fixtures A/B bên dưới ghi behavior implementation lịch sử chưa sửa;
-> W01 phải đổi các entrypoints/expected cases cho hội tụ. Checks cũ không chứng
-> minh semantics mới đã implemented.
+> Cập nhật implementation 2026-11-09: raw/stage/impact entrypoints không tự gán
+> partial_graph từ edges rỗng. Fixtures A/B đã đồng bộ ADR; regression kiểm cả
+> ba entrypoints và giữ explicit producer limitations. Kết quả kiểm chứng mới
+> ghi tại [completion record](../../development/sprint-2-completion-plan.md).
 
 ## 1. Mục tiêu và phạm vi
 
@@ -67,9 +68,12 @@ Trong cùng một tier, sắp xếp **alphabetically ascending** theo `(path, sy
 
 BFS dùng `visited` set — mọi path chỉ được thăm một lần, không vòng lặp vô hạn với cyclic imports.
 
-### 2.6 Partial graph detection — implementation lịch sử, cần W01
+### 2.6 Graph completeness
 
-Khi `edges` rỗng → tự động thêm `"partial_graph"` vào `limitations` output. Caller-supplied limitations được giữ nguyên và merge vào output.
+`partial_graph` chỉ đến từ producer/caller xác nhận thiếu. Edges rỗng với changed
+components chỉ thêm quan sát `no_dependency_edges_observed`; empty inputs không tự
+thêm limitation. Caller-supplied limitations vẫn giữ nguyên. Workflow không biến
+quan sát no-edges đơn lẻ thành incomplete khi graph và impact đều completed.
 
 ### 2.7 Lớp chuyển đổi mỏng (Thin Adapters) nối dữ liệu thật (Task 2.01 & 2.04)
 
@@ -108,12 +112,12 @@ Input:
 
 Oracle:
   candidates = ()
-  limitations contains "partial_graph"  (edges empty)
+  limitations = ()
 ```
 
-Tự kiểm: không có changed → không có gì để review. Limitation phải nêu partial graph.
+Tự kiểm: không có changed và không có producer limitation thì không suy graph thiếu.
 
-### Fixture B — Single changed file, no graph
+### Fixture B — Single changed file, no observed edges
 
 ```
 Input:
@@ -122,10 +126,11 @@ Input:
 
 Oracle:
   candidates = [ReviewCandidate(path="auth.py", symbol=None, tier=1)]
-  limitations contains "partial_graph"
+  limitations = ("no_dependency_edges_observed",)
 ```
 
-Tự kiểm: 1 candidate Tier-1, symbol = None (file-level), partial_graph vì edges rỗng.
+Tự kiểm: 1 candidate Tier-1, symbol = None; quan sát edges rỗng không chứng minh
+partial_graph. Caller truyền partial_graph khi producer thực sự xác nhận thiếu.
 
 ### Fixture C — Direct dependent chain
 
@@ -216,7 +221,7 @@ Xem docstring test `test_full_ordering_example` trong [`test_review_ordering.py`
 
 | Limitation | Ghi chú |
 |------------|---------|
-| `partial_graph` | Edges rỗng = không có graph info, chỉ Tier-1 được đảm bảo |
+| `partial_graph` | Producer/caller xác nhận graph thiếu; không suy từ edges rỗng |
 | `import_observations_only_not_complete_dependency_graph` | Từ `module_edges()` — static import, không phải call graph |
 | `relative_import_unresolved` | Relative imports không resolve được target path |
 | `dynamic_import` | `__import__()` / `import_module()` không trace được |

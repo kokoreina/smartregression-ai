@@ -1,6 +1,7 @@
 """Incremental read-only analysis. Missing producers remain explicit in v2 reports."""
 
 import ast
+import re
 from dataclasses import dataclass
 from typing import Literal, Protocol
 from uuid import uuid4
@@ -8,6 +9,7 @@ from uuid import uuid4
 from pydantic import TypeAdapter, ValidationError
 
 from smartregression.application.changed_components import identify_changes
+from smartregression.application.evidence import EVIDENCE_VERSION, explain_impact
 from smartregression.application.frozen_reader import DiffSource, FrozenReader
 from smartregression.application.inventory import InventoryCollector, collect_inventory
 from smartregression.application.run_store import RunConfiguration
@@ -20,11 +22,14 @@ from smartregression.application.stage_conversion import (
     changes_result,
     graph_result,
     identity_from_snapshots,
+    review_result,
     snapshots_result,
 )
 from smartregression.contracts.models import Commit
 from smartregression.contracts.stages import (
     AnalysisStages,
+    ChangePayload,
+    GraphPayload,
     RepositoryId,
     StageAnalysisReport,
     StageIssue,
@@ -33,7 +38,13 @@ from smartregression.contracts.stages import (
 )
 from smartregression.core.git.snapshots import SnapshotLimits, SnapshotManifest, SnapshotPair
 from smartregression.core.impact.dependency_graph import build_dependency_graph
+from smartregression.core.impact.potential_impact import (
+    IMPACT_VERSION,
+    MAX_IMPACT_PATHS,
+    build_potential_impact,
+)
 from smartregression.core.impact.python_snapshot import MAX_PYTHON_SOURCE_BYTES
+from smartregression.core.impact.review_ordering import RULE_VERSION, order_from_impact_payload
 
 _SAFE_ERRORS = frozenset(
     {
@@ -59,6 +70,8 @@ _SAFE_ERRORS = frozenset(
         "ambiguous_module",
         "source_limit",
         "binary_source",
+        "impact_path_limit",
+        "impact_candidate_limit",
     }
 )
 
@@ -123,6 +136,26 @@ def _graph_sources(pair: SnapshotPair) -> tuple[dict[str, str], list[StageIssue]
         ):
             limitations.append(StageIssue(code="graph_relative_alias_omission", path=entry.path))
     return sources, limitations
+
+
+def _impact_inputs(
+    changes: ChangePayload, graph: GraphPayload
+) -> tuple[ChangePayload, list[StageIssue]]:
+    """Project target-observable origins; preserve the full diff in the original report."""
+    components, omitted = [], set()
+    for component in changes.components:
+        if not component.path.endswith(".py"):
+            omitted.add(("impact_non_python_change", component.path))
+        elif component.change == "deleted":
+            omitted.add(("impact_deleted_origin_target_graph", component.path))
+        elif component.path not in graph.nodes:
+            omitted.add(("impact_origin_not_in_graph", component.path))
+        else:
+            components.append(component)
+    paths = {component.path for component in components}
+    return ChangePayload(
+        components=components, files=[f for f in changes.files if f.path in paths]
+    ), [StageIssue(code=code, path=path) for code, path in sorted(omitted)]
 
 
 def analyze(
@@ -236,26 +269,85 @@ def analyze_execution(
     def absent() -> StageResult:
         return StageResult(status="not_implemented", reason="producer_unavailable")
 
+    impact = StageResult(status="not_run", reason="dependency_failed")
+    evidence = StageResult(status="not_run", reason="dependency_failed")
+    review = StageResult(status="not_run", reason="dependency_failed")
+    if changes.data is not None and graph.data is not None:
+        projected, scope_issues = _impact_inputs(changes.data, graph.data)
+        inherited = [*changes.limitations, *graph.limitations, *scope_issues]
+        try:
+            impact = StageResult(
+                status="partial" if inherited else "completed",
+                data=build_potential_impact(
+                    identity, projected, graph.data, max_paths=MAX_IMPACT_PATHS
+                ),
+                limitations=inherited,
+            )
+        except (ValueError, RecursionError) as exc:
+            impact = StageResult(
+                status="failed", error_code=_error_code(exc, "impact_analysis_failed")
+            )
+        if impact.data is not None:
+            try:
+                explained, evidence = explain_impact(
+                    identity, changes.data, graph.data, impact.data, pair
+                )
+                impact = impact.model_copy(update={"data": explained})
+                if inherited:
+                    evidence = StageResult(
+                        status="partial",
+                        data=evidence.data,
+                        limitations=[*evidence.limitations, *inherited],
+                    )
+            except ValueError, UnicodeError, RecursionError:
+                evidence = StageResult(status="failed", error_code="evidence_verification_failed")
+            try:
+                review = review_result(
+                    order_from_impact_payload(
+                        impact.data,
+                        graph=graph.data,
+                        limitations=[issue.code for issue in inherited],
+                    ),
+                    graph.data.snapshot,
+                )
+                if graph.status == impact.status == "completed" and {
+                    issue.code for issue in review.limitations
+                } == {"no_dependency_edges_observed"}:
+                    # v2 limitations mean incomplete. The successful graph's
+                    # empty edges already expose this informational observation.
+                    review = StageResult(status="completed", data=review.data)
+            except ValueError, RecursionError:
+                review = StageResult(status="failed", error_code="review_ordering_failed")
+
+    inventory_digest = None
+    inventory = StageResult(status="not_run", reason="inventory_collector_not_configured")
+    if inventory_collector is not None:
+        try:
+            before_digest = inventory_collector.configuration_digest
+            inventory = collect_inventory(pair.target, identity, inventory_collector)
+            after_digest = inventory_collector.configuration_digest
+            if before_digest != after_digest:
+                inventory = StageResult(
+                    status="failed", error_code="collector_configuration_changed"
+                )
+            elif isinstance(before_digest, str) and re.fullmatch(r"[0-9a-f]{64}", before_digest):
+                inventory_digest = before_digest
+            else:
+                inventory = StageResult(
+                    status="failed", error_code="inventory_configuration_invalid"
+                )
+        except ValueError, OSError:
+            inventory = StageResult(status="failed", error_code="inventory_configuration_invalid")
+
     stages = AnalysisStages(
         snapshots=snapshots,
         changes=changes,
         graph=graph,
-        impact=absent(),
-        inventory=(
-            collect_inventory(pair.target, identity, inventory_collector)
-            if inventory_collector is not None
-            else StageResult(status="not_run", reason="inventory_collector_not_configured")
-        ),
+        impact=impact,
+        inventory=inventory,
         retrieval=absent(),
-        evidence=absent(),
-        review_ordering=StageResult(
-            status="not_run",
-            reason=(
-                "dependency_failed"
-                if "failed" in {changes.status, graph.status}
-                else "producer_review_pending"
-            ),
-        ),
+        evidence=evidence,
+        review_ordering=review,
     )
     # Aggregate completeness exactly as v2 defines it; the CLI separately signals
     # stage failures that can exist inside a partial report.
@@ -277,7 +369,11 @@ def analyze_execution(
                 ("snapshots", pair.target.manifest.schema_version),
                 ("changes", change_version),
                 ("graph", None),
+                ("impact", IMPACT_VERSION),
+                ("evidence", EVIDENCE_VERSION),
+                ("review_ordering", RULE_VERSION),
             ),
+            inventory_configuration_digest=inventory_digest,
         ),
         snapshot_manifests=(pair.base.manifest, pair.target.manifest),
     )

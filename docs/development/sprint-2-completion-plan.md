@@ -122,7 +122,31 @@ and source. Input code executes only in approved isolated runner containers.
 
 - Prompt 1: source/ancestry/workbook reconciliation complete; plan links, 20 task
   rows, fences and diff checked before publication. No product change or new runtime result.
-- Prompts 2–7: pending execution in order.
+- Prompt 2: implementation reconciled from `e488ebf`, retaining current main
+  storage/inventory/integrity changes. New raw/stage/impact no-edges regression
+  initially failed twice; fixed inference to preserve only producer-confirmed
+  partial_graph. Legacy tests updated to accepted ADR behavior, not weakened.
+  Public schemas, generated types, dependencies and migrations are unchanged.
+- Prompt 2 real DB: `scripts/storage/run_checks.py`, Python 3.14.3,
+  PostgreSQL 17.11 pinned image, **112 passed / 2 candidate-to-DB skips**.
+  Evidence `var/storage-verification-264a0d70129743ca89e327f87ca04f9e/evidence.json`
+  verifies fresh/populated head, compound writes/rollback, evidence round-trip,
+  backup/restore and index/artifact catalog consistency; owned container removed.
+  The two candidate skips are assigned to Prompt 3, not counted as DB acceptance.
+- Prompt 2 CLI demo: `scripts/demo_analysis.py --output <new-task-output>` exits 0;
+  individual thin/failure/empty analyses exit **1/2/1**, preserving partial states.
+  This is labelled DEMO, not full pipeline acceptance. Ruff lint/format and schema
+  exporter `--check` pass. Full backend regression: **814 passed, 115 skipped,
+  1 existing warning**, exit 0, 483.54s. Skips: 114 dedicated PostgreSQL cases
+  (112 passed separately above, two candidate cases assigned to Prompt 3) and
+  one POSIX FIFO case unavailable on Windows. JUnit/logs are retained under
+  the ignored task artifact directory; no default-suite skip is counted as a pass.
+- Prompts 3–7: pending execution in order.
+- Acceptance follow-up (suspected, not reproduced): the compound writer currently
+  checks an existing bundle before catalog writes. Prompt 6 must exercise an
+  interleaved report-only and bundle-writing transaction for the same run, not
+  only identical/conflicting standalone bundle inserts; reject incompatible
+  overlap even if another writer commits while publication is in progress.
 - AI assistance: OpenAI Codex reads/reconciles, implements and self-reviews under
   Huy's instruction. Proposal Appendix C/D remains applicable; Huy retains
   responsibility for understanding and verifying the contribution. No fabricated
