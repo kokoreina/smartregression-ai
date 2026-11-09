@@ -174,7 +174,44 @@ and source. Input code executes only in approved isolated runner containers.
   Docker fixtures: `var/inventory-verification-80b4c88ace0147478b2b05d6aeb561f4/evidence.json`.
   Ruff lint/format, schema exporter, plan links/fences and diff checks pass.
   Public schemas, generated files, dependencies and migrations remain unchanged.
-- Prompts 4–7: pending execution in order.
+- Prompt 3 publication: commit `6199de2`, PR #59 targeting #58's branch.
+  Both GitHub source CI runs succeeded (`42551658602`, `42551651535`).
+- Prompt 4 is in progress on `feat/s2-completion-retrieval`. The historical lexical
+  algorithm is adapted to the existing `IndexConfiguration`, current whole-file
+  exclusions and main `index-artifact/1` publication/ready store. No old lexical
+  migration/schema is imported. Trusted acquisition is repeated before ready reuse;
+  terms/symbols are deterministically rebuilt from verified source bytes.
+  Physical offsets are reused within an operation without a global source cache.
+  CLI opt-in is `--index-artifact-root <existing-root>` together with persistence;
+  the captured run configuration includes the actual retrieval config digest.
+  Focused pure/publication/workflow/configuration checks: **109 passed**, exit 0.
+  Unit campaign: **697 passed**, exit 0; acquisition/publication/CLI integration:
+  **58 passed**, exit 0, one existing warning. Actual candidate SQL campaign then
+  reproduced **2 failures / 117 passes**: both candidates truthfully exposed
+  `lexical_query_timeout`. Repeated per-blob Git processes during re-verification
+  consumed the unchanged 5s query budget. A bounded (64 MiB maximum), command-local
+  immutable-object cache is enabled only for CLI retrieval. Each cached blob's Git
+  hash/size is verified; caller byte bounds and fresh commit/root/tree acquisition
+  still apply. Cache regression was **7 failed** before implementation; subsequent
+  cache/lexical/workflow/persistence subset **34 passed**, exit 0. No budget is
+  increased and no ready/source/artifact gate is removed. Full backend after the
+  fix: **867 passed / 120 skipped / 1 existing warning**, exit 0, 422.11s. Skips
+  are 119 dedicated SQL cases plus Windows FIFO; the dedicated SQL rerun then
+  achieved **119 passed / no skips**, exit 0, 251.31s, including actual retrieval
+  for both candidates. Its later restart probe exposed a harness reconnect bug:
+  Docker Desktop changed the ephemeral loopback port. A dedicated owned-container
+  reproduction confirmed this (`65019` → `65027`, cleanup true). The harness now
+  re-reads loopback bindings from the exact labelled container after restart,
+  preserves DB settings and compares all populated rows before lexical re-query.
+  Final harness `var/storage-verification-f15208305d5f40b3a7499f288bbd548d/evidence.json`
+  passed: **119 SQL tests / no skips**, 169.15s; fresh/populated head, exact-row
+  restart comparison, actual lexical query after PostgreSQL restart, exact-row
+  backup/restore, evidence decoding, nonempty index metadata/chunk/artifact restore,
+  actual lexical query after restore and owned-container cleanup. The harness was
+  rerun after its port fix; product source is unchanged from the full regression.
+  Ruff lint/format, exporter, plan consistency and diff checks pass. Public schemas,
+  generated files, dependency/lockfiles and the single migration head are unchanged.
+- Prompts 5–7: pending execution in order.
 - Acceptance follow-up (suspected, not reproduced): the compound writer currently
   checks an existing bundle before catalog writes. Prompt 6 must exercise an
   interleaved report-only and bundle-writing transaction for the same run, not

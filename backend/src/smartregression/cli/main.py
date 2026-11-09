@@ -44,6 +44,7 @@ def _analyze(args: argparse.Namespace) -> int:
             inventory_image=args.inventory_image,
             inventory_workspace=args.inventory_workspace,
             mapping_artifact_root=args.mapping_artifact_root,
+            index_artifact_root=args.index_artifact_root,
         )
         # Revalidate nested mutable values at the serialization boundary.
         report = StageAnalysisReport.model_validate_json(report.model_dump_json())
@@ -74,6 +75,7 @@ def _analyze(args: argparse.Namespace) -> int:
             "unsafe_output_path",
             "invalid_persistence_arguments",
             "invalid_inventory_arguments",
+            "invalid_retrieval_arguments",
         }
         code = str(exc) if str(exc) in safe else "analysis_failed"
         print(f"Analysis failed: {code}", file=sys.stderr)
@@ -140,6 +142,11 @@ def main(argv: list[str] | None = None) -> int:
     analysis.add_argument(
         "--inventory-candidate",
         help="Explicit isolated collection opt-in: sqlparse or tinydb at its approved target",
+    )
+    analysis.add_argument(
+        "--index-artifact-root",
+        type=Path,
+        help="Enable local lexical retrieval; requires --persist and --artifact-root",
     )
     analysis.add_argument("--inventory-image", help="Locally built locked image ID (sha256:...)")
     analysis.add_argument(

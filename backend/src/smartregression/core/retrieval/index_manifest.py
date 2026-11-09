@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from array import array
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -34,26 +35,24 @@ def _canonical(value: object) -> bytes:
     ).encode("utf-8")
 
 
+class _PhysicalLines:
+    """Per-operation compact offsets; never cache across sources or snapshots."""
+
+    def __init__(self, content: bytes) -> None:
+        self.content = content
+        self.ends = array("I", (m.end() for m in re.finditer(rb"\r\n|\r|\n", content)))
+        if content and (not self.ends or self.ends[-1] != len(content)):
+            self.ends.append(len(content))
+
+    def range_bytes(self, line_start: int, line_end: int) -> bytes:
+        if line_start < 1 or line_end < line_start or line_end > len(self.ends):
+            raise ValueError("invalid_source_range")
+        start = 0 if line_start == 1 else self.ends[line_start - 2]
+        return self.content[start : self.ends[line_end - 1]]
+
+
 def _range_bytes(content: bytes, line_start: int, line_end: int) -> bytes:
-    lines: list[bytes] = []
-    start = 0
-    index = 0
-    while index < len(content):
-        if content[index : index + 2] == b"\r\n":
-            end = index + 2
-        elif content[index : index + 1] in {b"\r", b"\n"}:
-            end = index + 1
-        else:
-            index += 1
-            continue
-        lines.append(content[start:end])
-        start = end
-        index = end
-    if start < len(content):
-        lines.append(content[start:])
-    if line_start < 1 or line_end < line_start or line_end > len(lines):
-        raise ValueError("invalid_source_range")
-    return b"".join(lines[line_start - 1 : line_end])
+    return _PhysicalLines(content).range_bytes(line_start, line_end)
 
 
 def _validate_digest(value: str, code: str) -> None:
@@ -439,13 +438,16 @@ def build_index_manifest(
     }
     records: list[ChunkManifest] = []
     seen: set[str] = set()
+    ranges: dict[str, _PhysicalLines] = {}
     for chunk in chunks:
         content = files.get(chunk.path)
         if content is None:
             raise ValueError("unknown_snapshot_path")
         if type(chunk.line_start) is not int or type(chunk.line_end) is not int:
             raise ValueError("invalid_source_range")
-        expected = _range_bytes(content, chunk.line_start, chunk.line_end)
+        if chunk.path not in ranges:
+            ranges[chunk.path] = _PhysicalLines(content)
+        expected = ranges[chunk.path].range_bytes(chunk.line_start, chunk.line_end)
         if chunk.content != expected:
             raise ValueError("chunk_content_mismatch")
         digest = _sha256(chunk.content)
@@ -550,6 +552,7 @@ def validate_index_manifest(
     }
     if any(chunk.path not in files for chunk in manifest.chunks):
         raise ValueError("unknown_snapshot_path")
+    ranges = {path: _PhysicalLines(files[path]) for path in {c.path for c in manifest.chunks}}
     expected = build_index_manifest(
         snapshot,
         tuple(
@@ -557,7 +560,7 @@ def validate_index_manifest(
                 chunk.path,
                 chunk.line_start,
                 chunk.line_end,
-                _range_bytes(files[chunk.path], chunk.line_start, chunk.line_end),
+                ranges[chunk.path].range_bytes(chunk.line_start, chunk.line_end),
             )
             for chunk in manifest.chunks
         ),

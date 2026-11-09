@@ -85,6 +85,28 @@ def load(case, **changes):
     )
 
 
+def test_actual_lexical_builder_uses_main_ready_metadata_and_artifacts(index_case):
+    from smartregression.application.retrieval import PublishedLexicalIndex, lexical_configuration
+    from smartregression.core.retrieval.lexical import search_lexical
+
+    inputs, files, store, _, _, runtime = index_case
+    index = PublishedLexicalIndex(
+        inputs["source"], authorization=inputs["authorization"], store=store, artifacts=files
+    )
+    config = lexical_configuration()
+    first = index.ensure(inputs["snapshot"], config)
+    assert index.load(inputs["snapshot"], config) == first
+    restarted = PublishedLexicalIndex(
+        inputs["source"],
+        authorization=inputs["authorization"],
+        store=PostgresIndexStore(runtime),
+        artifacts=files,
+    )
+    assert restarted.load(inputs["snapshot"], config) == first
+    assert search_lexical(first, inputs["snapshot"], terms=("owned",)).data.items
+    assert restarted.load(inputs["snapshot"], replace(config, chunk_lines=1)) is None
+
+
 def test_actual_sql_files_roundtrip_restart_retry_no_excluded_bytes(index_case):
     inputs, files, store, publication, owner, runtime = index_case
     assert load(index_case) is None
