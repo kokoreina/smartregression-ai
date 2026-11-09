@@ -6,6 +6,7 @@ $ErrorActionPreference = 'Stop'
 $project = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..'))
 $savedPath = $env:PYTHONPATH
 $savedCandidates = $env:SMARTREGRESSION_INVENTORY_CANDIDATES
+$savedMapping = $env:SMARTREGRESSION_MAPPING_WORKFLOW
 Push-Location $project
 try {
     $env:PYTHONPATH = Join-Path $project 'backend\src'
@@ -29,6 +30,12 @@ try {
     if ($candidateExit -ne 0) { throw 'Candidate collection failed. Inspect evidence.json.' }
     $candidateResult = $candidateLines[-1] | ConvertFrom-Json
     $env:SMARTREGRESSION_INVENTORY_CANDIDATES = $candidateResult.evidence
+    $mappingLines = @(& $PythonExe scripts/mapping/verify_workflow.py --image $candidateImage)
+    $mappingExit = $LASTEXITCODE
+    $mappingLines | Write-Output
+    if ($mappingExit -ne 0) { throw 'Candidate CLI mapping failed. Inspect evidence.json.' }
+    $mappingResult = $mappingLines[-1] | ConvertFrom-Json
+    $env:SMARTREGRESSION_MAPPING_WORKFLOW = $mappingResult.evidence
     docker build -t smartregression-inventory:owned -f scripts/g1/Dockerfile scripts/g1
     if ($LASTEXITCODE -ne 0) { throw 'Fixture image build failed.' }
     $fixtureImage = (docker image inspect smartregression-inventory:owned --format '{{.Id}}').Trim()
@@ -41,5 +48,6 @@ try {
 } finally {
     $env:PYTHONPATH = $savedPath
     $env:SMARTREGRESSION_INVENTORY_CANDIDATES = $savedCandidates
+    $env:SMARTREGRESSION_MAPPING_WORKFLOW = $savedMapping
     Pop-Location
 }

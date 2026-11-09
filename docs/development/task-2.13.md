@@ -1,5 +1,9 @@
 # Task 2.13 — Incremental application workflow, CLI và demo
 
+Prompt 5 follow-up: [inventory/mapping sidecar integration](task-2.13-mapping.md)
+records actual candidate workflow and bounded versioned sidecars. No public report
+field or dashboard is added; default CLI collection remains explicitly unconfigured.
+
 Follow-up 2026-11-05: [H1 prompt 4 handoff](h1-seven-prompt-handoff.md#publication-and-prompt-4-integration)
 records actual impact/evidence/ordering wiring and compound SQL report/evidence
 persistence. CLI `--persist` now requires the P3 evidence migration as well as

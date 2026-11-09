@@ -178,6 +178,10 @@ def execute():
         index_root.mkdir()
         test_env["SMARTREGRESSION_INDEX_TEST_ROOT"] = str(index_root)
         evidence["index_test_workspace"] = str(index_root)
+        # This suite now includes both real candidate CLI collections in addition
+        # to storage tests. Bound the whole campaign separately from each runner's
+        # unchanged 60s deadline and the database statement/lock timeouts.
+        evidence["checks"]["postgresql_pytest_timeout_seconds"] = 600
         test = subprocess.run(
             [
                 sys.executable,
@@ -195,7 +199,7 @@ def execute():
             ],
             cwd=PROJECT,
             env=test_env,
-            timeout=180,
+            timeout=600,
             check=False,
         )
         evidence["checks"]["postgresql_pytest_exit"] = test.returncode
@@ -329,6 +333,8 @@ def execute():
         evidence["backup_sha256"] = hashlib.sha256(dump).hexdigest()
         evidence["checks"]["revision_head"] = "20261105_05"
         evidence["passed"] = True
+    except subprocess.TimeoutExpired:
+        evidence["error_code"] = "storage_verification_timeout"
     except Exception as exc:
         # Do not echo SQL, credentials or exception chains at this operator boundary.
         safe = {"postgresql_fixture_not_ready", "postgresql_integration_failed", "restore_failed"}

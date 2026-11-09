@@ -149,7 +149,10 @@ class RunConfiguration:
 class ReportArtifact:
     """Reference to already published bytes; does not read/authorize a filesystem path.
 
-    Kind=report_json, schema=2.0.0, media_type=application/json, access=repository.
+    A filesystem byte descriptor, also usable for report-bound JSON sidecars.
+    prepare_run_report catalogs only report_json/schema=2.0.0; passing a descriptor
+    to a byte publisher does not register a sidecar as a report in SQL.
+    Media type=application/json, access=repository.
     The write's identity supplies repository/run scope; no independent foreign scope.
     Trusted publisher/reader must resolve under a controlled artifact root and reject
     links/junctions, missing/corrupt files. This descriptor is not proof of publication.

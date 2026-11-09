@@ -2,8 +2,10 @@
 
 import hashlib
 import json
+import os
 import subprocess
-from dataclasses import replace
+from dataclasses import asdict, replace
+from pathlib import Path
 from uuid import uuid4
 
 import pytest
@@ -13,6 +15,7 @@ from sqlalchemy.engine import URL
 import smartregression.composition as composition
 from smartregression.adapters.storage.config import DatabaseSettings
 from smartregression.adapters.storage.evidence_store import PostgresEvidenceStore
+from smartregression.adapters.storage.inventory_store import PostgresInventoryStore
 from smartregression.adapters.storage.report_publication import ReportFiles
 from smartregression.adapters.storage.schema import (
     analysis_runs,
@@ -21,12 +24,16 @@ from smartregression.adapters.storage.schema import (
     repositories,
     run_reports,
     snapshots,
+    test_cases,
+    test_inventories,
 )
 from smartregression.application.evidence_store import EvidenceStorageError, prepare_evidence
+from smartregression.application.inventory_store import InventoryConfiguration
 from smartregression.application.persistence import bundle_from_report
-from smartregression.application.run_store import ReportArtifact, RunConflict
+from smartregression.application.run_store import ReportArtifact, RunConflict, RunStorageError
 from smartregression.cli.main import main
 from smartregression.contracts.stages import StageAnalysisReport
+from smartregression.core.execution.inventory import finalize_discovery
 
 
 def cli_arguments(kwargs):
@@ -47,6 +54,187 @@ def cli_arguments(kwargs):
         ],
         "--persist",
     ]
+
+
+@pytest.mark.parametrize("name", ["sqlparse", "tinydb"])
+def test_actual_candidate_cli_persists_report_mapping_and_inventory(
+    migrated, workflow_input, tmp_path, capsys, name
+):
+    """Real approved Git + Docker collector + file publication + runtime-role SQL."""
+    evidence_path = os.environ.get("SMARTREGRESSION_MAPPING_WORKFLOW")
+    if evidence_path is None:
+        pytest.skip("Run scripts/inventory/verify_complete.ps1 for candidate CLI persistence")
+    path = Path(evidence_path)
+    assert not any(p.is_symlink() or p.is_junction() for p in (path, *path.parents))
+    path = path.resolve(strict=True)
+    assert path.is_relative_to(Path(__file__).resolve().parents[4] / "var")
+    evidence = json.loads(path.read_bytes())
+    assert evidence["passed"] is True
+    record = evidence["candidates"][name]
+    source = path.parent / name / "source"
+    worker = tmp_path / "worker"
+    worker.mkdir()
+    kwargs, _ = workflow_input
+    kwargs.update(
+        repository=source,
+        authorized_root=source,
+        repository_id=name,
+        base=record["base"],
+        target=record["target"],
+        data_kind="real",
+    )
+    owner, runtime, _ = migrated
+    from sqlalchemy.dialects.postgresql import insert
+
+    from smartregression.adapters.runners.candidate_inventory import CandidateInventoryCollector
+
+    with owner.begin() as connection:
+        connection.execute(
+            insert(repositories)
+            .values(repository_id=name, source_kind="github")
+            .on_conflict_do_nothing()
+        )
+    code = main(
+        cli_arguments(kwargs)
+        + [
+            "--inventory-candidate",
+            name,
+            "--inventory-image",
+            evidence["image_id"],
+            "--inventory-workspace",
+            str(worker),
+        ]
+    )
+    captured = capsys.readouterr()
+    report = StageAnalysisReport.model_validate_json(captured.out)
+    assert code == 1  # Retrieval is not implemented in this slice; never claim complete.
+    assert "Persistence saved" in captured.err
+    assert report.stages.inventory.status == "completed"
+    assert len(report.stages.inventory.data.test_ids) == record["native_ids"]
+    collector = CandidateInventoryCollector(
+        name, evidence["image_id"], Path(__file__).resolve().parents[4], worker
+    )
+    inventory = PostgresInventoryStore(runtime).load(
+        report.identity, report.identity.run_id + "-inventory", collector.configuration_digest
+    )
+    assert inventory is not None and inventory.stage == report.stages.inventory
+    assert PostgresEvidenceStore(runtime).load(report.identity) == bundle_from_report(report)
+    folder = kwargs["artifact_root"] / report.identity.run_id
+    raw = (folder / (report.report_id + ".json")).read_bytes()
+    mapping = json.loads((folder / (report.report_id + ".mapping.json")).read_bytes())
+    assert mapping["report_sha256"] == hashlib.sha256(raw).hexdigest()
+    assert mapping["identity"] == report.identity.model_dump(mode="json")
+    assert all(
+        item["test_id"] in inventory.stage.data.test_ids
+        for item in mapping["mapping"]["relationships"]
+    )
+
+
+@pytest.mark.parametrize("fail_inventory", [False, True])
+def test_mapping_sidecar_and_compound_report_share_exact_identity(
+    migrated, workflow_input, fail_inventory
+):
+    """SQL/Git/files real; collection receipt double, real collection verified separately."""
+    owner, runtime, _ = migrated
+    kwargs, _ = workflow_input
+
+    class Collector:
+        configuration = InventoryConfiguration(
+            "candidate-inventory/2",
+            "owned-storage",
+            "sha256:" + "a" * 64,
+            "b" * 64,
+            "c" * 64,
+            "d" * 64,
+        )
+        configuration_digest = configuration.digest
+        last_observation = None
+
+        def collect(self, snapshot, *, identity):
+            payload = dict(
+                ids=["b.py::test_fixture"],
+                exit_code=0,
+                collection_finished=True,
+                collection_errors=0,
+            )
+            self.last_observation = dict(
+                configuration_sha256=self.configuration_digest,
+                configuration=json.loads(self.configuration.canonical_bytes()),
+                result=dict(
+                    protocol="inventory/2",
+                    mode="collect",
+                    identity=asdict(identity),
+                    collection=payload,
+                    test_sources=dict(
+                        version="pytest-item-path/1",
+                        items=[dict(test_id="b.py::test_fixture", path="b.py")],
+                    ),
+                ),
+            )
+            return finalize_discovery(expected=identity, observed=identity, payload=payload)
+
+    with owner.begin() as connection:
+        connection.execute(
+            repositories.insert().values(repository_id=kwargs["repository_id"], source_kind="local")
+        )
+    if fail_inventory:
+
+        def fail(connection, cursor, statement, parameters, context, executemany):
+            if statement.startswith("INSERT INTO smartregression.test_cases"):
+                raise RunStorageError()
+
+        sa.event.listen(sa.Engine, "before_cursor_execute", fail)
+        try:
+            with pytest.raises(RunStorageError):
+                composition.analyze_local(**kwargs, mapping_collector=Collector())
+        finally:
+            sa.event.remove(sa.Engine, "before_cursor_execute", fail)
+        # Both files remain for reconciliation; no successful catalog/partial SQL write.
+        assert len(list(kwargs["artifact_root"].glob("*/*.json"))) == 2
+        with runtime.connect() as connection:
+            for table in (
+                snapshots,
+                analysis_runs,
+                artifacts,
+                run_reports,
+                evidence_bundles,
+                test_inventories,
+                test_cases,
+            ):
+                assert (
+                    connection.scalar(
+                        sa.select(sa.func.count())
+                        .select_from(table)
+                        .where(table.c.repository_id == kwargs["repository_id"])
+                    )
+                    == 0
+                )
+        return
+    report = composition.analyze_local(**kwargs, mapping_collector=Collector())
+    root = kwargs["artifact_root"] / report.identity.run_id
+    raw_report = (root / (report.report_id + ".json")).read_bytes()
+    mapping = json.loads((root / (report.report_id + ".mapping.json")).read_bytes())
+    assert mapping["identity"] == report.identity.model_dump(mode="json")
+    assert mapping["report_sha256"] == hashlib.sha256(raw_report).hexdigest()
+    assert {item["test_id"] for item in mapping["mapping"]["relationships"]} == {
+        "b.py::test_fixture"
+    }
+    assert PostgresEvidenceStore(runtime).load(report.identity) == bundle_from_report(report)
+    inventory = PostgresInventoryStore(runtime).load(
+        report.identity, report.identity.run_id + "-inventory", Collector.configuration_digest
+    )
+    assert inventory is not None
+    assert inventory.stage == report.stages.inventory
+    assert inventory.configuration == Collector.configuration
+    with runtime.connect() as connection:
+        catalog_digest = connection.scalar(
+            sa.select(artifacts.c.sha256).where(
+                artifacts.c.repository_id == report.identity.repository_id,
+                artifacts.c.run_id == report.identity.run_id,
+                artifacts.c.artifact_id == report.report_id,
+            )
+        )
+    assert catalog_digest == mapping["report_sha256"]
 
 
 @pytest.fixture
