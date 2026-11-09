@@ -141,7 +141,40 @@ and source. Input code executes only in approved isolated runner containers.
   (112 passed separately above, two candidate cases assigned to Prompt 3) and
   one POSIX FIFO case unavailable on Windows. JUnit/logs are retained under
   the ignored task artifact directory; no default-suite skip is counted as a pass.
-- Prompts 3–7: pending execution in order.
+- Prompt 3: mapping changes reconciled without replacing current main collector
+  or storage. Explicit CLI candidate/image/workspace/root opt-in uses the trusted
+  source-checkout observer and approved targets. Default execution remains read-only.
+  Inventory is persisted with report/evidence in one SQL transaction; a test-case
+  insertion failure must roll back the catalog/evidence/inventory together.
+  CLI argument regression initially **8 failed**; PostgreSQL regression initially
+  **1 failed / 112 passed / 2 skips**, proving inventory was absent after report
+  persistence. Both failures drove the scoped implementation rather than weaker gates.
+  Unit/CLI/mapping campaign: **699 passed, 1 existing warning**, exit 0.
+  First real candidate collection reproduced **509/228** native IDs; actual CLI
+  mapping passed both candidates with truthful partial exit 1. A failed CLI attempt
+  using a historical image ID was retained; Docker confirmed it did not exist,
+  and using the actual locally inspected image resolved the infrastructure failure.
+  Full backend regression: **838 passed / 119 skipped / 1 existing warning**,
+  exit 0, 668.46s. The skips are 118 dedicated PostgreSQL cases and one POSIX FIFO
+  case unavailable on Windows; no skipped case is counted as acceptance.
+  Docker failure fixtures: **12/12 passed**, including native Unicode/long IDs,
+  empty/partial/failure, duplicate, timeout/output cap and malformed payloads.
+  Combined runtime wrapper reached the SQL campaign but its old 180s whole-suite
+  timeout terminated the expanded campaign. The harness now uses a bounded 600s
+  whole-suite deadline and records timeout failures explicitly; individual 60s
+  collection and DB timeouts are unchanged. Final SQL rerun: **118 passed / no
+  skips**, exit 0, 282.41s. Includes actual CLI → approved Git/Docker collection →
+  mapping/file publication → runtime-role report/evidence/inventory read-back for
+  both candidates, plus inventory insert failure rolling back the whole SQL write.
+  Final harness `var/storage-verification-96bd75c3678b47ad8f6c5d495c454c68/evidence.json`
+  passed fresh/populated head, exact-row backup/restore, decoded evidence identity,
+  nonempty index metadata/chunk/artifact restoration and owned-container removal.
+  Candidate evidence: `var/candidate-inventory-verification-a3a2a9bfb3f346b7b107af1d9e5bbd21/evidence.json`;
+  CLI mapping: `var/mapping-workflow-265465fe7bde45cda435eaf8803aaa2d/evidence.json`;
+  Docker fixtures: `var/inventory-verification-80b4c88ace0147478b2b05d6aeb561f4/evidence.json`.
+  Ruff lint/format, schema exporter, plan links/fences and diff checks pass.
+  Public schemas, generated files, dependencies and migrations remain unchanged.
+- Prompts 4–7: pending execution in order.
 - Acceptance follow-up (suspected, not reproduced): the compound writer currently
   checks an existing bundle before catalog writes. Prompt 6 must exercise an
   interleaved report-only and bundle-writing transaction for the same run, not
