@@ -1,5 +1,13 @@
 # Lệnh đã đối chiếu với repository
 
+## Main integration for G0 — 2026-11-09
+
+Fresh commands, actual results, environment failures and runtime artifacts are
+recorded in [G0 integration](sprint-3-g0-integration.md). Older counts below apply
+to their stated revision, not automatically to the main-integration candidate.
+The historical Sprint 2 A07/A02/A03 browser waiver at completed-work `929b336`
+means not performed, not browser pass; it does not cover Sprint 3.
+
 ## Sprint 2 completion acceptance checkpoint — 2026-11-09
 
 Cwd `D:/smart-regression-ai/var/s2c`; same reused Python 3.14.3 and portable Git

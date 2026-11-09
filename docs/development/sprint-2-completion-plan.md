@@ -1,5 +1,11 @@
 # Sprint 2 completion — integration and acceptance
 
+> Current main-integration campaign: [Sprint 3 G0 integration](sprint-3-g0-integration.md).
+> The checkpoints below describe their historical branches and revisions. They do
+> not establish that the changes are on main or that the new PR is approved.
+> Final source checkpoint `929b336` records Huy's Sprint 2 A07/A02/A03 browser
+> waiver; those interactions were not performed and no browser pass is claimed.
+
 ## Baseline and authority
 
 Verified 2026-11-09: fetched `origin/main` is

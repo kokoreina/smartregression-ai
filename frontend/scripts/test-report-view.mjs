@@ -18,6 +18,20 @@ try {
   const { validateStageReport } = await server.ssrLoadModule('/src/features/reports/stageReport.ts')
   const fixture = async (name) => JSON.parse(await readFile(new URL(`../examples/reports/stage-report.${name}.json`, root), 'utf8'))
   const render = (report) => renderToStaticMarkup(createElement(StageReportView, { report: validateStageReport(report) }))
+  const checkReport = (report) => {
+    const actual = render(report)
+    assert(actual.includes(report.data_kind === 'real' ? 'REAL' : 'DEMO'))
+    assert(actual.includes(report.identity.run_id))
+    const retrieval = report.stages.retrieval.data
+    if (retrieval == null) {
+      assert(!actual.includes('Không có context trong kết quả truy hồi này'))
+      return
+    }
+    for (const item of retrieval.items) {
+      assert(actual.includes(item.content_sha256) && actual.includes(item.snapshot.commit))
+      assert(actual.includes(item.index_id) && actual.includes(item.configuration_id))
+    }
+  }
   const partial = await fixture('partial')
   const html = render(partial)
   assert(html.includes(`Run ID: <code>${partial.identity.run_id}</code>`))
@@ -39,7 +53,7 @@ try {
   checks++
   for (const variant of ['empty', 'failed', 'not-implemented']) {
     const report = await fixture(variant)
-    assert.doesNotThrow(() => render(report))
+    assert.doesNotThrow(() => checkReport(report))
     checks++
   }
   const escaped = structuredClone(partial)
@@ -62,12 +76,8 @@ try {
   checks++
   for (const file of process.argv.slice(2)) {
     const report = JSON.parse(await readFile(new URL(file, new URL('../', root)), 'utf8'))
-    const actual = render(report)
-    assert(actual.includes('REAL') && actual.includes(report.identity.run_id))
-    for (const item of report.stages.retrieval.data.items) {
-      assert(actual.includes(item.content_sha256) && actual.includes(item.snapshot.commit))
-      assert(actual.includes(item.index_id) && actual.includes(item.configuration_id))
-    }
+    assert.equal(report.data_kind, 'real')
+    checkReport(report)
     checks++
   }
 } finally {
