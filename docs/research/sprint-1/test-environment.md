@@ -1,5 +1,12 @@
 # 1.05 Test environment and execution constraints
 
+**Current closeout 2026-11-08:** D15 accepts the two fixed candidate snapshots
+and bounded input environment for Sprint 2. Sprint 1 G1 and both candidate harnesses
+were rerun successfully; [new evidence](closeout-handoff-20261108.md) records actual
+limits and packages. General input support/production runner acceptance is separate.
+Proposed/pending wording in the original design below is historical for these
+accepted choices and does not reopen Python/pytest or candidate selection.
+
 Current 2026-10-31: [two-candidate harness](../../../scripts/candidates/README.md)
 and [observations](candidate-reproduction.md) now verify build/discovery/execution
 for the fixed sqlparse/TinyDB snapshots. They use 512 MiB and 64 MiB tmpfs; the

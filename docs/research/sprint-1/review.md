@@ -1,102 +1,104 @@
-# 1.12 — Sprint 1 local technical review, 2026-10-31
+# 1.12 — Sprint 1 technical review, 2026-11-08
 
-**NOT READY FOR FORMAL ACCEPTANCE.** The local technical package is prepared and
-the executed checks pass. Final human review of this new harness/docs, explicit
-acceptance of the bounded G1/candidate/revision design, and integration to main
-remain outstanding. This is Codex self-review, not a mentor/team sprint approval.
+**Accepted by Nguyen Tan Huy (H1), 2026-11-08: all 12 Sprint 1 tasks Done.**
+Huy explicitly confirmed: “tôi là huy và tôi đã xác nhận done”, then authorized
+updating the records, committing/pushing, opening a PR and merging into main.
+This is acceptance of the bounded research foundation + technical spike package.
+Codex's verification remains self-review; no independent GitHub review or mentor
+approval is asserted. Publication/integration is tracked by the resulting PR;
+this acceptance does not itself prove a merge occurred.
 
-Scope is the user's current brief: research foundation + technical spike,
-1.01–1.12/G1; not production PB01–04/PB23. See [scope/decisions](closeout-decisions.md).
-Main observed on GitHub: `e937f669fefada31d5254b355f92f24e88e41725`. Starting local
-tree `c3ac49aba58b9f50f933dc0b02aead28ee3d4217` already contains the research/RAG
-tree of merged PR #10. Current branch: `work/sprint-1-local-closeout-20261031`.
-The technical closeout was prepared without a commit/push/PR merge. A subsequent
-user instruction authorizes committing and pushing this branch for manual merge;
-main merge remains the user's action. The handoff describes both main-to-delivery
-and preparation-session changes; publication does not itself update remote main.
-
-The [original review snapshot](https://github.com/kokoreina/smartregression-ai/blob/e937f669fefada31d5254b355f92f24e88e41725/docs/research/sprint-1/review.md)
-and [Huy handoff](huy-handoff.md) preserve historical results. They are superseded
-for current status, not rewritten into a record of tests they did not run.
+Baseline: fetched `origin/main` at
+`3ab7d6603a191e46ce86d3ca04ffb520374bc639` on 2026-11-08. Working checkout:
+`D:/smart-regression-ai/var/sprint-readiness-20261108/main`.
+Scope: research foundation + technical spike, 1.01–1.12/G1; not production
+PB01–04/PB23, a labeled dataset, production selection or end-to-end LLM analysis.
+[Decisions](closeout-decisions.md) and [handoff](closeout-handoff-20261108.md)
+record authorization, exact commands, paths and environment.
 
 ## Task acceptance matrix
 
-`design-ready` means the requested design is supplied; `spike-verified` means the
-specified bounded implementation was executed. Neither means formally accepted.
+Design complete means the specified design output exists and was checked for
+consistency. Spike verified means the bounded implementation was exercised.
+Neither label supplies independent review or human sprint acceptance.
 
-| Task | Required output / current status | Evidence | Remaining acceptance or implementation boundary |
+| Task | Required output / verified state | Evidence | Boundary / remaining action |
 | --- | --- | --- | --- |
-| 1.01 | RQs/baselines/formulas/overhead/split: design-ready | [RQ](research-questions.md), [source audit](research-sources-20261024.md), [protocol](../evaluation-protocol.md); includes impact precision/recall | Literature audit is historical limited-section inspection, not a new systematic review or measured model result; #10 content still local relative to main |
-| 1.02 | License/history/reproducibility/fault/flaky/infra screening: design-ready | [screening](repository-screening.md), corrected pilot-tuning rule; PR #2 draft reviewed | Final updates need review; target/sampling decisions precede dataset recruitment, not the offline checklist |
-| 1.03 | Primary/backup proposal and reproducibility: spike-verified | [candidate reproduction](candidate-reproduction.md): sqlparse 509 stable IDs, TinyDB 228; wheel build, two collections, existing single test and full suite | Owner accepts proposed repositories; xfail/xpass/optional YAML skip retained; no dataset enrollment or historical fault cohort |
-| 1.04 | Authorized-identity/access observation prototype: spike-verified as double | [access](repository-access.md), [prototype](../../../backend/src/smartregression/application/sprint1_prototypes.py); tests pass in full suite | Synthetic HTTP statuses exercise classification, not live auth; guide permits doubles; no clone/auth service claim |
-| 1.05 | Framework/config/resource constraints: design-ready plus bounded execution | [environment](test-environment.md), [candidate harness](../../../scripts/candidates/README.md), G1 artifacts | Only measured versions/plugins/snapshots; production persistence/general runner outside spike scope |
-| 1.06 | Direct pair/PR freeze/evidence rules: design-ready, approval pending | [revision semantics](revision-semantics.md), [Q01–Q10 reconciliation](closeout-decisions.md#revision-semantics), PR #5 | An/Huy and consumers need to accept final semantics; no live PR resolver/race implementation claimed; pending records remain pending |
-| 1.07 | Read-only diff/metadata and dependency prototype: spike-verified | [Git/AST spike](git-diff-spike.md), immutable Git fixture tests, [implementation handoff](implementation-handoff-20261024.md), current full suite | SHA-1 fixtures only; incomplete imports explicit; no complete dependency/call graph or verified impact guarantee |
-| 1.08 | Run ID/transitions/timestamps/failure/retry semantics: spike-verified in memory | [lifecycle](run-lifecycle.md), prototype tests in current full suite | New UUID on retry and rejected duplicate transitions documented; no durable queue/idempotent submissions/cancel service |
-| 1.09 | RAG source/metadata/provenance/secret/leakage scope: design-ready | [RAG scope](rag-scope.md), reviewed historical PR #10 content | New fallback consistency edit needs review; no provider/index/egress implemented |
-| 1.10 | Selection invariants/decision table/safety boundaries: design-ready | [policy](selection-policy.md), Proposal §12.6 alignment; invalid evidence uses full-suite/stop, invalid snapshot stops | Final design approval pending; no production selector or empirical recall claim |
-| 1.11 | Cohort/split/adjudication/metrics/reporting: design-ready | [protocol](../evaluation-protocol.md), [report template](evaluation-report-template.md); explicit evidence and fallback denominators | Model/budget/sample/repeat decisions needed before corresponding experiment stages; no fabricated benchmark results |
-| 1.12 | Current matrix/G1/demo/decisions compiled: local package prepared | This review, [session handoff](closeout-handoff-20261031.md), reproducible commands below | Human review/demo acceptance and integration remain; this document does not accept itself |
+| 1.01 | RQs, baselines, formulas, overhead, N/A and split: design complete | [RQs](research-questions.md), [source audit](research-sources-20261024.md), [protocol](../evaluation-protocol.md) | Source audit is historical limited-section inspection; no measured method effectiveness |
+| 1.02 | License/history/reproducibility, inclusion/exclusion, fault/flaky/infra criteria: design complete | [Screening](repository-screening.md), [source evidence](candidate-evidence-20261024.md) | No enrolled fault cohort; original reviewer/author attribution preserved |
+| 1.03 | Primary sqlparse / backup TinyDB, fixed SHAs/licenses, build/two collections/smoke/full: spike verified | [D15](../../development/task-2.08-2.09-decisions.md), [reproduction](candidate-reproduction.md), new handoff artifacts | 509/228 inventories; xfail/xpass/optional skip retained; no benchmark claim |
+| 1.04 | Authorized-identity/access observation prototype: spike verified using doubles | [Access](repository-access.md), `test_sprint1_prototypes.py` in 38-test run | Not live authentication, clone or permission proof |
+| 1.05 | Framework/config and timeout/resource/isolation constraints: design complete and bounded runtime verified | [Environment](test-environment.md), G1/candidate observers | Fixed Python/pytest profile only; general/hostile-repo runner not accepted |
+| 1.06 | Direct pair, PR merge-base-to-head and frozen evidence rules: accepted design | [A01 specification](revision-semantics.md), D05, Git tests | Two-SHA subset verified; no live PR resolver/race/durable queue claim |
+| 1.07 | Read-only add/modify/delete/rename, immutable reads, AST symbols/import prototype: spike verified | [Git/AST](git-diff-spike.md), Git/AST tests, G1 | SHA-1 exercised; partial imports, no complete call graph or impact guarantee |
+| 1.08 | UUID, transitions, timestamps, failures and duplicate/retry semantics: spike verified | [Lifecycle](run-lifecycle.md), `test_sprint1_prototypes.py` | In-memory prototype; no persistent job service/submission idempotency |
+| 1.09 | RAG source/metadata, provenance, secret/injection/leakage boundaries: design complete | [RAG scope](rag-scope.md), rule 08/protocol alignment | No model/index required for this Sprint 1 design task; later decisions retained |
+| 1.10 | T/D/M/L invariants, validation, fallback/stop precedence and freeze: accepted design `s1-selection-v1` | [Policy](selection-policy.md), Proposal §12.6, [decisions](closeout-decisions.md) | Table walkthrough is design verification; production selector is separate |
+| 1.11 | Cohort/split/adjudication/baselines/metrics/unknowns/attempt ledger/report: design complete | [Protocol](../evaluation-protocol.md), [template](evaluation-report-template.md) | Model/budget/sample/repeats frozen before experiment stages; no invented results |
+| 1.12 | Current matrix, reproduced G1/candidates, decisions and demo package compiled and accepted: Done | This review, [handoff](closeout-handoff-20261108.md), Huy's explicit confirmation on 2026-11-08 | Acceptance recorded; PR approval/merge remain distinct GitHub events |
 
-## G1 evidence and limits
+## Executed verification and G1
 
-| Gate | Current-session evidence | Boundary |
+| Check | Observation on 2026-11-08 | Scope |
 | --- | --- | --- |
-| One language/framework | ADR 0002 accepts Python + pytest; both candidates support measured Python version | Not universal plugin/version support |
-| Frozen snapshot | Synthetic full SHAs and candidate commit/blob verification before materialization | Immutable blob materialization replaces checkout; no filters/hooks or input checkout mutation; reviewer assesses bounded gate equivalence |
-| File diff | Add/modify/delete/rename/previous_path, dirty-tree immutable reads and invalid commit tests | Direct two-SHA subset; not live GitHub PR ingestion |
-| Dependency/symbol prototype | AST spans/direct symbol edits and absolute module-import edge in G1 | Partial relative/star/dynamic imports; no fault ground truth |
-| Discovery | Synthetic 5 IDs; sqlparse 509/TinyDB 228 identical IDs across two collections each | Native IDs bind to materialized target; collection inside offline Docker |
-| Selection freeze and single execution | selection.json precedes container start; selected ID setup/call/teardown passed for fixture and both candidates | Fixed smoke choice, not an implemented selector or reduction experiment |
-| Guard/error paths | G1 wrong snapshot/unknown ID reject before dispatch; timeout/output cap; empty vs collection error; candidate timeout-cleanup unit test | G1 limit cases synthetic, not hostile-code security proof |
-| Cleanup | docker ps queries found no named candidate/G1 containers after runs | Images/artifact directories remain for reproduction |
+| Focused SmartRegression tests | **38 passed**, no failures/errors/skips, 8.94 s console time | Access/lifecycle, AST, Git integration, spike guards and candidate harness fixtures |
+| G1 | Harness exit 0; 5 native IDs; diff/changed `add` symbol and test-to-calc import edge | Synthetic fixture in Docker, fixed smoke selection |
+| Guards | Wrong digest and unknown test ID rejected before dispatch | Digest guard is not live repo/PR authorization |
+| Execution categories | Smoke exit 0, intentional assertion failure exit 1, runner skip retained | Synthetic failure is not a verified real fault |
+| Limits / discovery | Timeout/output cap enforced with cleanup; valid empty exit 5 vs collection error exit 2 | Bounded fixture, no hostile-code security proof |
+| sqlparse | Offline wheel built; 509 identical ordered IDs twice; smoke phases passed; full **506 passed, 2 xfailed, 1 xpassed** | Exact frozen D15 snapshot, one reproduction run |
+| TinyDB | Offline wheel built; 228 identical ordered IDs twice; smoke phases passed; full **227 passed, 1 skipped** | Optional PyYAML skip retained, not passed |
+| Contract exporter | `scripts/export_contracts.py --check` exit 0 | No schema/generated artifact changes |
 
-Current synthetic artifacts: `var/g1-closeout-20261031/selection.json` and
-`observations.json`; base `b6354da3ada6e3e79540738fdbf628ea7857ed32`, target
-`60e3a7d249db423c91123f3433e02ff5a72ebd96`. Candidate outcomes include sqlparse
-506 passed/2 xfailed/1 xpassed, TinyDB 227 passed/1 skipped. These are product test
-observations, not verified faults or impact/fault-retention evaluation metrics.
+Docker 27.3.1. Candidate observer: Python 3.14.3, pytest 9.1.1, pytest-cov 7.0.0,
+coverage 7.17.0, build 1.3.0, hatchling 1.27.0, packaging 26.3, pluggy 1.7.0.
+Existing immutable images reused; no rebuild or cold-install claim. Non-root,
+no-new-privileges, seccomp, loopback-only networking and CPU/RAM/PID limits observed.
+Named G1/candidate containers were absent after completion. Raw JSON was checked
+for matching identities/inventories and selection timestamps before execution.
+No effectiveness/savings metric is inferred from these observations.
 
-## Human review evidence already present
+No source changes were needed. No full backend/frontend suite, browser, PostgreSQL,
+live auth or LLM was run for this closeout. Future production fallback branches
+remain design-only, not runtime checks hidden by this review.
 
-Queried only merged PRs on 2026-10-31; no open PR was inspected. Recorded approvals
-are real GitHub review states on those revisions, not new statements by this agent:
+## Review and integration evidence
 
-| PR | Review observed | Destination / relevance |
-| --- | --- | --- |
-| [#2](https://github.com/kokoreina/smartregression-ai/pull/2) | kokoreina APPROVED | main; original 1.02 checklist |
-| [#3](https://github.com/kokoreina/smartregression-ai/pull/3) | KaiTrann APPROVED | main; 1.01/1.04/1.08/1.11 initial work |
-| [#4](https://github.com/kokoreina/smartregression-ai/pull/4) | kokoreina APPROVED | main; candidate draft |
-| [#5](https://github.com/kokoreina/smartregression-ai/pull/5) | kokoreina APPROVED | main; 1.06 draft, not explicit closure of Q01–Q10 |
-| [#6](https://github.com/kokoreina/smartregression-ai/pull/6) | kokoreina APPROVED | main; environment/fallback draft |
-| [#7](https://github.com/kokoreina/smartregression-ai/pull/7) | KaiTrann APPROVED | main; Python/pytest decision |
-| [#9](https://github.com/kokoreina/smartregression-ai/pull/9) | KaiTrann APPROVED | main; Git/AST/isolated fixture |
-| [#10](https://github.com/kokoreina/smartregression-ai/pull/10) | KaiTrann APPROVED | feat/s1-git-discovery-spike; RAG/research tree reused locally, absent from remote main |
+[PR #13](https://github.com/kokoreina/smartregression-ai/pull/13) merged
+2026-10-31 at `08:32:50Z`, merge `0e79079649e3f508b534098b867d5ead4bb21ff6`.
+KaiTrann APPROVED head `3d9f98bbd726ec5d1d7e0372f3a50accdfbd773c` at
+`08:32:41Z`. That merge is an ancestor of fetched main. This supersedes the old
+not-merged state and includes the earlier PR #10 research tree. It does not
+approve today's edits or supply whole-sprint acceptance.
 
-No approval above covers the new candidate harness or changed closeout documents.
+The [2026-10-31 review snapshot](https://github.com/kokoreina/smartregression-ai/blob/3ab7d6603a191e46ce86d3ca04ffb520374bc639/docs/research/sprint-1/review.md)
+and [dated handoff](closeout-handoff-20261031.md) preserve old results/review history.
+Their pending 1.06/candidate/integration notes are superseded by A01, D15 and the
+current merge evidence, respectively.
 
-## Demo and completion actions
+## Demo and acceptance
 
-1. Open the task matrix, decision checkpoints and candidate outcomes; identify
-   frozen SHAs and native test IDs before showing outcomes.
-2. Re-run [G1 commands](../../../scripts/g1/README.md) with the recorded image and
-   a new output directory. Show diff, import edge, inventory, freeze timestamp,
-   selected phases and distinct failure/empty/error guards.
-3. Use [candidate commands](../../../scripts/candidates/README.md) with new output
-   names. Show matching inventories, selection-before-execution and actual outcome
-   categories; do not call them model-selected tests.
-4. Review new code/docs and explicitly record whether bounded revision/G1 and
-   candidate proposal is accepted. Reviewers must be real people with actual decisions.
-5. Authorized maintainer integrates the complete local diff into main and verifies
-   CI at the resulting commit. No GitHub action is performed by this task.
+Use the [seven-step demo and reproduction commands](closeout-handoff-20261108.md#demo-for-huy).
+Inspect frozen identity/selection before outcomes. Show invalid-ID/digest rejection,
+empty/error separation and scope limits. Explain design-only fallback from the
+policy, not as a running selector.
 
-Workbook `Sprint 1 Backlog!F8:F19` still says Not started; H/J values are zero.
-Suggested tracking update is “technical work supplied, awaiting review/acceptance”
-with links to this matrix; 1.06 keeps its policy-decision caveat and 1.12 awaits
-acceptance. Do not enter Done/Completed hours from a passing suite. Actual effort
-is unknown. The Office workbook was only read; formulas/estimates unchanged.
+Workbook: local `C1.SE26_DOCUMENTS/SmartRegression_AI_Scrum_Project_Aligned.xlsx`;
+published Sprint 1 status is synchronized to the repository's existing
+[versioned workbook](../../../C1.SE26_DOCUMENTS/SmartRegression_AI_Scrum_Project_Aligned_v1.4.xlsx).
+All 12 Sprint 1 tasks are Done; completed planned credit is 112/112 h, pending 0 h.
+Completed means planned credit, not actual hours. Forecast 128 h and variance +16 h
+remain estimates; daily actual-hour logs are unchanged. Only Sprint 1 is updated
+in the repository workbook; local Sprint 2 changes are not copied onto main.
+No remaining implementation blocker was identified within the bounded Sprint 1 scope.
+Workbook verification: Microsoft Excel 16.0 opened all 14 sheets read-only and
+recalculated the totals; completion/status sensitivity checked without saving.
+An inherited defect in 10 numeric-typed text cells was corrected, preserving their
+strings/styles. Five are in Sprint 2; this serialization-only repair leaves its
+progress, values and formulas unchanged. Details/backups are in the handoff.
 
-Codex assisted local implementation, tests, debugging, source inspection, integration
-preparation and this self-review. Humans must understand and review their adopted
-work. No mentor approval, signature or contribution percentage has been invented.
+Next: publish this documentation/workbook closeout as one PR and merge after
+GitHub review and CI requirements pass. Huy's acceptance is already recorded.
+No product code changed. Codex assisted source
+inspection, runtime verification, drafting and self-review; no independent review,
+mentor signature or contribution ratio is invented.

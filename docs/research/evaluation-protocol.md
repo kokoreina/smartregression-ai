@@ -46,7 +46,8 @@ keeps other hybrid parts fixed; disclose context/token changes. Do not silently
 replace a failed provider/baseline. Record planned selection separately from actual
 full-suite fallback dispatch. Discovery failure differs from empty inventory;
 neither proves safety. [Khanh's 1.10](sprint-1/selection-policy.md) now supplies
-the proposed stop/fallback table; production policy approval remains pending.
+the accepted Sprint 1 design `s1-selection-v1`; production implementation and
+verification remain separate. See [current closeout](sprint-1/closeout-decisions.md).
 
 ## Ground truth and eligibility
 
@@ -135,5 +136,8 @@ Current candidate reproducibility observations are separate from method evaluati
 savings metric is inferred from those observations.
 Threats: sampling bias, flaky tests, small cohort, model nondeterminism, cache state,
 subjective rubric and indexing cost. No benchmark command/dataset/results supplied.
-Codex assisted draft/self-review; Huy must understand/verify before adoption and
-Viet must independently review. No human approval/signature/contribution estimate assumed.
+Closeout update 2026-11-08: Huy takes over remaining work; historical supplier/
+reviewer assignments above are preserved, not dependencies on members implementing
+further work. Independent review is not supplied by this agent. Codex assisted
+draft/self-review; Huy must understand/verify before adoption. No human approval,
+signature or contribution estimate is assumed.

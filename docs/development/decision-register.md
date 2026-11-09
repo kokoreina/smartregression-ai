@@ -37,6 +37,21 @@ thực tế chưa được xác nhận bởi task tài liệu này. Remaining es
 calendar dates là operational inputs; implementation và acceptance theo work packages
 trong ADR. Không hỏi chọn lại các hướng đã được nhóm đồng ý.
 
+D12 được cập nhật theo brief 2026-11-08: Huy tiếp nhận toàn bộ closeout Sprint 1
+và giao thực hiện ba bước checklist/policy → kiểm chứng → review/demo/workbook.
+Giới hạn workbook chỉ đọc của brief 2026-10-31 được thay bằng quyền chỉnh **phần
+Sprint 1** của workbook hiện hành; không commit/push/PR/merge.
+[Policy 1.10](../research/sprint-1/selection-policy.md) accepted về thiết kế
+`s1-selection-v1` theo brief này. 1.06 đã accepted A01; candidate cố định theo D15;
+PR #13 đã merge vào main, không còn là integration pending của gói cũ.
+[Review hiện hành](../research/sprint-1/review.md) và
+[handoff](../research/sprint-1/closeout-handoff-20261108.md) tách kiểm chứng kỹ thuật,
+bằng chứng runtime, nghiệm thu và tích hợp GitHub. Huy xác nhận “tôi là huy và tôi
+đã xác nhận done” ngày 2026-11-08, chốt **12/12 task Sprint 1 Done**, rồi giao
+cập nhật hồ sơ, commit/push, PR và merge. Quyền xuất bản này thay giới hạn
+không commit/push/merge trong brief trước; không thay ruleset/required review.
+Không suy acceptance từ CI/PR #13 hoặc triển khai production selector để đóng 1.10.
+
 D17 là nguồn hiện hành cho P5; ghi chú P5 pending trong các handoff cũ là lịch sử.
 Backend retrieval đã được chọn; acquisition-to-ready bridge, domain migrations,
 retrieval wiring và acceptance vẫn là việc triển khai. D06 giữ lịch sử; LLM provider/

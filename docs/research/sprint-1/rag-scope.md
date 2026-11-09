@@ -1,5 +1,12 @@
 # 1.09 — Phạm vi RAG và provenance cho Sprint 1
 
+**Đối chiếu closeout 2026-11-08:** tài liệu đáp ứng đầu ra thiết kế 1.09;
+policy 1.10 đã accepted theo [quyết định hiện hành](closeout-decisions.md).
+D17/ADR 0003 đã chốt local lexical retrieval cho Sprint 2, thay phần index/storage
+pending lịch sử bên dưới. Provider/model/egress không được chốt bởi quyết định đó.
+Nguyễn Tấn Huy tiếp nhận phần closeout còn lại; không chờ owner cũ triển khai.
+Không dùng việc chốt thiết kế làm bằng chứng index/model đã chạy.
+
 Trạng thái: draft đủ để review thiết kế; chưa index/gọi model. Owner theo guide:
 Phạm Phan Hoàng Huy; Codex hỗ trợ Nguyễn Tấn Huy soạn theo brief tích hợp ngày
 2026-10-24. Reviewer đề xuất: Đỗ Hà An. Không giả tác giả hoặc phê duyệt của owner.
