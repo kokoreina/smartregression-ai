@@ -58,17 +58,18 @@ def test_metadata_preserves_identity_status_null_metrics_and_actual_versions(sta
         result.report_id = "changed"
 
 
-def test_optional_collector_digest_roundtrips_without_changing_absent_config(stage_artifacts):
+@pytest.mark.parametrize(
+    "name", ["inventory_configuration_digest", "retrieval_configuration_digest"]
+)
+def test_optional_collector_digest_roundtrips_without_changing_absent_config(stage_artifacts, name):
     args = inputs(stage_artifacts)
-    assert "inventory_configuration_digest" not in json.loads(
-        args["configuration"].canonical_bytes()
-    )
-    args["configuration"] = replace(args["configuration"], inventory_configuration_digest="c" * 64)
+    assert name not in json.loads(args["configuration"].canonical_bytes())
+    args["configuration"] = replace(args["configuration"], **{name: "c" * 64})
     write = prepare_run_report(**args)
     assert validate_run_report_write(write) == write
-    assert json.loads(write.configuration_json)["inventory_configuration_digest"] == "c" * 64
+    assert json.loads(write.configuration_json)[name] == "c" * 64
     with pytest.raises(RunMetadataError):
-        replace(args["configuration"], inventory_configuration_digest="bad").canonical_bytes()
+        replace(args["configuration"], **{name: "bad"}).canonical_bytes()
 
 
 def test_configuration_is_explicit_bounded_and_not_arbitrary_secret_dictionary():
