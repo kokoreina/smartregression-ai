@@ -40,6 +40,10 @@ def _analyze(args: argparse.Namespace) -> int:
             target=args.target,
             data_kind=args.data_kind,
             artifact_root=args.artifact_root,
+            inventory_candidate=args.inventory_candidate,
+            inventory_image=args.inventory_image,
+            inventory_workspace=args.inventory_workspace,
+            mapping_artifact_root=args.mapping_artifact_root,
         )
         # Revalidate nested mutable values at the serialization boundary.
         report = StageAnalysisReport.model_validate_json(report.model_dump_json())
@@ -69,6 +73,7 @@ def _analyze(args: argparse.Namespace) -> int:
             "output_inside_repository",
             "unsafe_output_path",
             "invalid_persistence_arguments",
+            "invalid_inventory_arguments",
         }
         code = str(exc) if str(exc) in safe else "analysis_failed"
         print(f"Analysis failed: {code}", file=sys.stderr)
@@ -131,6 +136,21 @@ def main(argv: list[str] | None = None) -> int:
         "--artifact-root",
         type=Path,
         help="Existing artifact root outside input repo; requires --persist, excludes --output",
+    )
+    analysis.add_argument(
+        "--inventory-candidate",
+        help="Explicit isolated collection opt-in: sqlparse or tinydb at its approved target",
+    )
+    analysis.add_argument("--inventory-image", help="Locally built locked image ID (sha256:...)")
+    analysis.add_argument(
+        "--inventory-workspace",
+        type=Path,
+        help="Existing runner workspace separate from input repo",
+    )
+    analysis.add_argument(
+        "--mapping-artifact-root",
+        type=Path,
+        help="Existing sidecar root outside input repo; defaults to --artifact-root if persisting",
     )
     changed = commands.add_parser(
         "changed-components", help="Identify changes between two Git SHAs"

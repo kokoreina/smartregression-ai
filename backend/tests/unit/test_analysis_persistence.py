@@ -36,8 +36,9 @@ def wiring(tmp_path, monkeypatch):
             events.append("disposed")
 
     class Store:
-        def __init__(self, actual, report):
+        def __init__(self, actual, report, *, inventory=None):
             assert actual is engine
+            assert inventory is None
 
         def save(self, write):
             # Publication must precede SQL, with exactly the referenced bytes.
@@ -115,7 +116,7 @@ def test_store_failure_disposes_engine_and_keeps_complete_orphan(wiring, monkeyp
     kwargs, source, events, _ = wiring
 
     class FailingStore:
-        def __init__(self, engine, report):
+        def __init__(self, engine, report, *, inventory=None):
             pass
 
         def save(self, write):
