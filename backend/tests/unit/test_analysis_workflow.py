@@ -81,13 +81,16 @@ def test_thin_flow_uses_real_producers_and_honest_statuses(tmp_path):
     )
     assert [(e.source, e.target) for e in report.stages.graph.data.edges] == [("b.py", "a.py")]
     assert report.stages.graph.data.snapshot == report.identity.target
-    for name in ("impact", "retrieval", "evidence"):
+    for name in ("impact", "evidence", "review_ordering"):
+        assert getattr(report.stages, name).status == "completed"
+        assert getattr(report.stages, name).data is not None
+    for name in ("retrieval",):
         assert getattr(report.stages, name).status == "not_implemented"
         assert getattr(report.stages, name).data is None
     assert report.stages.inventory.status == "not_run"
     assert report.stages.inventory.reason == "inventory_collector_not_configured"
     assert report.stages.inventory.data is None
-    assert report.stages.review_ordering.status == "not_run"
+    assert report.stages.review_ordering.status == "completed"
     assert report.analysis_status == "partial"
     assert analysis_exit_code(report) == 1
     assert str(tmp_path) not in report.model_dump_json()
@@ -143,6 +146,9 @@ def test_execution_retains_acquired_manifests_and_actual_settings(tmp_path, monk
         "snapshots": "snapshot/1",
         "changes": "changed-components/1",
         "graph": None,
+        "impact": "bounded-static-impact/1",
+        "evidence": "frozen-static-evidence/1",
+        "review_ordering": execution.report.stages.review_ordering.data.rule_version,
     }
     assert execution.configuration.application_version is None
     assert execution.report.identity.target.snapshot_id == acquired[0].target.manifest.snapshot_id
@@ -290,7 +296,7 @@ def test_graph_unresolved_import_and_known_alias_gap_are_explicit(tmp_path):
         "graph_relative_alias_omission",
     }
     assert graph.data.unresolved
-    assert report.stages.review_ordering.status == "not_run"
+    assert report.stages.review_ordering.status == "partial"
 
 
 def test_non_utf8_graph_fails_closed_without_source_echo(tmp_path):

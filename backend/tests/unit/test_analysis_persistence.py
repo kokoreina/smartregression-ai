@@ -36,8 +36,9 @@ def wiring(tmp_path, monkeypatch):
             events.append("disposed")
 
     class Store:
-        def __init__(self, actual):
+        def __init__(self, actual, report, *, inventory=None):
             assert actual is engine
+            assert inventory is None
 
         def save(self, write):
             # Publication must precede SQL, with exactly the referenced bytes.
@@ -47,7 +48,9 @@ def wiring(tmp_path, monkeypatch):
 
     monkeypatch.setattr("smartregression.adapters.storage.config.load_database_settings", load)
     monkeypatch.setattr("smartregression.adapters.storage.connection.database_engine", context)
-    monkeypatch.setattr("smartregression.adapters.storage.run_store.PostgresRunReportStore", Store)
+    monkeypatch.setattr(
+        "smartregression.adapters.storage.analysis_store.PostgresAnalysisStore", Store
+    )
     kwargs = dict(
         repository=source_root,
         repository_id="fixture",
@@ -113,14 +116,14 @@ def test_store_failure_disposes_engine_and_keeps_complete_orphan(wiring, monkeyp
     kwargs, source, events, _ = wiring
 
     class FailingStore:
-        def __init__(self, engine):
+        def __init__(self, engine, report, *, inventory=None):
             pass
 
         def save(self, write):
             raise error()
 
     monkeypatch.setattr(
-        "smartregression.adapters.storage.run_store.PostgresRunReportStore", FailingStore
+        "smartregression.adapters.storage.analysis_store.PostgresAnalysisStore", FailingStore
     )
     with pytest.raises(error):
         composition.analyze_local(**kwargs)

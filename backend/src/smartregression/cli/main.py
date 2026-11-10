@@ -14,6 +14,8 @@ from smartregression.adapters.snapshot_store import materialize_pair
 from smartregression.adapters.storage.errors import DatabaseConfigurationError
 from smartregression.application.analysis import AnalysisError, analysis_exit_code
 from smartregression.application.changed_components import identify_changes
+from smartregression.application.evidence_store import EvidenceStorageError
+from smartregression.application.persistence import bundle_from_report
 from smartregression.application.reports import validate_report_json
 from smartregression.application.run_store import RunMetadataError, RunStorageError
 from smartregression.application.snapshots import RepositoryAuthorization, prepare_snapshots
@@ -38,6 +40,11 @@ def _analyze(args: argparse.Namespace) -> int:
             target=args.target,
             data_kind=args.data_kind,
             artifact_root=args.artifact_root,
+            inventory_candidate=args.inventory_candidate,
+            inventory_image=args.inventory_image,
+            inventory_workspace=args.inventory_workspace,
+            mapping_artifact_root=args.mapping_artifact_root,
+            index_artifact_root=args.index_artifact_root,
         )
         # Revalidate nested mutable values at the serialization boundary.
         report = StageAnalysisReport.model_validate_json(report.model_dump_json())
@@ -47,7 +54,12 @@ def _analyze(args: argparse.Namespace) -> int:
         else:
             write_report(args.output, document, repository=args.repository)
         code = analysis_exit_code(report)
-    except (DatabaseConfigurationError, RunMetadataError, RunStorageError) as exc:
+    except (
+        DatabaseConfigurationError,
+        RunMetadataError,
+        RunStorageError,
+        EvidenceStorageError,
+    ) as exc:
         print(f"Persistence failed: {exc.code}", file=sys.stderr)
         return 2
     except AnalysisError as exc:
@@ -62,6 +74,8 @@ def _analyze(args: argparse.Namespace) -> int:
             "output_inside_repository",
             "unsafe_output_path",
             "invalid_persistence_arguments",
+            "invalid_inventory_arguments",
+            "invalid_retrieval_arguments",
         }
         code = str(exc) if str(exc) in safe else "analysis_failed"
         print(f"Analysis failed: {code}", file=sys.stderr)
@@ -79,8 +93,12 @@ def _analyze(args: argparse.Namespace) -> int:
         file=sys.stderr,
     )
     if args.persist:
+        bundle_status = (
+            "saved" if bundle_from_report(report) is not None else "not_included_missing_stage_data"
+        )
         print(
-            f"Persistence saved: run={report.identity.run_id}; report={report.report_id}",
+            f"Persistence saved: run={report.identity.run_id}; report={report.report_id}; "
+            f"evidence={bundle_status}",
             file=sys.stderr,
         )
     return code
@@ -120,6 +138,26 @@ def main(argv: list[str] | None = None) -> int:
         "--artifact-root",
         type=Path,
         help="Existing artifact root outside input repo; requires --persist, excludes --output",
+    )
+    analysis.add_argument(
+        "--inventory-candidate",
+        help="Explicit isolated collection opt-in: sqlparse or tinydb at its approved target",
+    )
+    analysis.add_argument(
+        "--index-artifact-root",
+        type=Path,
+        help="Enable local lexical retrieval; requires --persist and --artifact-root",
+    )
+    analysis.add_argument("--inventory-image", help="Locally built locked image ID (sha256:...)")
+    analysis.add_argument(
+        "--inventory-workspace",
+        type=Path,
+        help="Existing runner workspace separate from input repo",
+    )
+    analysis.add_argument(
+        "--mapping-artifact-root",
+        type=Path,
+        help="Existing sidecar root outside input repo; defaults to --artifact-root if persisting",
     )
     changed = commands.add_parser(
         "changed-components", help="Identify changes between two Git SHAs"

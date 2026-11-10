@@ -15,7 +15,7 @@ function StageChip({ name, result }: { name: string; result: StageResult }) {
   const cls = statusClass(result.status)
   return (
     <span className={`stage-chip ${cls}`} title={result.error_code ?? result.reason ?? undefined}>
-      {name}
+      {name}: {statusLabel(result.status)}
     </span>
   )
 }
@@ -61,10 +61,11 @@ function IdentitySection({ report }: { report: StageAnalysisReport }) {
         </div>
       </div>
       <p className="muted">
-        Run ID: <code>{report_id}</code> ·
+        Run ID: <code>{identity.run_id}</code> · Report ID: <code>{report_id}</code> ·
         Trạng thái phân tích:{' '}
         <strong className={statusClass(analysis_status)}>{statusLabel(analysis_status)}</strong>
-        {analysis_duration_seconds != null && ` · ${analysis_duration_seconds}s`}
+        {analysis_duration_seconds != null ? ` · ${analysis_duration_seconds}s` : ' · Thời gian: chưa đo'}
+        {' · Chi phí LLM: '}{report.llm_cost_usd == null ? 'chưa đo' : `$${report.llm_cost_usd}`}
       </p>
     </section>
   )
@@ -231,12 +232,63 @@ function ImpactSection({ report }: { report: StageAnalysisReport }) {
   )
 }
 
+function ChangedFilesSection({ report }: { report: StageAnalysisReport }) {
+  const stage = report.stages.changes
+  return (
+    <section className="card" aria-label="Tất cả tệp thay đổi">
+      <SectionHeader>Tệp thay đổi</SectionHeader>
+      <p>Trạng thái: {statusLabel(stage.status)}. Tệp docs/config hoặc chưa phân tích được vẫn được giữ trong danh sách.</p>
+      {stage.data?.files.length === 0 && <p>Không có tệp thay đổi trong cặp revision này.</p>}
+      {stage.data?.files.map((file) => (
+        <article key={file.path}>
+          <p><code>{file.path}</code> · <span>{file.status}</span></p>
+          {file.limitations.length > 0 && <p className="evidence-issue">Giới hạn: <code>{file.limitations.join(', ')}</code></p>}
+        </article>
+      ))}
+    </section>
+  )
+}
+
 /** Root view cho StageAnalysisReport (v2) — Task 2.18 */
 export function StageReportView({ report }: { report: StageAnalysisReport }) {
   return (
     <>
       <IdentitySection report={report} />
       <StageStatusBar report={report} />
+      <ChangedFilesSection report={report} />
+      <section className="card" aria-label="Phạm vi và giới hạn phân tích">
+        <SectionHeader>Phạm vi và giới hạn</SectionHeader>
+        <p>Context và ảnh hưởng là bằng chứng hỗ trợ xem xét; không xác nhận có thể bỏ test an toàn.</p>
+        {Object.entries(report.stages).map(([name, stage]) => (
+          <div key={name}>
+            {(stage.error_code || stage.reason) && <p><strong>{name}:</strong> <code>{stage.error_code ?? stage.reason}</code></p>}
+            {(stage.limitations ?? []).map((issue, i) => <p className="evidence-issue" key={`${name}-${i}`}>
+              <strong>{name}:</strong> <code>{issue.code}{issue.path ? `: ${issue.path}` : ''}</code>
+            </p>)}
+          </div>
+        ))}
+      </section>
+      <section className="card" aria-label="Context truy hồi">
+        <SectionHeader>Context truy hồi</SectionHeader>
+        <p>Trạng thái: {statusLabel(report.stages.retrieval.status)}. Chỉ hiển thị metadata đã kiểm tra cấu trúc; file báo cáo không tự chứng minh source tồn tại hoặc cấp quyền thực thi.</p>
+        {report.stages.retrieval.data?.items.length === 0 && <p>Không có context trong kết quả truy hồi này; cần xem trạng thái và giới hạn, không suy ra không có rủi ro.</p>}
+        {report.stages.retrieval.data?.sources.map((source) => <details key={`${source.index_id}-${source.configuration_id}`}>
+          <summary>Nguồn {source.snapshot.commit.slice(0, 10)} · {source.index_id.slice(0, 12)}</summary>
+          <p>Repository: <code>{source.snapshot.repository_id}</code> · Commit: <code>{source.snapshot.commit}</code></p>
+          <p>Snapshot: <code>{source.snapshot.snapshot_id}</code></p>
+          <p>Index: <code>{source.index_id}</code> · Config: <code>{source.configuration_id}</code></p>
+        </details>)}
+        {report.stages.retrieval.data?.items.map((item) => <article key={item.id}>
+          <p>#{item.rank} <code>{item.path}:{item.location.line_start}–{item.location.line_end}</code></p>
+          <p>Commit: <code>{item.snapshot.commit}</code> · Hash: <code>{item.content_sha256}</code></p>
+          <p className="muted">Điểm từ vựng: {item.score ?? 'chưa có'}; không phải xác suất lỗi.</p>
+          <details>
+            <summary>Định danh context #{item.rank}</summary>
+            <p>Chunk: <code>{item.id}</code> · Snapshot: <code>{item.snapshot.snapshot_id}</code></p>
+            <p>Index: <code>{item.index_id}</code> · Config: <code>{item.configuration_id}</code></p>
+          </details>
+        </article>)}
+      </section>
       <div className="columns">
         <div>
           <ReviewOrderSection report={report} />

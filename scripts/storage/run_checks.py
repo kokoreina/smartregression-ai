@@ -12,6 +12,7 @@ import shutil
 import subprocess
 import sys
 import time
+from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
 from uuid import uuid4
@@ -50,6 +51,7 @@ def snapshot_rows(connection):
         "analysis_runs",
         "artifacts",
         "run_reports",
+        "run_stage_payloads",
         "evidence_bundles",
         "test_inventories",
         "test_cases",
@@ -64,6 +66,40 @@ def snapshot_rows(connection):
         ).fetchall()
         result[name] = sorted(row[0] for row in rows)
     return result
+
+
+def lexical_probe(settings, artifact_root, source_root, record):
+    """Reopen source/artifacts/SQL and search the owned fixture through real code."""
+    from smartregression.adapters.git_local import LocalGit
+    from smartregression.adapters.storage.connection import database_engine
+    from smartregression.adapters.storage.index_artifacts import IndexArtifactFiles
+    from smartregression.adapters.storage.index_store import PostgresIndexStore
+    from smartregression.application.index_sources import acquire_index_snapshot
+    from smartregression.application.retrieval import PublishedLexicalIndex
+    from smartregression.application.snapshots import RepositoryAuthorization
+    from smartregression.core.retrieval.lexical import search_lexical
+
+    source = LocalGit(source_root)
+    authorization = RepositoryAuthorization(record.key.repository_id, source_root)
+    snapshot = acquire_index_snapshot(
+        source,
+        authorization=authorization,
+        repository_id=record.key.repository_id,
+        commit=record.key.commit,
+    )
+    with database_engine(settings) as engine:
+        index = PublishedLexicalIndex(
+            source,
+            authorization=authorization,
+            store=PostgresIndexStore(engine),
+            artifacts=IndexArtifactFiles(artifact_root, source_repository=source_root),
+        )
+        plan = index.load(snapshot, record.configuration)
+        assert plan is not None and plan.manifest == record.manifest
+        result = search_lexical(plan, snapshot, terms=("value",))
+        assert result.status == "completed" and len(result.data.items) == 1
+        assert result.data.items[0].path == "src/recovery.py"
+        return result.model_dump_json()
 
 
 def execute():
@@ -160,6 +196,7 @@ def execute():
                 "smartregression_kh_failure",
                 "smartregression_kh_restore",
                 "smartregression_kh_fresh",
+                "smartregression_kh_legacy",
             ):
                 connection.execute(
                     sql.SQL("CREATE DATABASE {} OWNER smartregression_migrator").format(
@@ -178,6 +215,10 @@ def execute():
         index_root.mkdir()
         test_env["SMARTREGRESSION_INDEX_TEST_ROOT"] = str(index_root)
         evidence["index_test_workspace"] = str(index_root)
+        # This suite now includes both real candidate CLI collections in addition
+        # to storage tests. Bound the whole campaign separately from each runner's
+        # unchanged 60s deadline and the database statement/lock timeouts.
+        evidence["checks"]["postgresql_pytest_timeout_seconds"] = 600
         test = subprocess.run(
             [
                 sys.executable,
@@ -195,7 +236,7 @@ def execute():
             ],
             cwd=PROJECT,
             env=test_env,
-            timeout=180,
+            timeout=600,
             check=False,
         )
         evidence["checks"]["postgresql_pytest_exit"] = test.returncode
@@ -228,6 +269,46 @@ def execute():
         artifact_root = output / "artifacts"
         with database_engine(settings) as engine, engine.begin() as connection:
             descriptor = seed_recovery_fixture(connection, artifact_root)
+        from smartregression.application.index_store import decode_index_record
+
+        original_record = decode_index_record(descriptor["index_record"])
+        probe = lexical_probe(
+            settings, artifact_root, output / "recovery-index-source", original_record
+        )
+        with connect(context, database="smartregression_kh_fresh") as connection:
+            before_restart = snapshot_rows(connection)
+        # Quiescent owned fixture only: prove database process restart, not merely
+        # construction of another adapter over the same live connection.
+        labels = json.loads(docker("inspect", "--format", "{{json .Config.Labels}}", container))
+        if labels.get("smartregression.kh-storage-test") != nonce:
+            raise RuntimeError("container_ownership_mismatch")
+        docker("restart", container, timeout=30)
+        # Docker Desktop can reassign ephemeral published ports on restart.
+        bindings = json.loads(
+            docker("inspect", "--format", "{{json .NetworkSettings.Ports}}", container)
+        )["5432/tcp"]
+        assert len(bindings) == 1 and bindings[0]["HostIp"] == "127.0.0.1"
+        context["port"] = int(bindings[0]["HostPort"])
+        settings = replace(settings, url=settings.url.set(port=context["port"]))
+        deadline = time.monotonic() + 30
+        while True:
+            try:
+                with connect(context, database="smartregression_kh_fresh") as connection:
+                    assert connection.execute("SELECT 1").fetchone() == (1,)
+                    assert snapshot_rows(connection) == before_restart
+                break
+            except psycopg.OperationalError:
+                if time.monotonic() >= deadline:
+                    raise RuntimeError("postgresql_fixture_not_ready") from None
+                time.sleep(0.5)
+        evidence["checks"]["postgresql_restart_exact_rows"] = True
+        assert (
+            lexical_probe(
+                settings, artifact_root, output / "recovery-index-source", original_record
+            )
+            == probe
+        )
+        evidence["checks"]["actual_lexical_query_after_postgresql_restart"] = True
         # No writers are active now. Back up this complete metadata+artifact fixture,
         # not the intentionally incomplete negative constraint-test rows.
         dump = docker(
@@ -299,7 +380,6 @@ def execute():
         evidence["checks"]["evidence_restore_decode_and_identity"] = True
         from smartregression.adapters.storage.index_artifacts import IndexArtifactFiles
         from smartregression.adapters.storage.index_store import BoundIndexStore
-        from smartregression.application.index_store import decode_index_record
 
         restored_settings = DatabaseSettings(
             URL.create(
@@ -313,7 +393,6 @@ def execute():
             ),
             allow_loopback_test=True,
         )
-        original_record = decode_index_record(descriptor["index_record"])
         with database_engine(restored_settings) as engine, engine.begin() as connection:
             restored_index = BoundIndexStore(connection).load(original_record.key)
             assert restored_index.state == "ready" and restored_index.record == original_record
@@ -325,10 +404,19 @@ def execute():
             original_record.artifact_sha256
         )
         evidence["checks"]["index_metadata_chunks_artifact_restore"] = True
+        assert (
+            lexical_probe(
+                restored_settings, restored_root, output / "recovery-index-source", original_record
+            )
+            == probe
+        )
+        evidence["checks"]["actual_lexical_query_after_restore"] = True
         evidence["checks"]["artifact_restore_digest_and_catalog"] = True
         evidence["backup_sha256"] = hashlib.sha256(dump).hexdigest()
-        evidence["checks"]["revision_head"] = "20261105_05"
+        evidence["checks"]["revision_head"] = "20261109_06"
         evidence["passed"] = True
+    except subprocess.TimeoutExpired:
+        evidence["error_code"] = "storage_verification_timeout"
     except Exception as exc:
         # Do not echo SQL, credentials or exception chains at this operator boundary.
         safe = {"postgresql_fixture_not_ready", "postgresql_integration_failed", "restore_failed"}

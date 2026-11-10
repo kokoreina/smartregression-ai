@@ -25,16 +25,13 @@ from smartregression.application.evidence_store import (
     prepare_evidence,
 )
 from smartregression.application.run_store import RunStorageError, prepare_run_report
-from smartregression.contracts.stages import EvidenceBundle
+from smartregression.contracts.stages import EvidenceBundle, StageResult
 
 
 @pytest.fixture
 def saved_run(migrated, stage_artifacts):
     owner, runtime, _ = migrated
     report = arguments(stage_artifacts)
-    write = prepare_run_report(**report)
-    provision(owner, write)
-    PostgresRunReportStore(runtime).save(write)
     data = report["report"]
     bundle = EvidenceBundle(
         identity=data.identity,
@@ -43,6 +40,35 @@ def saved_run(migrated, stage_artifacts):
             for name in ("changes", "graph", "impact", "evidence")
         },
     )
+    # Standalone codec tests start with identity/configuration only. A cataloged
+    # active report already claims its payloads and cannot authorize different
+    # excerpts/graphs; that cross-writer policy has separate integration tests.
+    seed = data.model_copy(
+        update={
+            "analysis_status": "not_run",
+            "stages": data.stages.model_copy(
+                update={
+                    name: StageResult(status="not_run", reason="fixture_pending")
+                    for name in type(data.stages).model_fields
+                }
+            ),
+        }
+    )
+    raw = seed.model_dump_json(indent=2).encode() + b"\n"
+    from dataclasses import replace
+
+    write = prepare_run_report(
+        **{
+            **report,
+            "report": seed,
+            "published_report_bytes": raw,
+            "artifact": replace(
+                report["artifact"], sha256=hashlib.sha256(raw).hexdigest(), size_bytes=len(raw)
+            ),
+        }
+    )
+    provision(owner, write)
+    PostgresRunReportStore(runtime).save(write)
     return owner, runtime, bundle
 
 

@@ -48,9 +48,11 @@ uv run alembic upgrade head
 uv run alembic current
 ```
 
-Expected head after inventory integration is `20261104_03`. Revision one creates
+Expected head on the completion branch is `20261109_06`. Revision one creates
 repositories/snapshots/runs; revision two creates artifact/report catalog; revision
-three adds inventory/test-case tables. Reapplying head changes no data.
+three adds inventory/test-case tables; revision four adds immutable evidence;
+revision five adds index/chunk metadata; revision six adds immutable core payload
+fingerprints. Existing revisions remain unchanged. Reapplying head changes no data.
 Unexpected objects, conflicting revisions or a shared/unknown target must be
 investigated; do not stamp/drop/reset to bypass errors. Offline DDL review needs
 neither credentials nor a connection:
@@ -60,7 +62,7 @@ uv run alembic upgrade head --sql
 ```
 
 Runtime uses `SMARTREGRESSION_DATABASE_URL`, a separate role with schema USAGE and
-SELECT/INSERT on the five application tables, not table ownership, DDL, UPDATE/DELETE
+SELECT/INSERT on the foundation and evidence/inventory/payload-claim tables, not table ownership, DDL, UPDATE/DELETE
 or Alembic version access. Provisioning roles/grants on existing infrastructure is
 an explicitly authorized operator action. Migrations do not create accounts or
 change shared-server permissions. A provisioned row does not authorize users to
@@ -133,6 +135,28 @@ and exact artifact bytes alongside report/evidence/inventory. This does not wire
 H2's search or H1's CLI automatically or prove whole-sprint acceptance.
 
 ## Failure and recovery
+
+### Core report/evidence overlap
+
+Revision `20261109_06` adds `run_stage_payloads`: at most four immutable claims per
+repository/run, one for each changes/graph/impact/evidence payload. A claim stores
+only its canonical SHA-256, not source text or a replacement report body. Report
+and standalone evidence writers insert/compare the same keys in their existing
+transaction. Concurrent or later contradictory payloads fail; exact repeats are
+no-ops. Runtime needs SELECT/INSERT on this table only. Migration execution does
+not grant permissions or start the application.
+
+Legacy report rows are preserved without invented fingerprints. An exact trusted
+report replay may seed its own claims after matching the immutable catalog and
+existing bundle. An unrelated new report or standalone bundle cannot backfill
+missing hashes for an old active report; storage fails until that history is
+explicitly reconciled. Re-running analyze creates a new run and is not a replay.
+Keep the original frozen manifests/configuration and exact artifact bytes for
+reconciliation; do not update or delete historical rows to force success.
+
+The completion campaign reproduced the original cross-writer race and verified
+the fix using real concurrent PostgreSQL transactions. Evidence and current
+remaining gates are in [the completion plan](sprint-2-completion-plan.md).
 
 Transactional DDL keeps migration/version changes atomic. The test injects failure
 between the tables in revision two: artifacts and the new version must both be

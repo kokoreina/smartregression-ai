@@ -14,6 +14,7 @@ from typing import Literal, Protocol
 
 from pydantic import ValidationError
 
+from smartregression.application.payloads import BUNDLE_STAGES, payload_digest
 from smartregression.contracts.stages import (
     RunIdentity,
     StageAnalysisReport,
@@ -64,6 +65,10 @@ class RunMetadataError(ValueError):
         super().__init__(self.code)
 
 
+class RunPayloadConflict(RunConflict):
+    """An overlapping run stage already has different immutable payload bytes."""
+
+
 def _metadata_id(value: str) -> None:
     try:
         valid = (
@@ -98,9 +103,16 @@ class RunConfiguration:
     producer_versions: tuple[tuple[str, str | None], ...] = ()
     graph_policy: Literal["target_imports"] = "target_imports"
     comparison_mode: Literal["direct_two_tree"] = "direct_two_tree"
+    inventory_configuration_digest: str | None = None
+    retrieval_configuration_digest: str | None = None
 
     def canonical_bytes(self) -> bytes:
         _version(self.application_version)
+        for digest in (self.inventory_configuration_digest, self.retrieval_configuration_digest):
+            if digest is not None and (
+                not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest)
+            ):
+                raise RunMetadataError()
         if (
             not isinstance(self.snapshot_limits, SnapshotLimits)
             or type(self.python_source_limit_bytes) is not int
@@ -127,6 +139,16 @@ class RunConfiguration:
                 "python_source_limit_bytes": self.python_source_limit_bytes,
                 "graph_policy": self.graph_policy,
                 "producer_versions": versions,
+                **(
+                    {"inventory_configuration_digest": self.inventory_configuration_digest}
+                    if self.inventory_configuration_digest is not None
+                    else {}
+                ),
+                **(
+                    {"retrieval_configuration_digest": self.retrieval_configuration_digest}
+                    if self.retrieval_configuration_digest is not None
+                    else {}
+                ),
             }
         )
         if len(content) > 65536:
@@ -138,7 +160,10 @@ class RunConfiguration:
 class ReportArtifact:
     """Reference to already published bytes; does not read/authorize a filesystem path.
 
-    Kind=report_json, schema=2.0.0, media_type=application/json, access=repository.
+    A filesystem byte descriptor, also usable for report-bound JSON sidecars.
+    prepare_run_report catalogs only report_json/schema=2.0.0; passing a descriptor
+    to a byte publisher does not register a sidecar as a report in SQL.
+    Media type=application/json, access=repository.
     The write's identity supplies repository/run scope; no independent foreign scope.
     Trusted publisher/reader must resolve under a controlled artifact root and reject
     links/junctions, missing/corrupt files. This descriptor is not proof of publication.
@@ -190,6 +215,7 @@ class RunReportWrite:
     data_kind: Literal["demo", "real"]
     configuration_json: bytes = field(repr=False)
     stage_summary_json: bytes = field(repr=False)
+    payload_digests_json: bytes = field(repr=False)
     snapshots: tuple[SnapshotMetadata, ...]
     artifact: ReportArtifact
     analysis_status: StageStatus
@@ -264,6 +290,13 @@ def prepare_run_report(
         )
         if len(summary) > 262144:
             raise RunMetadataError()
+        payload_digests = canonical_json(
+            {
+                name: payload_digest(result.data)
+                for name, result in checked.stages
+                if name in BUNDLE_STAGES and result.data is not None
+            }
+        )
     except ValidationError, ValueError, TypeError, UnicodeError, RecursionError:
         raise RunMetadataError() from None
     return RunReportWrite(
@@ -272,6 +305,7 @@ def prepare_run_report(
         checked.data_kind,
         config_json,
         summary,
+        payload_digests,
         snapshots,
         artifact,
         checked.analysis_status,
@@ -332,14 +366,16 @@ def validate_run_report_write(write: RunReportWrite) -> RunReportWrite:
         if type(write.configuration_json) is not bytes or len(write.configuration_json) > 65536:
             raise RunMetadataError()
         config = json.loads(write.configuration_json)
-        if set(config) != {
+        required = {
             "application_version",
             "comparison_mode",
             "snapshot_limits",
             "python_source_limit_bytes",
             "graph_policy",
             "producer_versions",
-        }:
+        }
+        optional = {"inventory_configuration_digest", "retrieval_configuration_digest"}
+        if not required <= set(config) or set(config) - required - optional:
             raise RunMetadataError()
         rebuilt = RunConfiguration(
             config["application_version"],
@@ -348,6 +384,8 @@ def validate_run_report_write(write: RunReportWrite) -> RunReportWrite:
             tuple(config["producer_versions"].items()),
             config["graph_policy"],
             config["comparison_mode"],
+            config.get("inventory_configuration_digest"),
+            config.get("retrieval_configuration_digest"),
         )
         if (
             rebuilt.canonical_bytes() != write.configuration_json
@@ -369,6 +407,22 @@ def validate_run_report_write(write: RunReportWrite) -> RunReportWrite:
             if result.model_dump(mode="json", exclude={"data"}) != value:
                 raise RunMetadataError()
             statuses.add(result.status)
+        if type(write.payload_digests_json) is not bytes or len(write.payload_digests_json) > 1024:
+            raise RunMetadataError()
+        payload_digests = json.loads(write.payload_digests_json)
+        expected_payloads = {
+            name for name in BUNDLE_STAGES if summary[name]["status"] in {"completed", "partial"}
+        }
+        if (
+            not isinstance(payload_digests, dict)
+            or set(payload_digests) != expected_payloads
+            or canonical_json(payload_digests) != write.payload_digests_json
+            or any(
+                not isinstance(v, str) or not re.fullmatch(r"[0-9a-f]{64}", v)
+                for v in payload_digests.values()
+            )
+        ):
+            raise RunMetadataError()
         aggregate = (
             "completed"
             if statuses == {"completed"}
@@ -423,6 +477,7 @@ def validate_run_report_write(write: RunReportWrite) -> RunReportWrite:
         write.data_kind,
         write.configuration_json,
         write.stage_summary_json,
+        write.payload_digests_json,
         snapshots,
         artifact,
         write.analysis_status,

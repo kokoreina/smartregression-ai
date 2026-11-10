@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "contracts:generate": "node scripts/contracts.mjs",
-    "contracts:check": "node scripts/contracts.mjs --check"
+    "contracts:check": "node scripts/contracts.mjs --check && npm run test:reports",
+    "test:reports": "node scripts/test-reports.mjs && node scripts/test-report-view.mjs"
   },
   "dependencies": { "react": "^19.2.0", "react-dom": "^19.2.0" },
   "devDependencies": {

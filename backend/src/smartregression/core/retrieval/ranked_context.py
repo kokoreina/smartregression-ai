@@ -41,7 +41,7 @@ from smartregression.core.git.snapshots import (
     validate_snapshot_paths,
 )
 from smartregression.core.impact.changed_components import ComponentChange
-from smartregression.core.retrieval.index_manifest import _range_bytes
+from smartregression.core.retrieval.index_manifest import _PhysicalLines, _range_bytes
 
 RULE_VERSION = "2.12-v1"
 
@@ -218,6 +218,7 @@ def rank_and_validate_context(
 
     # Validate items individually
     valid_items: list[tuple[RetrievalItem, RetrievalSource]] = []
+    ranges: dict[str, _PhysicalLines] = {}
 
     for p in payloads:
         source_keys_in_payload = {
@@ -252,8 +253,10 @@ def rank_and_validate_context(
 
             # Source range check
             try:
-                range_bytes = extract_range_bytes(
-                    content, item.location.line_start, item.location.line_end
+                if item.path not in ranges:
+                    ranges[item.path] = _PhysicalLines(content)
+                range_bytes = ranges[item.path].range_bytes(
+                    item.location.line_start, item.location.line_end
                 )
             except ValueError as exc:
                 if strict:

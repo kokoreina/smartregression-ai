@@ -1,5 +1,90 @@
 # Lệnh đã đối chiếu với repository
 
+## Main integration for G0 — 2026-11-09
+
+Fresh commands, actual results, environment failures and runtime artifacts are
+recorded in [G0 integration](sprint-3-g0-integration.md). Older counts below apply
+to their stated revision, not automatically to the main-integration candidate.
+The historical Sprint 2 A07/A02/A03 browser waiver at completed-work `929b336`
+means not performed, not browser pass; it does not cover Sprint 3.
+
+## Sprint 2 completion acceptance checkpoint — 2026-11-09
+
+Cwd `D:/smart-regression-ai/var/s2c`; same reused Python 3.14.3 and portable Git
+as below. No clean dependency install is claimed.
+
+```powershell
+python -m pytest backend/tests -q -p no:cacheprovider --tb=short --junitxml var/p6-final-full.xml --basetemp var/p6-final-full
+python scripts/storage/run_checks.py
+python scripts/integrity/verify.py --runtime-only
+ruff check .
+ruff format --check .
+python scripts/export_contracts.py --check
+```
+
+Default backend: **873 passed / 131 skipped**, one existing warning, exit 0.
+Dedicated PostgreSQL: **131 passed / no skips**, exit 0, including actual candidate
+CLI inventory/mapping/retrieval, conflicting and compatible concurrent writers,
+legacy upgrade/exact replay, new migration `20261109_06`, restart and populated
+metadata/artifact recovery. The default skips are 130 SQL cases subsequently run
+in that campaign and one Windows-inapplicable POSIX FIFO test. One additional SQL
+regression was added after default collection and passed in the dedicated campaign.
+The last SQL-only read-order fix was exercised by the full SQL rerun. No skipped
+case is counted as runtime acceptance. SQL inputs are the successful candidate and
+mapping evidence variables described below; no external DSN is accepted.
+
+The real isolated Docker integrity campaign passed **26 cases**; it deliberately
+uses a recording SQL port and does not replace the real PostgreSQL campaign.
+Ruff lint/format, exporter and diff checks passed. Failed intermediate runs, exact
+evidence paths and observed timing limits are recorded in
+[the completion plan](sprint-2-completion-plan.md).
+
+Frontend used reused Node 22.14.0/npm 10.9.2 dependencies:
+
+```powershell
+npm --prefix frontend run contracts:check
+npm --prefix frontend run lint
+npm --prefix frontend run build
+node frontend/scripts/test-reports.mjs <relative-sqlparse-report> <relative-tinydb-report>
+node frontend/scripts/test-report-view.mjs <relative-sqlparse-report> <relative-tinydb-report>
+```
+
+The paths above are local generated P4 report inputs, not literal shell arguments.
+Actual-input runs passed **87 validation / 13 SSR checks**; all 71 rejected
+mutations were also rejected by backend validation. The normal contracts script
+runs 85 validation / 11 SSR checks. Build includes TypeScript checking. All commands
+exited 0. **SSR is not browser acceptance: A07 remains pending Browser access.**
+The source UI is published for review as Draft PR #61.
+
+## Sprint 2 completion workflow/mapping/retrieval — 2026-11-09
+
+Cwd `D:/smart-regression-ai/var/s2c`, Python 3.14.3 reused from
+`D:/smart-regression-ai/var/task-2.20-b-venv/Scripts/python.exe`,
+`PYTHONPATH=backend/src`, `PYTHONDONTWRITEBYTECODE=1`, portable Git prepended.
+No clean install is claimed. Exact source/evidence and intermediate failures are in
+[the completion plan](sprint-2-completion-plan.md).
+
+```powershell
+python -m pytest backend/tests -q -p no:cacheprovider --tb=short --basetemp var/p4-full
+python scripts/storage/run_checks.py
+ruff check .
+ruff format --check .
+python scripts/export_contracts.py --check
+```
+
+Full backend: **867 passed / 120 skipped**, one existing warning. Dedicated SQL
+campaign: **119 passed / no skips**, including actual candidate CLI collection,
+mapping and retrieval; restart and populated metadata/artifact restore queries
+passed. The SQL command used `SMARTREGRESSION_INVENTORY_CANDIDATES` and
+`SMARTREGRESSION_MAPPING_WORKFLOW` pointing to successful current-checkout evidence
+from `verify_candidates.py` and `scripts/mapping/verify_workflow.py`. Without those
+inputs the four candidate cases skip and are not acceptance. No external DSN is
+accepted; the script provisions and removes only its owned PostgreSQL container.
+
+CLI options/use are in [mapping](task-2.13-mapping.md) and
+[retrieval](task-2.13-retrieval.md). Browser A07 and final integrated closeout are
+separate remaining gates. Old dated results below remain historical.
+
 ## Integrity 2.19 ngày 2026-11-05
 
 `scripts/integrity/verify.ps1 -PythonExe <locked-backend-python>` chạy full suite,

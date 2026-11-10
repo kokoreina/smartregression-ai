@@ -43,10 +43,10 @@ class TestEmptyInputs:
         result = order_for_review(changed=[], edges=[], limitations=[])
         assert result.candidates == ()
 
-    def test_no_changed_no_edges_adds_partial_graph_limitation(self) -> None:
-        # No edges → graph is partial; limitation must be recorded.
+    def test_no_changed_no_edges_does_not_infer_partial_graph(self) -> None:
+        # ADR 0004: empty observations do not establish incomplete analysis.
         result = order_for_review(changed=[], edges=[], limitations=[])
-        assert "partial_graph" in result.limitations
+        assert result.limitations == ()
 
     def test_no_changed_with_edges_returns_empty_candidates(self) -> None:
         # Edges exist but no changed component → nothing to order.
@@ -448,13 +448,13 @@ class TestLimitations:
         )
         assert "relative_import_unresolved" in result.limitations
 
-    def test_partial_graph_added_when_no_edges(self) -> None:
+    def test_no_edges_observation_is_not_partial_graph(self) -> None:
         result = order_for_review(
             changed=[_comp("a.py")],
             edges=[],
             limitations=[],
         )
-        assert "partial_graph" in result.limitations
+        assert result.limitations == ("no_dependency_edges_observed",)
 
     def test_partial_graph_not_added_when_edges_present(self) -> None:
         # At least one edge → graph is not empty → no auto partial_graph.
@@ -474,11 +474,11 @@ class TestLimitations:
         assert "star_import" in result.limitations
         assert "dynamic_import" in result.limitations
 
-    def test_limitations_merged_with_partial_graph(self) -> None:
+    def test_caller_partial_graph_is_preserved_with_empty_edges(self) -> None:
         result = order_for_review(
             changed=[_comp("a.py")],
             edges=[],
-            limitations=["relative_import_unresolved"],
+            limitations=["relative_import_unresolved", "partial_graph"],
         )
         assert "partial_graph" in result.limitations
         assert "relative_import_unresolved" in result.limitations

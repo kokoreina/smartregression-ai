@@ -11,6 +11,7 @@ from smartregression.application.run_store import (
     RunConfiguration,
     RunMetadataError,
     prepare_run_report,
+    validate_run_report_write,
 )
 from smartregression.contracts.stages import StageAnalysisReport
 from smartregression.core.git.snapshots import SnapshotLimits, SnapshotManifest, canonical_json
@@ -55,6 +56,20 @@ def test_metadata_preserves_identity_status_null_metrics_and_actual_versions(sta
     assert b"excerpt" not in result.stage_summary_json
     with pytest.raises(FrozenInstanceError):
         result.report_id = "changed"
+
+
+@pytest.mark.parametrize(
+    "name", ["inventory_configuration_digest", "retrieval_configuration_digest"]
+)
+def test_optional_collector_digest_roundtrips_without_changing_absent_config(stage_artifacts, name):
+    args = inputs(stage_artifacts)
+    assert name not in json.loads(args["configuration"].canonical_bytes())
+    args["configuration"] = replace(args["configuration"], **{name: "c" * 64})
+    write = prepare_run_report(**args)
+    assert validate_run_report_write(write) == write
+    assert json.loads(write.configuration_json)[name] == "c" * 64
+    with pytest.raises(RunMetadataError):
+        replace(args["configuration"], **{name: "bad"}).canonical_bytes()
 
 
 def test_configuration_is_explicit_bounded_and_not_arbitrary_secret_dictionary():
@@ -211,3 +226,25 @@ def test_mutated_nested_report_is_revalidated_before_boundary(stage_artifacts):
     args["report"].stages.impact.data.candidates[0].evidence_ids.append("unknown")
     with pytest.raises(RunMetadataError):
         prepare_run_report(**args)
+
+
+@pytest.mark.parametrize("digests", [{}, {"graph": "bad"}, {"foreign": "a" * 64}, []])
+def test_payload_fingerprints_must_match_active_core_stages(stage_artifacts, digests):
+    write = prepare_run_report(**inputs(stage_artifacts))
+    with pytest.raises(RunMetadataError):
+        validate_run_report_write(replace(write, payload_digests_json=canonical_json(digests)))
+
+
+def test_payload_fingerprints_are_canonical_and_reject_forged_compound_write(stage_artifacts):
+    from smartregression.adapters.storage.analysis_store import PostgresAnalysisStore
+    from smartregression.application.payloads import payload_digest
+
+    args = inputs(stage_artifacts)
+    write = prepare_run_report(**args)
+    digests = json.loads(write.payload_digests_json)
+    assert digests["graph"] == payload_digest(args["report"].stages.graph.data)
+    digests["graph"] = "f" * 64
+    with pytest.raises(RunMetadataError):
+        PostgresAnalysisStore(object(), args["report"]).save(
+            replace(write, payload_digests_json=canonical_json(digests))
+        )
