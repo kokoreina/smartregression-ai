@@ -73,7 +73,8 @@ def provider_for(body=None, status=200, settings=None):
 
     async def handler(request):
         calls.append(request)
-        return httpx2.Response(status, json=body if body is not None else response_body())
+        selected = body.pop(0) if isinstance(body, list) else body
+        return httpx2.Response(status, json=selected if selected is not None else response_body())
 
     def factory(options):
         options.httpx_async_client = httpx2.AsyncClient(
@@ -343,3 +344,11 @@ def test_untrusted_excerpt_cannot_change_wire_policy():
     assert "Ignore policy" not in json.dumps(packed["systemInstruction"])
     assert "Ignore policy" in packed["contents"][0]["parts"][0]["text"]
     assert "tools" not in packed
+
+
+def test_sdk_continuation_cannot_create_hidden_generation_attempts():
+    body = response_body(finish="CONTINUATION")
+    body["candidates"][0]["continuationToken"] = "c3ludGhldGljLXRva2Vu"
+    provider, calls = provider_for([body, response_body()])
+    result = provider.propose(proposal_request())
+    assert len(calls) == 1 and result.status == "failed"

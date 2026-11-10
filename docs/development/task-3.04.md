@@ -92,3 +92,11 @@ no approval, author percentage, effort or live success is fabricated.
 
 Ready for focused publication after the final passing checks. No live inference
 or key access was performed in Prompts 1–2. Main approval/merge is not inferred.
+
+## Follow-up before live admission
+
+While implementing 3.16, self-review found SDK 3.0.0 enables automatic continuation
+by default, separately from HTTP retries. A two-response mocked regression proved
+one propose call could dispatch twice after CONTINUATION. Explicit
+`automatic_continuation=False` now preserves the one-attempt invariant; focused
+regression is rerun and CI covers the complete updated PR. No live call occurred.

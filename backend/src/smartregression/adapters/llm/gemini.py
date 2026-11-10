@@ -271,6 +271,7 @@ class GeminiProvider:
                     model=self.settings.model,
                     contents=None,
                     config=types.GenerateContentConfig(
+                        automatic_continuation=False,
                         http_options=types.HttpOptions(extra_body=body),
                         automatic_function_calling=types.AutomaticFunctionCallingConfig(
                             disable=True
