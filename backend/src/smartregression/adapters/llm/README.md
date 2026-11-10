@@ -1,5 +1,15 @@
-# LLM adapter — pending
+# Gemini adapter — task 3.04
 
-Chưa chọn provider, chưa có SDK hoặc call. Chỉ thêm adapter sau khi chốt use case,
-data policy và interface core. Credential chỉ đọc phía backend, không log nội dung
-nhạy cảm. Prompt/retrieval data không được thay đổi chính sách thực thi.
+`gemini.py` implements one generation attempt through `ProposalProvider`.
+SDK async transport supports cancellation; the existing synchronous application
+port uses its own event loop and rejects nested-loop use. Composition receives an
+explicit backend credential; nothing calls Gemini on import or default analysis.
+
+`pack_request` freezes authorized context, exact inventory IDs and evidence into
+a bounded provider payload. Structured JSON is revalidated with canonical models,
+then application checks provenance/membership. This is not semantic support,
+selection, execution, source-egress authorization or budget admission.
+
+Retry/deadline/session budgets, full-request count and opt-in synthetic live smoke
+belong to task 3.16. Direct adapter use is for admitted calls/offline tests, not an
+unguarded public endpoint. See [handoff](../../../../../docs/development/task-3.04.md).
