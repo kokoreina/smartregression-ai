@@ -11,5 +11,6 @@ then application checks provenance/membership. This is not semantic support,
 selection, execution, source-egress authorization or budget admission.
 
 Retry/deadline/session budgets, full-request count and opt-in synthetic live smoke
-belong to task 3.16. Direct adapter use is for admitted calls/offline tests, not an
+are implemented by [task 3.16](../../../../../docs/development/task-3.16.md).
+Direct adapter use is for admitted calls/offline tests, not an
 unguarded public endpoint. See [handoff](../../../../../docs/development/task-3.04.md).
