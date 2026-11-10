@@ -3,6 +3,8 @@
 from typing import Protocol
 
 from smartregression.contracts.models import CommitPair, ExecutionResult, TestSelection
+from smartregression.contracts.stages import StageResult
+from smartregression.contracts.workflow import ExecutionPayload, SelectionManifest
 
 
 class TestRunner(Protocol):
@@ -17,5 +19,17 @@ class TestRunner(Protocol):
         No implementation exists. Timeout, cancellation, transport and infrastructure
         error reporting remain pending; settle these before implementing a worker.
         Never execute repository code inside API/CLI processes.
+        """
+        ...
+
+
+class ManifestRunner(Protocol):
+    """Sprint 3 consumer port; no runner or dispatch authorization is implemented."""
+
+    def run(self, manifest: SelectionManifest) -> StageResult[ExecutionPayload]:
+        """Execute only after trusted manifest/environment/isolation verification.
+
+        A deserialized manifest does not prove acquisition, semantic validation,
+        full-suite eligibility or authority. Implementation belongs to task 3.09.
         """
         ...

@@ -1,0 +1,58 @@
+{
+  "schema_version": "3.0.0",
+  "provenance": {
+    "identity": {
+      "repository_id": "repo-1",
+      "run_id": "run-1",
+      "base": {
+        "repository_id": "repo-1",
+        "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "snapshot_id": "aeb0d68c983e68210e0dfa12764baf8fa8e128719d88f6445dc7465d28645b2b"
+      },
+      "target": {
+        "repository_id": "repo-1",
+        "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+      },
+      "comparison_mode": "direct_two_tree"
+    },
+    "inventory_sha256": "3f409308865cf84d2818c1bdd14a4278799ef6b10127959a462d72c3f955afae",
+    "context_sha256": "351aa47dff924e13f567c9d2089c6794e8329cd1ab40e0eababc9128fe577138",
+    "evidence_sha256": "e813d564bccbeefe1db875d1c9abb55d63c52b639acc61134a5f1d19cc489b67",
+    "prompt_version": "proposal/1",
+    "configuration_id": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "provider": "gemini",
+    "model": "configured-model"
+  },
+  "inventory": {
+    "snapshot": {
+      "repository_id": "repo-1",
+      "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+    },
+    "framework": "pytest",
+    "test_ids": [
+      "test_a",
+      " test_b "
+    ],
+    "completeness": "complete"
+  },
+  "retrieval": {
+    "sources": [
+      {
+        "snapshot": {
+          "repository_id": "repo-1",
+          "commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "snapshot_id": "c634e133ef89e754f092b7262965af591fa9c2eed9aca93b18c4b662e535e6c7"
+        },
+        "index_id": "index",
+        "configuration_id": "config"
+      }
+    ],
+    "items": []
+  },
+  "evidence": {
+    "items": []
+  },
+  "context": []
+}

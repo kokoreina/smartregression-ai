@@ -147,6 +147,13 @@ const oversized = new File([new Uint8Array(16 * 1024 * 1024 + 1)], 'oversized.js
 oversized.text = () => { throw new Error('size must be checked before reading') }
 await assert.rejects(readReportFile(oversized, schema.components.schemas), /16 MiB/u)
 checks += 4
+// v3 has explicit proposal/selection/execution semantics. The current v2 UI
+// must reject it rather than render a source-analysis projection as the full run.
+for (const variant of ['proposal', 'provider-error', 'not-run']) {
+  const report = JSON.parse(await readFile(new URL(`examples/reports/workflow-report.${variant}.json`, root), 'utf8'))
+  assert.throws(() => validate(report))
+  checks++
+}
 // Actual reports are optional inputs; their bytes stay local and must pass the same boundary.
 for (const file of process.argv.slice(2)) {
   validate(JSON.parse(await readFile(fileURLToPath(new URL(file, root)), 'utf8')))

@@ -14,6 +14,7 @@ from smartregression.contracts.models import (
     ErrorResponse,
 )
 from smartregression.contracts.stages import EvidenceBundle, StageAnalysisReport
+from smartregression.contracts.workflow import ProposalRequest, WorkflowReport
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -32,6 +33,8 @@ def main() -> int:
                 ErrorResponse,
                 StageAnalysisReport,
                 EvidenceBundle,
+                ProposalRequest,
+                WorkflowReport,
             )
         ],
         ref_template="#/components/schemas/{model}",
@@ -47,6 +50,13 @@ def main() -> int:
         report = validate_report_json(example.read_text("utf-8"))
         if not isinstance(report, StageAnalysisReport) or report.data_kind != "demo":
             raise ValueError("stage examples must be explicitly marked v2 demo")
+    for example in sorted((ROOT / "examples/reports").glob("workflow-report.*.json")):
+        report = validate_report_json(example.read_text("utf-8"))
+        if not isinstance(report, WorkflowReport) or report.data_kind != "demo":
+            raise ValueError("workflow examples must be explicitly marked v3 demo")
+    ProposalRequest.model_validate_json(
+        (ROOT / "examples/reports/proposal-request.demo.json").read_text("utf-8")
+    )
     if args.check:
         if not target.exists() or target.read_text("utf-8") != content:
             print("Schema is stale: uv run python scripts/export_contracts.py")

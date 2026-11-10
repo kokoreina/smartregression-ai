@@ -60,3 +60,20 @@ def test_cli_rejects_nested_stage_mismatch_without_echoing_input(tmp_path: Path)
     result = invoke("validate-report", str(path))
     assert result.returncode == 1
     assert "do-not-echo-stage-content" not in result.stderr + result.stdout
+
+
+@pytest.mark.parametrize("variant", ["proposal", "provider-error", "not-run"])
+def test_cli_validates_v3_without_calling_provider(variant: str) -> None:
+    root = Path(__file__).resolve().parents[3]
+    path = root / f"examples/reports/workflow-report.{variant}.json"
+    result = invoke("validate-report", str(path))
+    assert result.returncode == 0
+    assert "Valid report [DEMO]" in result.stdout
+
+
+def test_cli_rejects_invalid_v3_state() -> None:
+    root = Path(__file__).resolve().parents[3]
+    result = invoke(
+        "validate-report", str(root / "backend/tests/fixtures/workflow-invalid-state.json")
+    )
+    assert result.returncode == 1 and "Invalid report" in result.stderr

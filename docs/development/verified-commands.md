@@ -1,5 +1,12 @@
 # Lệnh đã đối chiếu với repository
 
+## Task 3.15 contracts — 2026-11-10
+
+Commands, reused environment, tests/consumer compatibility and actual results:
+[task 3.15 handoff](task-3.15.md). The existing exporter/TypeScript generator now
+also exports v3 workflow/request contracts; old API paths and v1/v2 schemas are
+unchanged. No live-provider, DB migration or new browser acceptance is implied.
+
 ## Main integration for G0 — 2026-11-09
 
 Fresh commands, actual results, environment failures and runtime artifacts are
