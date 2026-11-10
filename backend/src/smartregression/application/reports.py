@@ -4,11 +4,12 @@ from pydantic import TypeAdapter
 
 from smartregression.contracts.models import AnalysisReport
 from smartregression.contracts.stages import StageAnalysisReport
+from smartregression.contracts.workflow import WorkflowReport
 
-_REPORT = TypeAdapter(AnalysisReport | StageAnalysisReport)
+_REPORT = TypeAdapter(AnalysisReport | StageAnalysisReport | WorkflowReport)
 
 
-def validate_report_json(content: str) -> AnalysisReport | StageAnalysisReport:
+def validate_report_json(content: str) -> AnalysisReport | StageAnalysisReport | WorkflowReport:
     """Version literals and forbidden extra fields reject ambiguous documents.
 
     Omitted version remains accepted only by the unchanged legacy contract.

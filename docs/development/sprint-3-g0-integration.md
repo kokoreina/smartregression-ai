@@ -1,5 +1,13 @@
 # Sprint 3 G0 — Sprint 2 main integration
 
+> 2026-11-10: [PR #64](https://github.com/kokoreina/smartregression-ai/pull/64)
+> was approved by `KaiTrann` on the exact tested head and merged without bypass.
+> Main is `a9bd5a68a4d7b2e52777bf2b761e49e4cb3abea4`; its tree is identical to
+> tested `89d4528`. [Main CI](https://github.com/kokoreina/smartregression-ai/actions/runs/42764378093)
+> also succeeded. **G0 achieved** with the source/runtime evidence below and the
+> unchanged historical Sprint 2 browser waiver. Earlier pending statements below
+> record the prior checkpoint, not a current blocker. Task 3.15 may now proceed.
+
 ## Baseline and scope
 
 Started 2026-11-09 for Nguyen Tan Huy under the explicit integration/3.15 brief.

@@ -1,5 +1,10 @@
 # Contracts
 
+Sprint 3 task 3.15 adds [workflow contracts v3.0.0](workflow-reports.md): a
+versioned envelope around the unchanged v2 analysis, typed provider boundaries,
+selection manifests and execution observations. Shared reader/CLI support all
+three versions; the current dashboard and PostgreSQL writers remain v2-only.
+
 Legacy contract **v1.0.0** bên dưới được giữ nguyên. Sprint 2 có thêm
 [stage reports v2.0.0](stage-reports.md), không bắt buộc selection/execution.
 Canonical v2 source ở `backend/src/smartregression/contracts/stages.py`;

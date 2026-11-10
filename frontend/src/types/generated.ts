@@ -196,6 +196,21 @@ export interface components {
              */
             symbol?: string | null;
         };
+        /** ExecutionPayload */
+        ExecutionPayload: {
+            /** Dispatched Test Ids */
+            dispatched_test_ids: string[];
+            identity: components["schemas"]["RunIdentity"];
+            /** Manifest Id */
+            manifest_id: string;
+            /** Observations */
+            observations: components["schemas"]["TestObservation"][];
+            /**
+             * Termination
+             * @enum {string}
+             */
+            termination: "exited" | "timeout" | "cancelled" | "infrastructure_error" | "output_limit";
+        };
         /** ExecutionResult */
         ExecutionResult: {
             /**
@@ -365,6 +380,114 @@ export interface components {
             /** Test Ids */
             test_ids: string[];
         };
+        /**
+         * PromptContext
+         * @description Authorized text supplied by application, never interpreted as policy.
+         */
+        PromptContext: {
+            reference: components["schemas"]["RetrievalItem"];
+            /** Text */
+            text: string;
+        };
+        /** ProposalProvenance */
+        ProposalProvenance: {
+            /** Configuration Id */
+            configuration_id: string;
+            /** Context Sha256 */
+            context_sha256: string;
+            /** Evidence Sha256 */
+            evidence_sha256: string;
+            identity: components["schemas"]["RunIdentity"];
+            /** Inventory Sha256 */
+            inventory_sha256: string;
+            /** Model */
+            model: string;
+            /** Prompt Version */
+            prompt_version: string;
+            /** Provider */
+            provider: string;
+        };
+        /** ProposalRequest */
+        ProposalRequest: {
+            /** Context */
+            context: components["schemas"]["PromptContext"][];
+            evidence: components["schemas"]["EvidencePayload"];
+            inventory: components["schemas"]["InventoryPayload"];
+            provenance: components["schemas"]["ProposalProvenance"];
+            retrieval: components["schemas"]["RetrievalPayload"];
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "3.0.0";
+        };
+        /** ProviderResult */
+        ProviderResult: {
+            /**
+             * Actual Model Version
+             * @default null
+             */
+            actual_model_version?: string | null;
+            /**
+             * Attempts
+             * @default 0
+             */
+            attempts?: number;
+            /** @default null */
+            data?: components["schemas"]["TestProposal"] | null;
+            /**
+             * Error Code
+             * @default null
+             */
+            error_code?: ("provider_auth" | "provider_permission" | "provider_configuration" | "provider_quota" | "provider_rate_limit" | "provider_timeout" | "provider_transport" | "provider_refusal" | "provider_empty" | "provider_truncated" | "provider_invalid_output" | "provider_budget") | null;
+            /** @default null */
+            provenance?: components["schemas"]["ProposalProvenance"] | null;
+            /**
+             * Reason
+             * @default null
+             */
+            reason?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "not_run" | "completed" | "failed";
+            /** @default null */
+            usage?: components["schemas"]["ProviderUsage"] | null;
+        };
+        /** ProviderUsage */
+        ProviderUsage: {
+            /**
+             * Cost Usd
+             * @default null
+             */
+            cost_usd?: number | null;
+            /**
+             * Duration Seconds
+             * @default null
+             */
+            duration_seconds?: number | null;
+            /**
+             * Input Tokens
+             * @default null
+             */
+            input_tokens?: number | null;
+            /**
+             * Output Tokens
+             * @default null
+             */
+            output_tokens?: number | null;
+            /**
+             * Thinking Tokens
+             * @default null
+             */
+            thinking_tokens?: number | null;
+            /**
+             * Total Tokens
+             * @default null
+             */
+            total_tokens?: number | null;
+        };
         /** RetrievalItem */
         RetrievalItem: {
             /** Configuration Id */
@@ -440,6 +563,33 @@ export interface components {
             /** Run Id */
             run_id: string;
             target: components["schemas"]["SnapshotIdentity"];
+        };
+        /** SelectionManifest */
+        SelectionManifest: {
+            /** Configuration Id */
+            configuration_id: string;
+            identity: components["schemas"]["RunIdentity"];
+            inventory: components["schemas"]["InventoryPayload"];
+            /** Inventory Sha256 */
+            inventory_sha256: string;
+            /** Manifest Id */
+            manifest_id: string;
+            /**
+             * Mode
+             * @enum {string}
+             */
+            mode: "hybrid" | "dependency_fallback" | "full_suite" | "no_tests";
+            /** Not Selected */
+            not_selected: string[];
+            /**
+             * Policy Version
+             * @constant
+             */
+            policy_version: "s1-selection-v1";
+            /** Reason */
+            reason: string;
+            /** Selected */
+            selected: string[];
         };
         /** SnapshotIdentity */
         SnapshotIdentity: {
@@ -626,6 +776,28 @@ export interface components {
              */
             status: "not_implemented" | "not_run" | "completed" | "partial" | "failed";
         };
+        /** StageResult[ExecutionPayload] */
+        StageResult_ExecutionPayload_: {
+            /** @default null */
+            data?: components["schemas"]["ExecutionPayload"] | null;
+            /**
+             * Error Code
+             * @default null
+             */
+            error_code?: string | null;
+            /** Limitations */
+            limitations?: components["schemas"]["StageIssue"][];
+            /**
+             * Reason
+             * @default null
+             */
+            reason?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "not_implemented" | "not_run" | "completed" | "partial" | "failed";
+        };
         /** StageResult[GraphPayload] */
         StageResult_GraphPayload_: {
             /** @default null */
@@ -736,6 +908,28 @@ export interface components {
              */
             status: "not_implemented" | "not_run" | "completed" | "partial" | "failed";
         };
+        /** StageResult[SelectionManifest] */
+        StageResult_SelectionManifest_: {
+            /** @default null */
+            data?: components["schemas"]["SelectionManifest"] | null;
+            /**
+             * Error Code
+             * @default null
+             */
+            error_code?: string | null;
+            /** Limitations */
+            limitations?: components["schemas"]["StageIssue"][];
+            /**
+             * Reason
+             * @default null
+             */
+            reason?: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "not_implemented" | "not_run" | "completed" | "partial" | "failed";
+        };
         /** StageResult[SnapshotPayload] */
         StageResult_SnapshotPayload_: {
             /** @default null */
@@ -773,6 +967,26 @@ export interface components {
             /** Test Id */
             test_id: string;
         };
+        /** TestObservation */
+        TestObservation: {
+            /**
+             * Duration Seconds
+             * @default null
+             */
+            duration_seconds?: number | null;
+            /**
+             * Outcome
+             * @enum {string}
+             */
+            outcome: "passed" | "failed" | "skipped" | "error";
+            /** Test Id */
+            test_id: string;
+        };
+        /** TestProposal */
+        TestProposal: {
+            /** Suggestions */
+            suggestions: components["schemas"]["TestSuggestion"][];
+        };
         /** TestSelection */
         TestSelection: {
             /**
@@ -792,6 +1006,30 @@ export interface components {
             selected: components["schemas"]["TestDecision"][];
             /** Skipped */
             skipped: components["schemas"]["TestDecision"][];
+        };
+        /** TestSuggestion */
+        TestSuggestion: {
+            /** Evidence Ids */
+            evidence_ids: string[];
+            /** Reason */
+            reason: string;
+            /** Test Id */
+            test_id: string;
+        };
+        /**
+         * WorkflowReport
+         * @description v3 envelope preserves the complete v2 analysis without fake later stages.
+         */
+        WorkflowReport: {
+            analysis: components["schemas"]["StageAnalysisReport"];
+            execution: components["schemas"]["StageResult_ExecutionPayload_"];
+            proposal: components["schemas"]["ProviderResult"];
+            /**
+             * Schema Version
+             * @constant
+             */
+            schema_version: "3.0.0";
+            selection: components["schemas"]["StageResult_SelectionManifest_"];
         };
     };
     responses: never;
