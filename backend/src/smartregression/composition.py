@@ -3,7 +3,7 @@
 import re
 from contextlib import ExitStack
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from smartregression.adapters.git_local import LocalGit
 from smartregression.application.analysis import analyze_execution
@@ -13,6 +13,27 @@ from smartregression.application.mapping_artifact import MappingCollector, verif
 from smartregression.application.persistence import bundle_from_report, persist_report
 from smartregression.application.snapshots import RepositoryAuthorization
 from smartregression.contracts.stages import StageAnalysisReport
+
+if TYPE_CHECKING:
+    from smartregression.adapters.llm.gemini import GeminiProvider, GeminiSettings
+
+
+def gemini_provider(*, api_key: str, settings: GeminiSettings | None = None) -> GeminiProvider:
+    """Explicit opt-in factory. No key lookup or network request on import/creation."""
+    from google import genai
+
+    from smartregression.adapters.llm.gemini import GeminiProvider, GeminiSettings
+
+    if not api_key or not api_key.strip():
+        raise ValueError("missing_gemini_api_key")
+
+    def client_factory(options: genai.types.HttpOptions) -> genai.Client:
+        options.base_url = "https://generativelanguage.googleapis.com"
+        options.client_args = {"trust_env": False}
+        options.async_client_args = {"trust_env": False}
+        return genai.Client(api_key=api_key, enterprise=False, http_options=options)
+
+    return GeminiProvider(client_factory, settings or GeminiSettings())
 
 
 def _candidate_collector(
