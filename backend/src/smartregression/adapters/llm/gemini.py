@@ -7,12 +7,14 @@ import math
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
+from email.utils import parsedate_to_datetime
 
 import httpx2
 from google import genai
 from google.genai import errors, types
 from pydantic import ValidationError
 
+from smartregression.application.gemini_runtime import PreflightError
 from smartregression.contracts.workflow import (
     ProposalProvenance,
     ProposalRequest,
@@ -33,23 +35,18 @@ INSTRUCTIONS = (
 )
 PROPOSAL_SCHEMA = {
     "type": "object",
-    "additionalProperties": False,
     "required": ["suggestions"],
     "properties": {
         "suggestions": {
             "type": "array",
-            "maxItems": 32,
             "items": {
                 "type": "object",
-                "additionalProperties": False,
                 "required": ["test_id", "reason", "evidence_ids"],
                 "properties": {
                     "test_id": {"type": "string"},
                     "reason": {"type": "string"},
                     "evidence_ids": {
                         "type": "array",
-                        "minItems": 1,
-                        "maxItems": 16,
                         "items": {"type": "string"},
                     },
                 },
@@ -241,6 +238,57 @@ class GeminiProvider:
         self.client_factory = client_factory
         self.settings = settings or GeminiSettings()
         self.retry_after_seconds: float | None = None
+        self.diagnostic: dict = {}
+
+    @staticmethod
+    async def _close(client: genai.Client | None, options: types.HttpOptions) -> None:
+        if client is None:
+            return
+        try:
+            client.close()
+        except Exception:
+            logging.getLogger(__name__).warning("gemini_sync_cleanup_failed")
+        try:
+            async with asyncio.timeout(1):
+                await client.aio.aclose()
+                external = options.httpx_async_client
+                if external is not None and not external.is_closed:
+                    await external.aclose()
+        except Exception:
+            logging.getLogger(__name__).warning("gemini_async_cleanup_failed")
+
+    async def count(self, request: ProposalRequest, timeout: float) -> int:
+        packed = pack_request(request, self.settings)
+        options = types.HttpOptions(
+            api_version=self.settings.api_version,
+            timeout=max(1, int(min(timeout, 5) * 1000)),
+            retry_options=types.HttpRetryOptions(attempts=1),
+        )
+        client = None
+        try:
+            async with asyncio.timeout(min(timeout, 5)):
+                client = self.client_factory(options)
+                response = await client.aio.models.count_tokens(
+                    model=self.settings.model,
+                    contents=None,
+                    config=types.CountTokensConfig(
+                        http_options=types.HttpOptions(
+                            extra_body={"generateContentRequest": json.loads(packed.body)}
+                        )
+                    ),
+                )
+                if type(response.total_tokens) is not int or response.total_tokens < 0:
+                    raise PreflightError("provider_invalid_output")
+                return response.total_tokens
+        except PreflightError:
+            raise
+        except Exception as exc:
+            raise PreflightError(_error_code(exc)) from None
+        finally:
+            await self._close(client, options)
+
+    async def attempt(self, request: ProposalRequest, timeout: float) -> ProviderResult:
+        return await self.generate(pack_request(request, self.settings), timeout)
 
     async def generate(self, packed: PackedRequest, timeout: float | None = None) -> ProviderResult:
         seconds = min(
@@ -249,6 +297,7 @@ class GeminiProvider:
         )
         provenance = ProposalProvenance.model_validate_json(packed.provenance_json)
         self.retry_after_seconds = None
+        self.diagnostic = {}
         if not math.isfinite(seconds) or seconds <= 0:
             return ProviderResult(
                 status="failed", provenance=provenance, attempts=0, error_code="provider_timeout"
@@ -281,12 +330,80 @@ class GeminiProvider:
             return _parse(response, packed, time.monotonic() - started)
         except Exception as exc:
             # Never include raw SDK exception/input values in telemetry.
+            self.diagnostic = {"exception_type": type(exc).__name__}
+            if isinstance(exc, errors.APIError):
+                self.diagnostic["http_status"] = exc.code
+                if exc.status in {
+                    "INVALID_ARGUMENT",
+                    "NOT_FOUND",
+                    "PERMISSION_DENIED",
+                    "UNAUTHENTICATED",
+                    "RESOURCE_EXHAUSTED",
+                    "UNAVAILABLE",
+                    "INTERNAL",
+                }:
+                    self.diagnostic["status"] = exc.status
+                message = exc.message if isinstance(exc.message, str) else ""
+                self.diagnostic["has_message"] = bool(message)
+                details = exc.details if isinstance(exc.details, dict) else {}
+                details = details.get("error", details).get("details", [])
+                self.diagnostic["detail_types"] = [
+                    t
+                    for t in (
+                        "type.googleapis.com/google.rpc.BadRequest",
+                        "type.googleapis.com/google.rpc.ErrorInfo",
+                        "type.googleapis.com/google.rpc.RetryInfo",
+                    )
+                    if any(isinstance(d, dict) and d.get("@type") == t for d in details)
+                ]
+                self.diagnostic["parameter_mentions"] = [
+                    name
+                    for name in (
+                        "thinkingConfig",
+                        "thinkingLevel",
+                        "responseJsonSchema",
+                        "responseSchema",
+                        "maxOutputTokens",
+                        "systemInstruction",
+                        "automatic_continuation",
+                        "MINIMAL",
+                        "API key",
+                        "not found",
+                        "not supported",
+                        "Unknown name",
+                        "schema",
+                        "response_json_schema",
+                        "response_format",
+                        "additionalProperties",
+                        "maxItems",
+                        "minItems",
+                        "location",
+                        "region",
+                        "billing",
+                        "quota",
+                        "account",
+                        "invalid argument",
+                        "response",
+                        "model",
+                        "JSON",
+                        "required",
+                        "Unsupported",
+                        "unsupported",
+                        "permission",
+                        "free",
+                        "enabled",
+                    )
+                    if name in message
+                ]
             if isinstance(exc, errors.APIError) and exc.response is not None:
                 raw = exc.response.headers.get("Retry-After")
                 try:
                     delay = float(raw) if raw is not None else None
                 except ValueError:
-                    delay = None
+                    try:
+                        delay = max(0, parsedate_to_datetime(raw).timestamp() - time.time())
+                    except ValueError, TypeError, OverflowError:
+                        delay = None
                 if delay is not None and math.isfinite(delay) and delay >= 0:
                     self.retry_after_seconds = delay
             code = (
@@ -296,23 +413,7 @@ class GeminiProvider:
                 status="failed", provenance=provenance, attempts=dispatched, error_code=code
             )
         finally:
-            if client is not None:
-                try:
-                    await client.aio.aclose()
-                except Exception:
-                    logging.getLogger(__name__).warning("gemini_async_cleanup_failed")
-                try:
-                    client.close()
-                except Exception:
-                    logging.getLogger(__name__).warning("gemini_sync_cleanup_failed")
-            # SDK deliberately leaves injected clients open. Factory transfers
-            # ownership to this attempt, so close them explicitly as well.
-            external = options.httpx_async_client
-            if external is not None and not external.is_closed:
-                try:
-                    await external.aclose()
-                except Exception:
-                    logging.getLogger(__name__).warning("gemini_transport_cleanup_failed")
+            await self._close(client, options)
 
     def propose(self, request: ProposalRequest) -> ProviderResult:
         try:

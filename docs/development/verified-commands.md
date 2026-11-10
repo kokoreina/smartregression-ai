@@ -342,3 +342,22 @@ hash snapshot trước/sau để kiểm source/manifests/CI không đổi.
 
 Khi thêm script, cập nhật bảng từ implementation thật và ghi kết quả riêng. Gate
 planned ở [enforcement](../rules/14-enforcement.md), không invent command ở đây.
+
+## Sprint 3 Gemini — task 3.16, 2026-11-10
+
+Commands below are implemented and were run from the task worktree on Python
+3.14.3. They do not imply an analyze CLI extension, public Gemini endpoint or G2.
+Use the locked project environment; set TEMP/cache inside a permitted workspace.
+
+| Command | Actual scope/result |
+| --- | --- |
+| `python scripts/llm/smoke.py --session-root var/gemini-g1-session` | Dry-run synthetic repository/snapshots/request only, no network; exit 0 |
+| `python scripts/llm/smoke.py --live --session-root var/gemini-g1-session --env-file <trusted-backend-env-file>` | Explicit opt-in, synthetic-only, guarded Gemini count/generation; final run exit 0/G1 true. The flag reads only canonical/alias key configuration and does not auto-discover dotenv |
+| `python -m pytest backend/tests/unit/test_gemini_runtime.py -q -p no:cacheprovider --basetemp var/runtime-checked` | 28 runtime/config/ledger cases passed at checkpoint; no paid API calls |
+| `python -m pytest backend/tests/unit/test_gemini_smoke.py backend/tests/unit/test_gemini_runtime.py -q -p no:cacheprovider --basetemp var/s316-fixture-final` | 31 cases passed, including real synthetic Git snapshots and canonical source evidence; no fixture code/inference executed |
+
+The live session has reached its five-run limit; do not reuse commands to bypass
+the existing ledger by deleting/renaming it or implicitly starting a new session.
+Session reservations include unknown usage, not just successful calls. See
+[3.16 evidence/decisions](task-3.16.md) for exact model/API/schema changes, hashes,
+budget, unsuccessful attempts and nullable thinking/cost. Unit/CI remains offline.
