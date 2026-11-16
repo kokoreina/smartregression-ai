@@ -1,5 +1,28 @@
 # Kiến trúc bootstrap
 
+## Sprint 3 local product — 2026-11-15
+
+The original bootstrap description below is retained as history. The accepted
+phase3–8 implementation uses one React frontend, one FastAPI backend and
+PostgreSQL. API → application → contracts/core/interfaces; storage/GitHub/parser/
+Gemini/mail adapters are wired in composition. No input repository code is run by
+the web process, and no Redis/broker/vector DB/microservice was added.
+
+Cookie sessions/verified ownership and CSRF guard `/api/v1` product routes. Projects
+own mutable run lifecycle, immutable canonical report links, scenarios, notes,
+cached snapshots and activity. Background tasks share PostgreSQL slot/quota locks;
+an exclusive backend lease protects restart recovery. AI is a separate reserved
+request after static publication. Unknown billing remains reserved, not actual cost.
+Dashboard view caches freeze summary and row predicates within repeatable-read.
+
+Frozen forward migrations `_08`–`_15` add web domains without changing historical
+research tables. Browser source is range-bound, local by default; external source
+requires separate excerpt consent. Python and JS graphs are static facts; overlays
+and hypotheses have distinct provenance. Caddy/PostgreSQL TLS packaging is local
+only, with DDL confined to an explicit migration job. See
+[operations/schema boundaries](../development/sprint-3-local-operations.md) and
+[acceptance evidence](../development/sprint-3-phase-3-8-handoff.md).
+
 Một monorepo, một Python package src-layout, một frontend. Không microservices,
 Kubernetes, broker hoặc plugin framework. ADR bootstrap được viết trước khi tài liệu
 C1.SE26 được thêm vào workspace. Scope/kiến trúc cấp cao hiện được đối chiếu với các

@@ -4,6 +4,7 @@ Credentials are random, memory-only and never recorded in artifacts or command a
 Only the exact container created and verified by this invocation may be removed.
 """
 
+import argparse
 import hashlib
 import json
 import os
@@ -12,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import time
+import traceback
 from dataclasses import replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -58,6 +60,21 @@ def snapshot_rows(connection):
         "knowledge_indexes",
         "index_chunks",
         "alembic_version",
+        "web_users",
+        "web_sessions",
+        "web_account_tokens",
+        "web_rate_limits",
+        "web_projects",
+        "web_activity",
+        "web_runs",
+        "web_ai_campaigns",
+        "web_ai_grants",
+        "web_ai_requests",
+        "web_explorer_snapshots",
+        "web_notes",
+        "web_view_states",
+        "web_scenarios",
+        "web_reporting_views",
     ):
         rows = connection.execute(
             sql.SQL("SELECT row_to_json(t)::text FROM smartregression.{} t").format(
@@ -103,6 +120,11 @@ def lexical_probe(settings, artifact_root, source_root, record):
 
 
 def execute():
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--pytest-filter", help="Diagnostic -k expression; omitting runs the full suite"
+    )
+    args = parser.parse_args()
     nonce = uuid4().hex
     output = PROJECT / "var" / ("storage-verification-" + nonce)
     if any(path.is_symlink() or path.is_junction() for path in (output, *output.parents)):
@@ -219,6 +241,7 @@ def execute():
         # to storage tests. Bound the whole campaign separately from each runner's
         # unchanged 60s deadline and the database statement/lock timeouts.
         evidence["checks"]["postgresql_pytest_timeout_seconds"] = 600
+        evidence["pytest_filter"] = args.pytest_filter
         test = subprocess.run(
             [
                 sys.executable,
@@ -233,6 +256,7 @@ def execute():
                 str(output / "postgresql-tests.xml"),
                 "--basetemp",
                 str(index_root / "t"),
+                *(["-k", args.pytest_filter] if args.pytest_filter else []),
             ],
             cwd=PROJECT,
             env=test_env,
@@ -284,10 +308,23 @@ def execute():
             raise RuntimeError("container_ownership_mismatch")
         docker("restart", container, timeout=30)
         # Docker Desktop can reassign ephemeral published ports on restart.
-        bindings = json.loads(
-            docker("inspect", "--format", "{{json .NetworkSettings.Ports}}", container)
-        )["5432/tcp"]
-        assert len(bindings) == 1 and bindings[0]["HostIp"] == "127.0.0.1"
+        binding_deadline = time.monotonic() + 30
+        while True:
+            bindings = (
+                json.loads(
+                    docker("inspect", "--format", "{{json .NetworkSettings.Ports}}", container)
+                ).get("5432/tcp")
+                or []
+            )
+            # Docker Desktop restart may briefly report no published mapping.
+            # Reject any non-loopback mapping; never connect until one mapping is ready.
+            if any(binding["HostIp"] != "127.0.0.1" for binding in bindings):
+                raise RuntimeError("unsafe_fixture_port_binding")
+            if len(bindings) == 1:
+                break
+            if time.monotonic() >= binding_deadline:
+                raise RuntimeError("fixture_port_binding_not_ready")
+            time.sleep(0.2)
         context["port"] = int(bindings[0]["HostPort"])
         settings = replace(settings, url=settings.url.set(port=context["port"]))
         deadline = time.monotonic() + 30
@@ -413,7 +450,7 @@ def execute():
         evidence["checks"]["actual_lexical_query_after_restore"] = True
         evidence["checks"]["artifact_restore_digest_and_catalog"] = True
         evidence["backup_sha256"] = hashlib.sha256(dump).hexdigest()
-        evidence["checks"]["revision_head"] = "20261109_06"
+        evidence["checks"]["revision_head"] = "20261115_15"
         evidence["passed"] = True
     except subprocess.TimeoutExpired:
         evidence["error_code"] = "storage_verification_timeout"
@@ -421,6 +458,11 @@ def execute():
         # Do not echo SQL, credentials or exception chains at this operator boundary.
         safe = {"postgresql_fixture_not_ready", "postgresql_integration_failed", "restore_failed"}
         evidence["error_code"] = str(exc) if str(exc) in safe else "storage_verification_failed"
+        evidence["exception_type"] = type(exc).__name__
+        evidence["trace_locations"] = [
+            {"file": Path(frame.filename).name, "line": frame.lineno, "function": frame.name}
+            for frame in traceback.extract_tb(exc.__traceback__)
+        ]
     finally:
         if container is not None:
             try:

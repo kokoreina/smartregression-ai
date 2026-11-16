@@ -64,7 +64,7 @@ def test_schema_matches_tables_and_upgrade_preserves_data(migrated):
     with owner.connect() as connection:
         assert (
             connection.scalar(sa.text("SELECT version_num FROM smartregression.alembic_version"))
-            == "20261109_06"
+            == "20261115_15"
         )
         assert set(sa.inspect(connection).get_table_names(schema="smartregression")) == {
             "repositories",
@@ -79,6 +79,21 @@ def test_schema_matches_tables_and_upgrade_preserves_data(migrated):
             "knowledge_indexes",
             "index_chunks",
             "alembic_version",
+            "web_users",
+            "web_sessions",
+            "web_account_tokens",
+            "web_rate_limits",
+            "web_projects",
+            "web_activity",
+            "web_runs",
+            "web_ai_campaigns",
+            "web_ai_grants",
+            "web_ai_requests",
+            "web_explorer_snapshots",
+            "web_notes",
+            "web_view_states",
+            "web_scenarios",
+            "web_reporting_views",
         }
         context = MigrationContext.configure(
             connection,

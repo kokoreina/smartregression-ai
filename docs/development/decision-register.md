@@ -11,6 +11,13 @@ pending review nên không xem đây là mentor-approved. Git không xác địn
 `proposed`: phương án đang đề xuất; `pending`: chưa quyết; `superseded`: đã có nguồn
 thay thế, phải giữ liên kết cũ/mới. Không xóa lịch sử để làm như mọi quyết định đã có sẵn.
 
+**Định tuyến Sprint 3 hiện tại — 15/11/2026:** user đã giao triển khai đợt 1 của bộ
+75 task web. Xem [team guide](sprint-3-team-guide.md),
+[audit 75 task và đối chiếu 20 task nghiên cứu cũ](sprint-3-phase-1-audit.md), cùng
+[contracts/auth brief](sprint-3-web-contracts.md). Brief auth là thiết kế cho đợt 2,
+chưa phải implementation hoặc phê duyệt mentor; các quyết định nghiên cứu dưới đây
+vẫn giữ lịch sử và phạm vi của chúng.
+
 | ID | Quyết định/phạm vi | Trạng thái | Nguồn và giới hạn | Người quyết định |
 | --- | --- | --- | --- | --- |
 | D01 | Monorepo, Python src package, React frontend; hướng phụ thuộc core/application/adapters | accepted cho bootstrap | [ADR 0001](../architecture/decisions/0001-bootstrap.md), [architecture](../architecture/overview.md); không suy ra kiến trúc worker đã chốt | Chưa ghi người cụ thể trong ADR |
@@ -90,6 +97,18 @@ ngày 2026-10-31. Không suy CI đó xác minh thay đổi local mới hoặc to
   ghi phương án và người quyết định; không mặc định code hay docs luôn thắng.
 
 ## Cập nhật
+
+2026-11-15, user-authorized phase3–8 local scope: React/FastAPI/PostgreSQL retained;
+owner-only personal projects, server sessions, additive web migrations, bounded
+background work and immutable reports/scenarios implemented locally. JS explorer
+scope is literal `.js` ESM/CommonJS with Tree-sitter0.26.1/grammar0.25.0. This expands
+the web explorer, not the historical research selector's supported language.
+Local HTTPS/Compose is authorized; public deployment/Git publication is not.
+The separate acceptance campaign reserves at most10 attempts/USD0.20, preserves
+historical ledgers and has reached its cap; no new generations are authorized by
+this implementation. Public staging/email, encrypted off-host destination and
+independent review are still pending. These are user scope decisions, not mentor
+or independent approval. Evidence: [phase3–8 handoff](sprint-3-phase-3-8-handoff.md).
 
 Task đã giao rõ có thể cập nhật quyết định trong phạm vi đó mà không xin phép lại.
 Quyết định kiến trúc mới dùng [ADR template](../templates/adr.md), liên kết vào bảng;

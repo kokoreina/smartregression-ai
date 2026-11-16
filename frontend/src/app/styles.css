@@ -17,6 +17,52 @@ p { margin: 10px 0; }
 .connection { display: flex; justify-content: space-between; align-items: center; gap: 12px; font-size: 14px; margin: 20px 0; }
 button { border: 1px solid #9caf9e; border-radius: 7px; background: transparent; padding: 9px 13px; color: #173b37; cursor: pointer; font: inherit; }
 button:hover { background: #e3ebde; }
+button:disabled { opacity: .55; cursor: wait; }
+input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 3px solid #498933; outline-offset: 3px; }
+.repo-form { display: grid; gap: 12px; margin-top: 18px; }
+.repo-form label { font-weight: 600; font-size: 14px; }
+.repo-form input:not([type="checkbox"]), .repo-form textarea { display: block; width: 100%; border: 1px solid #8fa69a; border-radius: 7px; background: #fff; color: #173b37; padding: 11px 12px; font: inherit; min-width: 0; }
+.repo-input-row { display: flex; gap: 10px; }
+.repo-input-row input { flex: 1; }
+.primary { background: #173b37; color: #fff; font-weight: 700; }
+.primary:hover { background: #28574c; }
+.repo-commit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.checkbox-row { display: flex; gap: 10px; align-items: flex-start; font-weight: 400 !important; }
+.checkbox-row input { margin-top: 5px; flex-shrink: 0; }
+.repo-form details li { margin-bottom: 10px; overflow-wrap: anywhere; }
+.repo-form > button { justify-self: start; }
+.demo-panel > summary { cursor: pointer; margin: 18px 0; font-weight: 700; }
+.llm-finding { border-top: 1px solid #dce4dc; padding-top: 12px; margin-top: 12px; }
+.impact-filter { display: grid; gap: 8px; margin: 18px 0; font-weight: 600; }
+.impact-filter select { max-width: 100%; padding: 10px; border: 1px solid #8fa69a; border-radius: 7px; background: #fff; color: #173b37; font: inherit; }
+.impact-filter select:focus-visible { outline: 3px solid #498933; outline-offset: 3px; }
+.repository-tree { border-top: 1px solid #dce4dc; border-bottom: 1px solid #dce4dc; padding: 18px 0; }
+.repository-tree h3 { font-size: 18px; margin: 0; }
+.repository-tree .section-heading { gap: 12px; flex-wrap: wrap; }
+.tree-layout { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; margin-top: 14px; }
+.tree-scroll { max-height: 480px; overflow: auto; background: #f6f8f4; padding: 16px; border: 1px solid #dce4dc; border-radius: 8px; }
+.tree-scroll:focus-visible { outline: 3px solid #498933; }
+.tree-root, .repo-tree-list { font-family: ui-monospace, Consolas, monospace; font-size: 13px; }
+.repo-tree-list { list-style: none; margin: 4px 0 0 7px; padding: 0 0 0 17px; border-left: 1px solid #91a398; }
+.repo-tree-list li { position: relative; margin: 0 !important; }
+.repo-tree-list li::before { content: ''; width: 12px; border-top: 1px solid #91a398; position: absolute; left: -17px; top: 16px; }
+.repo-tree-list summary { cursor: pointer; padding: 4px 0; width: fit-content; overflow-wrap: anywhere; }
+.tree-file { padding: 4px 6px; border: 0; border-radius: 4px; text-align: left; overflow-wrap: anywhere; max-width: 100%; }
+.tree-file[aria-pressed="true"] { background: #d7e9cc; color: #173b37; font-weight: 700; }
+.tree-selection { padding: 12px; overflow-wrap: anywhere; }
+.workflow-steps { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; padding: 0; margin: 20px 0; counter-reset: none; }
+.workflow-steps li { background: #edf3e9; border: 1px solid #ccdac4; border-radius: 6px; padding: 8px 12px; font-size: 13px; }
+.saved-report-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; border-bottom: 1px solid #dce4dc; padding-bottom: 18px; }
+.report-identity { background: #f6f8f4; padding: 10px 16px; border-radius: 8px; overflow-wrap: anywhere; }
+.metadata-links { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; }
+.metadata-links a { padding: 4px 8px; background: #edf3e9; border-radius: 4px; }
+.metadata-item { padding: 8px; overflow-wrap: anywhere; scroll-margin-top: 20px; }
+.metadata-item:target, .metadata-item:focus { background: #edf3e9; outline: 2px solid #498933; outline-offset: 2px; }
+.repository-analysis .section-heading { flex-wrap: wrap; gap: 12px; }
+.repository-analysis details > summary { cursor: pointer; padding: 6px 0; }
+@media (prefers-reduced-motion: no-preference) { button, .metadata-links a { transition: background-color 140ms ease; } }
+@media (max-width: 750px) { .tree-layout { grid-template-columns: 1fr; } }
+@media (max-width: 650px) { .repo-input-row { flex-direction: column; } .repo-commit-grid { grid-template-columns: 1fr; } }
 button:focus-visible, a:focus-visible { outline: 3px solid #498933; outline-offset: 4px; }
 .notice { border: 1px solid #d9c381; background: #faf1d8; color: #655221; border-radius: 8px; padding: 15px 18px; margin-bottom: 22px; }
 .notice.error { border-color: #c06d65; background: #fff0ed; color: #85342e; }

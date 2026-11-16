@@ -26,7 +26,7 @@ from smartregression.contracts.workflow import (
     inventory_fingerprint,
 )
 from smartregression.core.evidence.resolution import resolve_source, source_lines
-from smartregression.gemini_config import GeminiCredential
+from smartregression.gemini_config import GeminiCredential, credential_environment
 
 FIXTURE_VERSION = "s3-g1-synthetic-v1"
 TESTS = (
@@ -185,30 +185,6 @@ def synthetic_request(directory: Path, policy: RuntimePolicy, run_id: str) -> Pr
             ),
         )
     )
-
-
-def credential_environment(path: Path | None) -> dict[str, str]:
-    env = {k: os.environ[k] for k in ("GEMINI_API_KEY", "GOOGLE_API_KEY") if k in os.environ}
-    if path is not None:
-        if path.is_symlink() or path.stat().st_size > 65536:
-            raise ValueError("invalid_secret_file")
-        values = {}
-        for raw in path.read_text(encoding="utf-8-sig").splitlines():
-            line = raw.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, value = line.removeprefix("export ").split("=", 1)
-            key = key.strip()
-            if key not in {"GEMINI_API_KEY", "GOOGLE_API_KEY"}:
-                continue
-            if key in values:
-                raise ValueError("duplicate_secret_configuration")
-            values[key] = value.strip().strip("\"'")
-        for key, value in values.items():
-            if key in env and env[key] != value:
-                raise ValueError("conflicting_secret_sources")
-            env[key] = value
-    return env
 
 
 def fixture_support(result) -> bool:

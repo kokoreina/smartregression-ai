@@ -1,0 +1,101 @@
+name: smartregression-local
+services:
+  db:
+    image: postgres:17-bookworm
+    entrypoint: ["/bin/sh", "/opt/sr/postgres-entrypoint.sh"]
+    environment:
+      POSTGRES_DB: smartregression_product
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    secrets: [postgres_password]
+    volumes:
+      - database:/var/lib/postgresql/data
+      - ../../var/local-https/tls:/run/tls:ro
+      - ./postgres-entrypoint.sh:/opt/sr/postgres-entrypoint.sh:ro
+      - ./pg_hba.conf:/opt/sr/pg_hba.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smartregression_product"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    labels:
+      smartregression.local-https: phase3-8
+    mem_limit: 768m
+    cpus: 1
+  migrate:
+    build:
+      context: ../..
+      dockerfile: deploy/local/Dockerfile.backend
+    env_file:
+      - ../../var/local-https/migration.env
+    volumes:
+      - ../../var/local-https/tls/ca.crt:/run/tls/ca.crt:ro
+      - artifacts:/app/var
+    command: ["/app/.venv/bin/python", "deploy/local/migrate.py"]
+    user: "0:0"
+    depends_on:
+      db: {condition: service_healthy}
+    profiles: [setup]
+    labels:
+      smartregression.local-https: phase3-8
+  backend:
+    build:
+      context: ../..
+      dockerfile: deploy/local/Dockerfile.backend
+    env_file:
+      - ../../var/local-https/runtime.env
+    volumes:
+      - ../../var/local-https/tls/ca.crt:/run/tls/ca.crt:ro
+      - artifacts:/app/var
+    depends_on:
+      db: {condition: service_healthy}
+    command: ["/app/.venv/bin/uvicorn", "smartregression.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--no-access-log", "--no-proxy-headers"]
+    read_only: true
+    tmpfs: ["/tmp:size=128m,mode=1777"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 1536m
+    cpus: 2
+    labels:
+      smartregression.local-https: phase3-8
+  frontend:
+    build:
+      context: ../..
+      dockerfile: deploy/local/Dockerfile.frontend
+    ports: ["127.0.0.1:8443:8443"]
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on: [backend]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 1
+    labels:
+      smartregression.local-https: phase3-8
+  browser-proxy:
+    image: caddy:2.10.2-alpine
+    profiles: [browser-test]
+    ports: ["127.0.0.1:8444:8444"]
+    volumes:
+      - ./Caddyfile.test:/etc/caddy/Caddyfile:ro
+      - test_caddy_data:/data
+      - test_caddy_config:/config
+    labels:
+      smartregression.local-https: phase3-8-test-proxy
+volumes:
+  database:
+    labels: {smartregression.local-https: phase3-8}
+  artifacts:
+    labels: {smartregression.local-https: phase3-8}
+  caddy_data:
+    labels: {smartregression.local-https: phase3-8}
+  caddy_config:
+    labels: {smartregression.local-https: phase3-8}
+  test_caddy_data:
+    labels: {smartregression.local-https: phase3-8-test-proxy}
+  test_caddy_config:
+    labels: {smartregression.local-https: phase3-8-test-proxy}
+secrets:
+  postgres_password:
+    file: ../../var/local-https/postgres-password

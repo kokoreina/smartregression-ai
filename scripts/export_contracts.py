@@ -13,6 +13,7 @@ from smartregression.contracts.models import (
     AnalysisRequest,
     ErrorResponse,
 )
+from smartregression.contracts.repository import RepositoryReportExport
 from smartregression.contracts.stages import EvidenceBundle, StageAnalysisReport
 from smartregression.contracts.workflow import ProposalRequest, WorkflowReport
 
@@ -35,6 +36,7 @@ def main() -> int:
                 EvidenceBundle,
                 ProposalRequest,
                 WorkflowReport,
+                RepositoryReportExport,
             )
         ],
         ref_template="#/components/schemas/{model}",

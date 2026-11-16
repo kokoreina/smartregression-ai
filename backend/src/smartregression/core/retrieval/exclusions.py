@@ -43,6 +43,11 @@ _SECRETS = re.compile(
 )
 
 
+def contains_recognized_secret(text: str) -> bool:
+    """Conservative credential patterns only; this is not a complete DLP detector."""
+    return _SECRETS.search(text) is not None
+
+
 def exclusion_reason(path: str, content: bytes) -> str | None:
     """Return a safe reason only; the caller must not persist excluded content."""
     validate_snapshot_paths([path])
@@ -68,6 +73,6 @@ def exclusion_reason(path: str, content: bytes) -> str | None:
         return "unsupported_content"
     if _OUTCOMES.search(text):
         return "evaluation_content"
-    if _SECRETS.search(text):
+    if contains_recognized_secret(text):
         return "recognized_secret"
     return None

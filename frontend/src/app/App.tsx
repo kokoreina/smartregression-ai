@@ -9,6 +9,7 @@ import {
 } from '../features/reports/stageReport'
 import { StageReportView } from '../features/reports/StageReportView'
 import { checkHealth } from '../lib/api'
+import { RepositoryAnalysis } from '../features/repositories/RepositoryAnalysis'
 
 type AppMode = 'demo-v1' | 'stage-v2'
 
@@ -89,13 +90,13 @@ export function App() {
     <>
       <header>
         <a className="brand" href="/">SR<span>SmartRegression AI</span></a>
-        <span className="tag">RESEARCH BOOTSTRAP</span>
+        <span className="tag">REPOSITORY ANALYSIS</span>
       </header>
       <main>
         <div className="intro">
           <p className="eyebrow">CHANGE IMPACT / REGRESSION TEST SELECTION</p>
           <h1>Hiểu thay đổi.<br /><span>Kiểm thử có bằng chứng.</span></h1>
-          <p>Khung báo cáo cho nhóm nghiên cứu SmartRegression AI.</p>
+          <p>Phân tích thay đổi GitHub, xem ảnh hưởng tiềm năng và giải thích có bằng chứng.</p>
         </div>
 
         {/* API health */}
@@ -106,6 +107,10 @@ export function App() {
           </button>
         </div>
 
+        <RepositoryAnalysis />
+
+        <details className="demo-panel">
+        <summary>Xem báo cáo JSON hoặc các ví dụ DEMO</summary>
         {/* Report loader toolbar */}
         <div className="report-toolbar" role="toolbar" aria-label="Mở báo cáo">
           <span className="label" style={{ alignSelf: 'center' }}>Mở báo cáo:</span>
@@ -163,6 +168,7 @@ export function App() {
         )}
 
         <footer>SmartRegression AI · Bootstrap 0.1 · Test thất bại không tự xác nhận một fault.</footer>
+        </details>
       </main>
     </>
   )

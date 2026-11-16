@@ -2,6 +2,28 @@
 
 **An LLM- and RAG-Based Change Impact Analysis and Regression Test Selection System.**
 
+**Sprint 3 local product (2026-11-15):** accounts, personal projects, durable runs,
+Python/JavaScript explorer, static calls/impact, immutable what-if/A-B, notes/resume,
+reading/search, consent-bound Gemini, dashboards and JSON/CSV/browser PDF are
+implemented locally. Start at `/login`; open saved files independently at `/reports`.
+See [local setup/operations](docs/development/sprint-3-local-operations.md),
+[verification and pending gates](docs/development/sprint-3-phase-3-8-handoff.md)
+and the [75-task audit](docs/development/sprint-3-phase-1-audit.md).
+Public staging, off-host backup, PR/main CI and independent review remain pending.
+
+**Sprint 3 web baseline (2026-11-15):** the current 75-task scope, eight delivery
+waves and phase 2 auth brief are in the [team guide](docs/development/sprint-3-team-guide.md).
+See the [phase 1 handoff](docs/development/sprint-3-phase-1-handoff.md) for commands,
+actual checks and pending browser acceptance. The older 20-task research guide
+is preserved as history; matching task numbers do not imply matching scope.
+
+**Local web update (2026-11-10):** public GitHub repo and commit selection,
+read-only Python change/import-impact analysis and bounded Gemini metadata
+explanations are available in the dashboard. See [usage, limits and verification](docs/development/web-repository-analysis.md).
+Selection/execution were outside that historical slice. Current owner-scoped web
+publication is described in the Sprint 3 links above. Bootstrap status below is
+historical and does not describe the complete local product.
+
 Bootstrap cho nhóm 5 sinh viên: contract, health API, CLI kiểm tra report và dashboard
 **DEMO**. Mục tiêu tiếp theo là phân tích ảnh hưởng giữa hai Git commit có bằng chứng,
 chọn regression test hiện có, xác thực lựa chọn và hỗ trợ thực thi/đánh giá.
