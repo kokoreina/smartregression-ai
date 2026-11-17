@@ -1,10 +1,11 @@
 """Immutable proposed changes; inputs never modify or execute the source repository."""
+
 from alembic import op
 
-revision='20261115_13'
-down_revision='20261115_12'
-branch_labels=None
-depends_on=None
+revision = "20261115_13"
+down_revision = "20261115_12"
+branch_labels = None
+depends_on = None
 
 
 def upgrade():
@@ -23,7 +24,9 @@ def upgrade():
             FOREIGN KEY(owner_id,project_id) REFERENCES smartregression.web_projects(owner_id,id)
                 ON UPDATE RESTRICT ON DELETE RESTRICT,
             FOREIGN KEY(owner_id,project_id,baseline,config_digest)
-                REFERENCES smartregression.web_explorer_snapshots(owner_id,project_id,commit,config_digest)
+                REFERENCES smartregression.web_explorer_snapshots(
+                    owner_id,project_id,commit,config_digest
+                )
                 ON UPDATE RESTRICT ON DELETE RESTRICT
         );
         CREATE INDEX ix_web_scenarios_owner_project_created
@@ -32,4 +35,4 @@ def upgrade():
 
 
 def downgrade():
-    raise RuntimeError('forward_only_migration_restore_backup')
+    raise RuntimeError("forward_only_migration_restore_backup")

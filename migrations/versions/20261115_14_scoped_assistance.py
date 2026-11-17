@@ -23,7 +23,9 @@ def upgrade():
         DROP CONSTRAINT web_ai_requests_owner_id_run_id_action_idempotency_key_key,
         ADD UNIQUE(owner_id,project_id,scope_key,action,idempotency_key),
         ADD FOREIGN KEY(owner_id,project_id,snapshot_commit,snapshot_config)
-          REFERENCES smartregression.web_explorer_snapshots(owner_id,project_id,commit,config_digest)
+          REFERENCES smartregression.web_explorer_snapshots(
+              owner_id,project_id,commit,config_digest
+          )
           ON UPDATE RESTRICT ON DELETE RESTRICT,
         ADD CHECK((run_id IS NOT NULL AND action='commit' AND scope_key='run:'||run_id::text
                     AND snapshot_commit IS NULL AND snapshot_config IS NULL)

@@ -1,10 +1,11 @@
 """Immutable owner/project/SHA/config explorer cache, separate from research manifests."""
+
 from alembic import op
 
-revision='20261115_11'
-down_revision='20261115_10'
-branch_labels=None
-depends_on=None
+revision = "20261115_11"
+down_revision = "20261115_10"
+branch_labels = None
+depends_on = None
 
 
 def upgrade():
@@ -27,4 +28,4 @@ def upgrade():
 
 
 def downgrade():
-    raise RuntimeError('forward_only_migration_restore_backup')
+    raise RuntimeError("forward_only_migration_restore_backup")

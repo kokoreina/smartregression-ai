@@ -39,6 +39,7 @@ packages = ["backend/src/smartregression"]
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 addopts = "-ra"
+pythonpath = ["."]
 
 [tool.ruff]
 target-version = "py314"

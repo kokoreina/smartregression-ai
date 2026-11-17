@@ -20,7 +20,8 @@ def upgrade():
             config_digest TEXT NOT NULL CHECK (config_digest ~ '^[0-9a-f]{64}$'),
             idempotency_key TEXT NOT NULL,
             request_digest TEXT NOT NULL CHECK (request_digest ~ '^[0-9a-f]{64}$'),
-            status TEXT NOT NULL CHECK(status IN ('queued','running','completed','failed','interrupted')),
+            status TEXT NOT NULL
+                CHECK(status IN ('queued','running','completed','failed','interrupted')),
             started_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
             finished_at TIMESTAMPTZ,
             error_code TEXT,

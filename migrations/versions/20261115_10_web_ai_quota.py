@@ -32,7 +32,8 @@ def upgrade():
             campaign_id TEXT NOT NULL,
             idempotency_key TEXT NOT NULL,
             input_digest TEXT NOT NULL CHECK(input_digest ~ '^[0-9a-f]{64}$'),
-            action TEXT NOT NULL CHECK(action IN ('commit','hypothesis','reading_guide','search','file','folder')),
+            action TEXT NOT NULL
+                CHECK(action IN ('commit','hypothesis','reading_guide','search','file','folder')),
             status TEXT NOT NULL CHECK(status IN ('queued','running','completed','failed')),
             reservation_micro_usd INTEGER NOT NULL CHECK(reservation_micro_usd BETWEEN 1 AND 20000),
             actual_micro_usd INTEGER CHECK(actual_micro_usd BETWEEN 0 AND reservation_micro_usd),
@@ -49,10 +50,14 @@ def upgrade():
             FOREIGN KEY(owner_id,project_id,run_id)
                 REFERENCES smartregression.web_runs(owner_id,project_id,id)
                 ON UPDATE RESTRICT ON DELETE RESTRICT,
-            CHECK ((status IN ('queued','running') AND finished_at IS NULL AND result IS NULL) OR
-                (status IN ('completed','failed') AND finished_at IS NOT NULL AND result IS NOT NULL))
+            CHECK (
+                (status IN ('queued','running') AND finished_at IS NULL AND result IS NULL)
+                OR (status IN ('completed','failed') AND finished_at IS NOT NULL
+                    AND result IS NOT NULL)
+            )
         );
-        CREATE INDEX ix_web_ai_requests_owner_run ON smartregression.web_ai_requests(owner_id,run_id,created_at DESC);
+        CREATE INDEX ix_web_ai_requests_owner_run
+            ON smartregression.web_ai_requests(owner_id,run_id,created_at DESC);
     """)
 
 

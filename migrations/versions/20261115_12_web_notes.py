@@ -1,10 +1,11 @@
 """Versioned notes/pins and one resumable view per owned project."""
+
 from alembic import op
 
-revision='20261115_12'
-down_revision='20261115_11'
-branch_labels=None
-depends_on=None
+revision = "20261115_12"
+down_revision = "20261115_11"
+branch_labels = None
+depends_on = None
 
 
 def upgrade():
@@ -41,4 +42,4 @@ def upgrade():
 
 
 def downgrade():
-    raise RuntimeError('forward_only_migration_restore_backup')
+    raise RuntimeError("forward_only_migration_restore_backup")
