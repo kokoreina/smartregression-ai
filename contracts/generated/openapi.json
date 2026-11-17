@@ -686,6 +686,49 @@
         "title": "ChangedComponent",
         "type": "object"
       },
+      "ClassifiedReference": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "builtin",
+              "stdlib"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "call",
+              "import"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "line": {
+            "default": 1,
+            "minimum": 1.0,
+            "title": "Line",
+            "type": "integer"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "reference": {
+            "title": "Reference",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "reference",
+          "category",
+          "kind"
+        ],
+        "title": "ClassifiedReference",
+        "type": "object"
+      },
       "CommitPair": {
         "additionalProperties": false,
         "properties": {
@@ -711,6 +754,49 @@
           "target"
         ],
         "title": "CommitPair",
+        "type": "object"
+      },
+      "CoverageDiagnostics": {
+        "additionalProperties": false,
+        "properties": {
+          "classified_by_kind": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Classified By Kind",
+            "type": "object"
+          },
+          "excluded_files": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Excluded Files",
+            "type": "array"
+          },
+          "file_groups": {
+            "additionalProperties": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "File Groups",
+            "type": "object"
+          },
+          "unresolved_by_reason": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Unresolved By Reason",
+            "type": "object"
+          }
+        },
+        "required": [
+          "file_groups",
+          "unresolved_by_reason",
+          "classified_by_kind"
+        ],
+        "title": "CoverageDiagnostics",
         "type": "object"
       },
       "CsrfToken": {
@@ -1326,6 +1412,13 @@
       "ExplorerGraph": {
         "additionalProperties": false,
         "properties": {
+          "classified_references": {
+            "items": {
+              "$ref": "#/components/schemas/ClassifiedReference"
+            },
+            "title": "Classified References",
+            "type": "array"
+          },
           "commit": {
             "pattern": "^[0-9a-f]{40}$",
             "title": "Commit",
@@ -1634,6 +1727,16 @@
             },
             "title": "Analyzed Files",
             "type": "array"
+          },
+          "diagnostics": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoverageDiagnostics"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "status": {
             "enum": [

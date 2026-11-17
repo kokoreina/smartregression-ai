@@ -5,10 +5,11 @@ import posixpath
 import re
 import time
 from collections import defaultdict, deque
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 
 from smartregression.contracts.explorer import (
     CallPaths,
+    ClassifiedReference,
     ExplorerEdge,
     ExplorerGraph,
     ExplorerNode,
@@ -19,13 +20,16 @@ from smartregression.contracts.explorer import (
     ImpactSummary,
     UnresolvedRelation,
 )
+from smartregression.core.explorer.coverage import update_diagnostics
 from smartregression.core.explorer.parsing import ParsedFile
 from smartregression.core.explorer.python import parse_python
+from smartregression.core.explorer.python_resolution import BUILTINS, STDLIB, PythonResolver
 from smartregression.core.git.snapshots import validate_snapshot_paths
 from smartregression.core.impact.dependency_graph import build_dependency_graph
 
 PARSER_CONFIG = hashlib.sha256(
-    b"explorer-python-reuse-js-ts0261-grammar0250-relative-static-v1"
+    b"explorer-python-lexical-reexports-diagnostics-v3-js-ts0261-grammar0250"
+    + "|".join(sorted(BUILTINS | STDLIB)).encode()
 ).hexdigest()
 
 
@@ -63,6 +67,7 @@ def build_graph(
     parse_javascript: Callable[[str], ParsedFile],
     *,
     overlay_identity: tuple[str, str] | None = None,
+    known_paths: Iterable[str] = (),
 ) -> ExplorerGraph:
     if not repository_id or not re.fullmatch("[0-9a-f]{40}", commit):
         raise ValueError("invalid_snapshot_identity")
@@ -74,6 +79,7 @@ def build_graph(
     unparsed = []
     unsupported = []
     unresolved = []
+    classified = []
     for path, source in sorted(sources.items()):
         if time.monotonic() > deadline:
             raise ValueError("graph_timeout")
@@ -197,6 +203,7 @@ def build_graph(
                 path=next(iter(py_sources), ""), reference="", reason="ambiguous_python_modules"
             )
         )
+    python_resolver = PythonResolver(parsed, symbols, resolve, known_paths)
     bindings = {}
     for path, facts in parsed.items():
         if facts.syntax_error:
@@ -204,19 +211,51 @@ def build_graph(
         aliases = {}
         for imported in facts.imports:
             target = resolve(path, imported.reference, set(parsed))
+            if path.endswith(".py") and not target and imported.bindings:
+                suffix = "" if imported.reference.endswith(".") else "."
+                submodules = [
+                    resolve(path, imported.reference + suffix + name, set(parsed))
+                    for _, name in imported.bindings
+                ]
+                for module in set(submodules) - {None}:
+                    edge(
+                        file_nodes[path],
+                        file_nodes[module],
+                        "imports",
+                        evidence(path, imported.line),
+                    )
+                if all(submodules):
+                    continue
             if target and target != path:
                 edge(file_nodes[path], file_nodes[target], "imports", evidence(path, imported.line))
             elif target == path:
                 edge(file_nodes[path], file_nodes[path], "imports", evidence(path, imported.line))
             else:
-                unresolved.append(
-                    UnresolvedRelation(
-                        path=path,
-                        reference=imported.reference,
-                        reason="external_or_unresolved_import",
-                        line=imported.line,
+                if path.endswith(".py") and python_resolver.stdlib(imported.reference):
+                    classified.append(
+                        ClassifiedReference(
+                            path=path,
+                            reference=imported.reference,
+                            category="stdlib",
+                            kind="import",
+                            line=imported.line,
+                        )
                     )
-                )
+                else:
+                    internal = path.endswith(".py") and (
+                        imported.reference.startswith(".")
+                        or imported.reference.split(".")[0] in python_resolver.local_roots
+                    )
+                    unresolved.append(
+                        UnresolvedRelation(
+                            path=path,
+                            reference=imported.reference,
+                            reason="unresolved_internal_import"
+                            if internal
+                            else "external_or_unresolved_import",
+                            line=imported.line,
+                        )
+                    )
             if target:
                 for local, export in imported.bindings:
                     if local in aliases:
@@ -242,6 +281,36 @@ def build_graph(
         if facts.syntax_error:
             continue
         for call in facts.calls:
+            if path.endswith(".py"):
+                result = python_resolver.call(path, call.caller, call.expression)
+                caller = symbols.get((path, call.caller)) if call.caller else file_nodes[path]
+                target = (
+                    symbols.get((result.path, result.name)) if result.kind == "symbol" else None
+                )
+                if caller and target:
+                    edge(caller, target, "calls", evidence(path, call.line))
+                elif result.kind in {"builtin", "stdlib"}:
+                    classified.append(
+                        ClassifiedReference(
+                            path=path,
+                            reference=call.expression,
+                            category=result.kind,
+                            kind="call",
+                            line=call.line,
+                        )
+                    )
+                else:
+                    unresolved.append(
+                        UnresolvedRelation(
+                            path=path,
+                            reference=call.expression,
+                            line=call.line,
+                            reason="shadowed_call"
+                            if result.kind == "shadowed"
+                            else "unresolved_static_call",
+                        )
+                    )
+                continue
             if call.expression.split(".")[0] in facts.shadowed.get(call.caller or "", set()):
                 unresolved.append(
                     UnresolvedRelation(
@@ -286,7 +355,7 @@ def build_graph(
         unparsed_files=sorted(unparsed),
         unsupported_files=sorted(unsupported),
     )
-    return ExplorerGraph(
+    result = ExplorerGraph(
         repository_id=repository_id,
         commit=commit,
         config_digest=PARSER_CONFIG,
@@ -294,8 +363,13 @@ def build_graph(
         nodes=sorted(nodes.values(), key=lambda n: (n.path, n.kind, n.symbol or "")),
         edges=sorted(edges.values(), key=lambda e: e.id),
         unresolved=sorted(unresolved, key=lambda u: (u.path, u.line, u.reason, u.reference)),
+        classified_references=sorted(
+            classified, key=lambda r: (r.path, r.line, r.category, r.reference)
+        ),
         coverage=coverage,
     )
+    update_diagnostics(result)
+    return result
 
 
 def import_adjacency(graph: ExplorerGraph):

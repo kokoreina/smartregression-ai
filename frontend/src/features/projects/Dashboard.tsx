@@ -4,6 +4,8 @@ import { Link, useSearchParams } from 'react-router-dom'
 import type { components } from '../../types/generated'
 import { productDownload, productRequest } from '../auth/authClient'
 import { FormNotice } from '../auth/AuthViews'
+import { WorkspaceIcon } from '../../components/WorkspaceIcon'
+import { DashboardCharts } from './DashboardCharts'
 import './dashboard.css'
 
 type Summary = components['schemas']['Dashboard']
@@ -21,17 +23,13 @@ function download(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
 
-function Bars({ values, label }: { values: Record<string, number>; label: string }) {
-  const maximum = Math.max(1, ...Object.values(values))
-  return <section className="dashboard-chart auth-card"><h2>{label}</h2>{Object.keys(values).length ? <ul>{Object.entries(values).map(([key, count]) => <li key={key}><span>{key}</span><span className="chart-track" aria-hidden="true"><span style={{ width: `${count / maximum * 100}%` }} /></span><strong>{count}</strong></li>)}</ul> : <p>Chưa có dữ liệu trong bộ lọc.</p>}</section>
-}
-
 export function Dashboard() {
   const [params, setParams] = useSearchParams()
   const viewId = params.get('view') ?? ''
   const [summary, setSummary] = useState<Summary | null>(null)
   const [rows, setRows] = useState<Page | null>(null)
   const [projects, setProjects] = useState<Projects['items']>([])
+  const [projectsStatus, setProjectsStatus] = useState<'loading' | 'ready' | 'unavailable'>('loading')
   const [project, setProject] = useState('')
   const [days, setDays] = useState('30')
   const [status, setStatus] = useState('')
@@ -44,7 +42,7 @@ export function Dashboard() {
   const flight = useRef(false)
   useEffect(() => {
     let active = true
-    Promise.all([productRequest<Projects>('/projects?archived=false&limit=100'), productRequest<Projects>('/projects?archived=true&limit=100')]).then(values => { if (active) setProjects(values.flatMap(value => value.items)) }).catch(() => undefined)
+    Promise.all([productRequest<Projects>('/projects?archived=false&limit=100'), productRequest<Projects>('/projects?archived=true&limit=100')]).then(values => { if (active) { setProjects(values.flatMap(value => value.items)); setProjectsStatus('ready') } }).catch(() => { if (active) setProjectsStatus('unavailable') })
     return () => { active = false }
   }, [])
   useEffect(() => {
@@ -61,8 +59,8 @@ export function Dashboard() {
     productRequest<Usage>(`/reporting/views/${viewId}/usage?offset=${usageOffset}`).then(value => { if (active) setUsage(value) }).catch(cause => { if (active) setError(cause instanceof Error ? cause.message : 'Chưa đọc được usage.') })
     return () => { active = false }
   }, [viewId, usageOffset])
-  async function apply(event: React.FormEvent) {
-    event.preventDefault()
+  async function apply(event?: React.FormEvent) {
+    event?.preventDefault()
     if (flight.current) return
     flight.current = true; setBusy(true); setError('')
     try {
@@ -97,15 +95,16 @@ export function Dashboard() {
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Chưa chuẩn bị được bản in.') }
     finally { flight.current = false; setBusy(false) }
   }
-  return <section className="dashboard-page"><div className="page-title-row"><div><p className="eyebrow">DỮ LIỆU PHÂN TÍCH CỦA BẠN</p><h1>Tổng quan</h1></div><Link className="primary-button" to="/app/projects">Mở dự án →</Link></div>
+  return <section className="dashboard-page"><div className="page-title-row"><div><h1>Tổng quan</h1><p>Các dự án và kết quả phân tích của bạn.</p></div><Link className="primary-button" to="/app/projects">Mở dự án →</Link></div>
     {error && <FormNotice error>{error}</FormNotice>}
     <form className="auth-card dashboard-filters" onSubmit={apply} aria-busy={busy}><label>Dự án<select value={project} onChange={event => setProject(event.target.value)}><option value="">Tất cả dự án</option>{projects.map(item => <option value={item.id} key={item.id}>{item.title}</option>)}</select></label><label>Thời gian<select value={days} onChange={event => setDays(event.target.value)}><option value="7">7 ngày</option><option value="30">30 ngày</option><option value="90">90 ngày</option></select></label><label>Trạng thái tĩnh<select value={status} onChange={event => setStatus(event.target.value)}><option value="">Tất cả</option>{['queued', 'running', 'completed', 'failed', 'interrupted'].map(value => <option key={value}>{value}</option>)}</select></label><button disabled={busy} className="primary-button">{busy ? 'Đang đọc…' : 'Cập nhật tổng quan'}</button></form>
-    {!current && <FormNotice>Chọn bộ lọc rồi cập nhật để tạo tổng quan 30 ngày mặc định. Chưa có số liệu được tải.</FormNotice>}
+    {!current && <div className="dashboard-start"><section className="auth-card dashboard-projects"><div className="section-heading"><h2>Tiếp tục với dự án</h2><Link to="/app/projects">Xem tất cả</Link></div>
+      {projectsStatus === 'loading' ? <p role="status">Đang tải dự án…</p> : projectsStatus === 'unavailable' ? <p>Chưa đọc được danh sách dự án. <Link to="/app/projects">Mở trang dự án để thử lại.</Link></p> : projects.some(item => !item.archived) ? <ul>{projects.filter(item => !item.archived).slice(0, 3).map(item => <li key={item.id}><Link to={`/app/projects/${item.id}`}><span className="dashboard-project-icon"><WorkspaceIcon name="projects" /></span><span><strong>{item.title}</strong><small>{item.repository_url.replace('https://github.com/', '')}</small></span><span aria-hidden="true">→</span></Link></li>)}</ul> : <div className="dashboard-projects-empty"><WorkspaceIcon name="projects" /><p>Chưa có dự án đang hoạt động.</p><Link to="/app/projects">Tạo hoặc khôi phục dự án</Link></div>}
+    </section><section className="auth-card dashboard-start-guide"><span className="dashboard-guide-icon"><WorkspaceIcon name="reports" /></span><h2>Xem lại kết quả phân tích</h2><p>Đã có file JSON? Mở báo cáo để đọc kết quả và bằng chứng đã xuất.</p><Link className="secondary-action" to="/reports">Mở báo cáo đã lưu</Link><div className="dashboard-filter-help"><strong>Biểu đồ hoạt động và trạng thái</strong><p>Xem xu hướng theo ngày, trạng thái phân tích tĩnh và AI từ các lượt đã lưu. Áp dụng bộ lọc đang chọn ở phía trên.</p><button type="button" disabled={busy} onClick={() => void apply()}>{busy ? 'Đang tải biểu đồ…' : 'Xem biểu đồ'}</button></div></section></div>}
     {current && <><div className="report-provenance"><h2>Snapshot báo cáo</h2><p>Chốt lúc {new Date(current.filters.as_of).toLocaleString()} · múi giờ {current.filters.timezone}</p><p>{current.filters.start} → {current.filters.end} · project {current.filters.project_id ?? 'tất cả'} · status {current.filters.status ?? 'tất cả'}</p></div>
       <div className="dashboard-kpis">{[['Lượt phân tích', current.total_runs], ['Dự án có run', current.project_count], ['Chi phí đã biết (USD)', current.known_actual_micro_usd == null ? 'N/A' : (current.known_actual_micro_usd / 1e6).toFixed(6)], ['Bản ghi chưa biết chi phí', current.unknown_actual_count]].map(([label, value]) => <a href={label === 'Lượt phân tích' || label === 'Dự án có run' ? '#dashboard-runs' : '#dashboard-usage'} className="auth-card" key={label}><span>{label}</span><strong>{value}</strong><small>Xem bản ghi cùng bộ lọc ↓</small></a>)}</div>
       <p>Khoản giữ chỗ chưa quyết toán: {(current.reservation_micro_usd / 1e6).toFixed(6)} USD. Đây không phải chi phí thực tế.</p>
-      <div className="dashboard-charts"><Bars values={current.daily_runs} label="Lượt phân tích theo ngày" /><Bars values={current.static_statuses} label="Phân bố trạng thái tĩnh" /></div>
-      <p>Trạng thái AI của run: {Object.entries(current.ai_statuses).map(([key, count]) => `${key}: ${count}`).join(' · ') || 'Chưa có run'}</p>
+      <DashboardCharts summary={current} />
       <div className="dialog-actions dashboard-actions"><button disabled={busy || current.total_runs > 10000} onClick={() => void csv()}>Xuất toàn bộ CSV theo bộ lọc</button><button disabled={busy || current.total_runs > 10000} onClick={() => void print()}>In / Lưu PDF</button></div>
       <section className="auth-card" id="dashboard-runs"><h2>Run trong snapshot</h2><div className="screen-only"><RunTable items={rows?.items ?? []} /></div><div className="print-only"><RunTable items={printRows} /></div>{rows?.items.length === 0 && <p>Không có run khớp bộ lọc.</p>}<div className="dialog-actions dashboard-actions"><button disabled={offset === 0} onClick={() => setOffset(value => Math.max(0, value - 25))}>Trang trước</button><button disabled={!rows?.next_cursor} onClick={() => setOffset(value => value + 25)}>Trang tiếp</button></div></section>
       <section id="dashboard-usage" className="auth-card"><h2>Usage AI cùng snapshot</h2>{usage?.items.length ? <div className="table-scroll"><table><thead><tr><th>Yêu cầu</th><th>Loại / trạng thái</th><th>Chi phí đã biết</th><th>Giữ chỗ chưa quyết toán</th></tr></thead><tbody>{usage.items.map(item => <tr key={item.id}><td>{item.id.slice(0, 12)}</td><td>{item.action} / {item.status}</td><td>{item.actual_micro_usd == null ? 'Chưa biết' : `${(item.actual_micro_usd / 1e6).toFixed(6)} USD`}</td><td>{item.actual_micro_usd == null ? `${(item.reservation_micro_usd / 1e6).toFixed(6)} USD` : 'Đã quyết toán'}</td></tr>)}</tbody></table></div> : <p>Chưa có yêu cầu AI trong bộ lọc.</p>}<div className="dialog-actions dashboard-actions"><button disabled={usageOffset === 0} onClick={() => setUsageOffset(value => Math.max(0, value - 25))}>Usage trước</button><button disabled={!usage?.next_cursor} onClick={() => setUsageOffset(value => value + 25)}>Usage tiếp</button></div></section>

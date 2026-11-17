@@ -1,0 +1,22 @@
+.coverage-details { min-width: 0; margin: 16px 0 24px; padding: 18px 20px; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--subtle-surface); }
+.explorer-page .coverage-details > h2, .coverage-details > h4 { margin: 0 0 14px; font-size: 14px; font-weight: 550; }
+.coverage-file-counts { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin: 0; }
+.coverage-file-counts > div { display: flex; flex-direction: column-reverse; gap: 4px; }
+.coverage-file-counts dt { font-size: 11px; color: var(--muted); }
+.coverage-file-counts dd { margin: 0; font-size: 22px; font-weight: 550; font-variant-numeric: tabular-nums; }
+.coverage-details p, .impact-metrics .coverage-details p { color: var(--muted); font-size: 12px; line-height: 1.75; }
+.coverage-details details { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border); }
+.coverage-details summary { cursor: pointer; font-size: 12px; font-weight: 500; min-height: 32px; padding-block: 6px; }
+.coverage-details h4 { font-size: 12px; font-weight: 550; margin: 18px 0 8px; }
+.coverage-reasons { display: grid; gap: 10px; margin: 14px 0; }
+.coverage-reasons > div { display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 16px; font-size: 12px; }
+.coverage-reasons dt { color: var(--sidebar-text); }
+.coverage-reasons dd { margin: 0; font-variant-numeric: tabular-nums; }
+.coverage-details ul { max-height: 200px; overflow: auto; padding-left: 18px; font-size: 11px; }
+.coverage-details li { padding-block: 4px; overflow-wrap: anywhere; }
+.coverage-details .coverage-boundary { padding-top: 12px; border-top: 1px solid var(--border); margin-bottom: 0; font-size: 11px; }
+.coverage-details.is-compact { margin: 12px 0 0; padding: 12px; }
+.coverage-details.is-compact .coverage-file-counts { grid-template-columns: minmax(0,1fr); gap: 10px; }
+.coverage-details.is-compact .coverage-file-counts > div { flex-direction: row; justify-content: space-between; align-items: center; gap: 12px; }
+.coverage-details.is-compact .coverage-file-counts dd { font-size: 14px; }
+@media(max-width:600px) { .coverage-details { padding: 16px; } .coverage-file-counts { grid-template-columns: minmax(0,1fr); gap: 12px; } .coverage-file-counts > div { flex-direction: row; align-items: center; justify-content: space-between; gap: 12px; } .coverage-file-counts dd { font-size: 18px; } .coverage-details summary { min-height: 44px; } }

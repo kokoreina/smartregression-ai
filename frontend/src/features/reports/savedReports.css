@@ -1,0 +1,35 @@
+.saved-reports-page { max-width: 1280px; margin: 0 auto; }
+.reports-heading { display: flex; align-items: start; justify-content: space-between; gap: 20px; margin-bottom: 24px; }
+.reports-heading p { color: var(--muted); margin: 8px 0 0; }
+.reports-local-label { display: inline-block; margin-top: 15px; padding: 5px 10px; border: 1px solid var(--border-strong); background: var(--surface); border-radius: 5px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.report-import-panel { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; background: var(--surface); }
+.report-import-main { padding: 32px; margin: 24px; border: 1px dashed #aebed0; border-radius: 8px; background: #f9fbfd; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.report-import-main.is-dragging { background: var(--selected-surface); border-color: var(--primary); outline: 2px solid var(--primary); outline-offset: 2px; }
+.report-file-symbol { display: grid; place-items: center; width: 48px; height: 52px; border: 1px solid #d0dceb; border-radius: 8px; color: var(--primary); background: var(--surface); margin-bottom: 20px; }
+.report-file-symbol .workspace-icon { width: 24px; height: 24px; }
+.workspace-main .report-import-main h2 { font-size: 20px; margin-bottom: 10px; text-wrap: balance; }
+.report-import-main > p { max-width: 400px; margin: 0 0 28px; color: var(--muted); }
+.report-size-hint { margin-top: 12px; font-size: 12px; color: var(--muted); }
+.report-format-guide { padding: 36px 28px; background: var(--surface); border-left: 1px solid var(--border-strong); }
+.report-format-guide h3 { margin: 0 0 24px; font-size: 13px; font-weight: 600; }
+.report-format-guide dl { display: grid; gap: 18px; margin: 0; }
+.report-format-guide dl > div + div { padding-top: 18px; border-top: 1px solid var(--border); }
+.report-format-guide dt { font-size: 13px; font-weight: 500; }
+.report-format-guide dd { font-size: 13px; color: var(--muted); margin: 5px 0 0; text-wrap: pretty; }
+.report-import-note { font-size: 12px; color: var(--muted); line-height: 1.7; margin: 16px 0 28px; }
+.report-open-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 8px; padding: 18px 20px; }
+.report-open-identity { display: flex; gap: 12px; align-items: center; min-width: 0; }
+.report-open-identity > .workspace-icon { color: var(--muted); }
+.report-open-identity > div { min-width: 0; }
+.report-open-identity strong { display: block; font-size: 14px; font-weight: 500; overflow-wrap: anywhere; }
+.report-open-identity span { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+.report-open-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.saved-report-content .card { border-color: var(--border-strong); border-radius: 8px; padding: 24px; }
+.saved-report-content .commits, .saved-report-content .report-identity, .saved-report-content .evidence { background: var(--background); }
+.saved-report-content .count, .saved-report-content .metadata-links a { color: var(--foreground); background: var(--surface-hover); }
+.saved-report-content .label { color: var(--muted); letter-spacing: 0; font-weight: 500; }
+.saved-report-content .saved-report-toolbar { border-color: var(--border-strong); }
+.saved-report-content pre, .saved-report-content code { max-width: 100%; overflow-wrap: anywhere; }
+@media (max-width: 1100px) { .report-import-main { padding: 28px 20px; margin: 18px; }.report-format-guide { padding: 28px 24px; } }
+@media (max-width: 700px) { .report-import-panel { grid-template-columns: 1fr; }.report-format-guide { border-left: 0; border-top: 1px solid var(--border-strong); }.reports-heading { margin-bottom: 24px; }.reports-local-label { display: none; }.report-import-main { padding: 32px 24px; }.report-import-main button, .report-open-actions button { min-height: 44px; }.report-format-guide dl { gap: 20px; }.report-open-toolbar { padding: 16px; }.saved-report-content .commits { flex-wrap: wrap; }.saved-report-content .columns { grid-template-columns: 1fr; }.saved-report-content .card { padding: 18px; } }
+@media print { .reports-heading, .report-import-panel, .report-open-toolbar, .report-import-note { display: none !important; }.saved-report-content .card { break-inside: avoid; box-shadow: none; } }

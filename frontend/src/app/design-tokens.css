@@ -1,0 +1,44 @@
+:root {
+  --app-font: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --primary: #166e59; --primary-hover: #125b4a; --primary-foreground: #ffffff;
+  --background: #f4f6f8; --surface: #ffffff; --surface-overlay: #ffffff; --subtle-surface: #f7f9fa;
+  --foreground: #1f2933; --muted: #5d6977; --sidebar-text: #4e5b68; --sidebar-muted: #626f7d;
+  --sidebar-surface: #f4f6f8; --surface-hover: #edf1f3; --selected-surface: #e8f3ef;
+  --border: #e7ecf0; --border-strong: #cbd5df; --accent-border: #c3ded3; --drop-border: #91b5a8;
+  --auth-story-surface: #edf2f1; --avatar-surface: #e3e9ee; --focus: #267e68;
+  --graph-node: #ffffff; --graph-imports: #427789; --graph-calls: #82699a; --graph-contains: #8b99a6;
+  --chart-fill: #166e59;
+  --input-border: #81909c;
+  --positive: #236344; --positive-bg: #eaf5ef; --positive-border: #b5d6c1;
+  --warning: #7a5716; --warning-bg: #fbf2df; --warning-border: #e6ce9e;
+  --negative: #a92f38; --negative-bg: #fff0f1; --negative-border: #e8bcc0;
+  --danger: var(--negative); --danger-bg: var(--negative-bg);
+  --change-added-bg: var(--positive-bg); --change-removed-bg: var(--warning-bg);
+  --radius-control: 10px; --radius-panel: 12px; --radius-workspace: 16px;
+  --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px; --space-5: 20px; --space-6: 24px; --space-8: 32px;
+  --text-xs: 12px; --text-sm: 14px; --text-base: 16px; --text-lg: 20px; --text-xl: 26px;
+  --shadow-overlay: 0 12px 32px rgb(20 34 48 / 12%); --shadow-workspace: 0 2px 10px rgb(20 34 48 / 3%);
+  --motion-fast: 160ms; --motion-normal: 200ms;
+  --sr-ink: var(--foreground); --sr-border: var(--border-strong); --sr-muted: var(--muted);
+  --sr-surface: var(--surface); --sr-action: var(--primary); --sr-sidebar: var(--sidebar-surface);
+  --sr-accent: var(--selected-surface); --sr-radius: var(--radius-panel);
+  font-family: var(--app-font); font-size: var(--text-sm); line-height: 1.6;
+  color: var(--foreground); background: var(--background); color-scheme: light;
+}
+:root[data-theme='dark'] {
+  --primary: #8bd5bf; --primary-hover: #73bda8; --primary-foreground: #102c25;
+  --background: #10151e; --surface: #181f2b; --surface-overlay: #232d3d; --subtle-surface: #131a24;
+  --foreground: #e9eef5; --muted: #a7b3c4; --sidebar-text: #c1cbd8; --sidebar-muted: #a7b3c4;
+  --sidebar-surface: #10151e; --surface-hover: rgb(255 255 255 / 6%); --selected-surface: rgb(139 213 191 / 13%);
+  --border: rgb(255 255 255 / 8%); --border-strong: rgb(255 255 255 / 19%);
+  --accent-border: rgb(139 213 191 / 28%); --drop-border: rgb(139 213 191 / 42%);
+  --auth-story-surface: #131c25; --avatar-surface: #2b3746; --focus: #70b7a3;
+  --graph-node: #232d3d; --graph-imports: #87b9cc; --graph-calls: #b6a1d1; --graph-contains: #76899b;
+  --chart-fill: #70b7a3;
+  --input-border: #68778b;
+  --positive: #9ed9b4; --positive-bg: #1d332a; --positive-border: #3c6450;
+  --warning: #e8cb8e; --warning-bg: #352e20; --warning-border: #695839;
+  --negative: #f0abb1; --negative-bg: #38242b; --negative-border: #71414b;
+  --shadow-overlay: 0 16px 40px rgb(0 0 0 / 30%); --shadow-workspace: 0 2px 12px rgb(0 0 0 / 10%);
+  color-scheme: dark;
+}

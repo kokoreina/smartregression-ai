@@ -5,23 +5,26 @@ import { AccountError, productRequest } from '../auth/authClient'
 type State = components['schemas']['ViewState']
 type Input = components['schemas']['ViewStateInput']
 
-export function ResumeState({ projectId, value, ready, restore }: { projectId: string; value: Omit<Input, 'version'>; ready: boolean; restore: (value: State) => void }) {
+export function ResumeState({ projectId, value, ready, restore, onLoaded }: { projectId: string; value: Omit<Input, 'version'>; ready: boolean; restore: (value: State) => void; onLoaded?: (saved: State | null | undefined) => void }) {
   const [loaded, setLoaded] = useState(false)
   const [notice, setNotice] = useState('')
   const version = useRef(0)
   const onRestore = useRef(restore)
+  const onReady = useRef(onLoaded)
   const lastSaved = useRef('')
   const pending = useRef<Omit<Input, 'version'> | null>(null)
   const flight = useRef(false)
   const active = useRef(true)
   const conflict = useRef(false)
+  useEffect(() => { onRestore.current = restore; onReady.current = onLoaded }, [restore, onLoaded])
   useEffect(() => {
     active.current = true
     productRequest<State | null>(`/projects/${projectId}/view-state`).then(saved => {
       if (!active.current) return
       if (saved) { version.current = saved.version; onRestore.current(saved) }
       setLoaded(true)
-    }).catch(() => { if (active.current) setNotice('Chưa đọc được vị trí đã lưu. Bạn vẫn có thể khám phá bằng liên kết.') })
+      onReady.current?.(saved)
+    }).catch(() => { if (active.current) { setNotice('Chưa đọc được vị trí đã lưu. Bạn vẫn có thể khám phá bằng liên kết.'); onReady.current?.(undefined) } })
     return () => { active.current = false }
   }, [projectId])
   const serialized = JSON.stringify(value)

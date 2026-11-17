@@ -16,6 +16,8 @@ class ImportFact:
     reference: str
     line: int
     bindings: tuple[tuple[str, str], ...] = ()
+    scope: str | None = None
+    module_name: str | None = None
 
 
 @dataclass(frozen=True)
@@ -34,3 +36,5 @@ class ParsedFile:
     issues: list[tuple[str, int]] = field(default_factory=list)
     syntax_error: bool = False
     shadowed: dict[str, set[str]] = field(default_factory=dict)
+    scope_parents: dict[str, str] = field(default_factory=dict)
+    scope_kinds: dict[str, str] = field(default_factory=dict)
