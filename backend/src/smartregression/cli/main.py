@@ -3,8 +3,10 @@
 import argparse
 import json
 import sys
+from contextlib import ExitStack
 from dataclasses import asdict
 from pathlib import Path
+from uuid import UUID
 
 from pydantic import ValidationError
 
@@ -172,7 +174,22 @@ def main(argv: list[str] | None = None) -> int:
     snapshot.add_argument("--base", required=True)
     snapshot.add_argument("--target", required=True)
     snapshot.add_argument("--output", type=Path, required=True)
+    disable = commands.add_parser("disable-account", help="Operator-only account disable/revoke")
+    disable.add_argument("--user-id", type=UUID, required=True)
     args = parser.parse_args(argv)
+    if args.command == "disable-account":
+        from smartregression.application.auth import AuthFailure
+        from smartregression.composition import account_service
+
+        try:
+            with ExitStack() as stack:
+                service, _ = account_service(stack, required=True)
+                service.disable(str(args.user_id))
+            print("Account disabled; sessions and account tokens revoked.")
+            return 0
+        except AuthFailure, DatabaseConfigurationError, RunStorageError, ValueError:
+            print("Account operation failed; check trusted server configuration.", file=sys.stderr)
+            return 2
     if args.command == "analyze":
         return _analyze(args)
     if args.command == "prepare-snapshots":

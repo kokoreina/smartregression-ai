@@ -9,6 +9,8 @@ import { createServer } from 'vite'
 const root = new URL('../', import.meta.url)
 const server = await createServer({
   root: fileURLToPath(root), configFile: false,
+  cacheDir: fileURLToPath(new URL('node_modules/.vite-report-ssr', root)),
+  optimizeDeps: { noDiscovery: true, include: [] },
   server: { middlewareMode: true, hmr: false, watch: null },
   esbuild: { jsx: 'automatic' },
 })

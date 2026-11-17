@@ -417,12 +417,80 @@ def test_stage_state_matrix(status: str) -> None:
         StageAnalysisReport.model_validate(data)
 
 
-def test_public_stage_models_export_without_new_routes() -> None:
+def test_public_stage_models_export_with_explicit_repository_routes() -> None:
     root = Path(__file__).resolve().parents[3]
     schema = json.loads((root / "contracts/generated/openapi.json").read_text("utf-8"))
     for name in ("StageAnalysisReport", "EvidenceBundle", "InventoryPayload", "RetrievalPayload"):
         assert name in schema["components"]["schemas"]
-    assert set(schema["paths"]) == {"/health"}
+    assert set(schema["paths"]) == {
+        "/health",
+        "/repositories/inspect",
+        "/repositories/tree",
+        "/repository-analyses",
+        "/api/v1/capabilities",
+        "/api/v1/auth/csrf",
+        "/api/v1/auth/register",
+        "/api/v1/auth/login",
+        "/api/v1/auth/logout",
+        "/api/v1/auth/me",
+        "/api/v1/auth/verify-email",
+        "/api/v1/auth/resend-verification",
+        "/api/v1/auth/forgot-password",
+        "/api/v1/auth/reset-password",
+        "/api/v1/auth/change-password",
+        "/api/v1/projects",
+        "/api/v1/projects/{project_id}",
+        "/api/v1/projects/{project_id}/activity",
+        "/api/v1/projects/{project_id}/archive",
+        "/api/v1/projects/{project_id}/restore",
+        "/api/v1/projects/{project_id}/repository",
+        "/api/v1/projects/{project_id}/tree",
+        "/api/v1/projects/{project_id}/runs",
+        "/api/v1/projects/{project_id}/runs/{run_id}",
+        "/api/v1/projects/{project_id}/runs/{run_id}/report",
+        "/api/v1/projects/{project_id}/runs/{run_id}/export",
+        "/api/v1/projects/{project_id}/runs/{run_id}/ai",
+        "/api/v1/projects/{project_id}/runs/{run_id}/ai/{request_id}",
+        "/api/v1/projects/{project_id}/assistance/ai",
+        "/api/v1/projects/{project_id}/assistance/ai/{request_id}",
+        "/api/v1/projects/{project_id}/snapshots",
+        "/api/v1/projects/{project_id}/snapshots/{commit}/calls",
+        "/api/v1/projects/{project_id}/snapshots/{commit}/graph",
+        "/api/v1/projects/{project_id}/snapshots/{commit}/hotspots",
+        "/api/v1/projects/{project_id}/snapshots/{commit}/impact",
+        "/api/v1/projects/{project_id}/snapshots/{commit}/nodes",
+        "/api/v1/projects/{project_id}/snapshots/{commit}/reading-guide",
+        "/api/v1/projects/{project_id}/snapshots/{commit}/search",
+        "/api/v1/projects/{project_id}/snapshots/{commit}/source",
+        "/api/v1/projects/{project_id}/snapshots/{commit}/tree",
+        "/api/v1/projects/{project_id}/notes",
+        "/api/v1/projects/{project_id}/notes/{note_id}",
+        "/api/v1/projects/{project_id}/view-state",
+        "/api/v1/projects/{project_id}/scenarios",
+        "/api/v1/projects/{project_id}/scenarios/{scenario_id}",
+        "/api/v1/projects/{project_id}/scenarios/{scenario_id}/graph",
+        "/api/v1/projects/{project_id}/scenarios/{scenario_id}/source",
+        "/api/v1/projects/{project_id}/scenarios/{scenario_id}/export",
+        "/api/v1/projects/{project_id}/scenario-comparisons",
+        "/api/v1/projects/{project_id}/graph-comparisons",
+        "/api/v1/usage",
+        "/api/v1/reporting/views",
+        "/api/v1/reporting/views/{view_id}",
+        "/api/v1/reporting/views/{view_id}/runs",
+        "/api/v1/reporting/views/{view_id}/usage",
+        "/api/v1/reporting/views/{view_id}/csv",
+    }
+    assert "get" in schema["paths"]["/health"]
+    for path, model in [
+        ("/repositories/inspect", "RepositoryOverview"),
+        ("/repositories/tree", "RepositoryTree"),
+        ("/repository-analyses", "RepositoryAnalysisResponse"),
+    ]:
+        route = schema["paths"][path]
+        assert set(route) == {"post"}
+        assert route["post"]["responses"]["200"]["content"]["application/json"]["schema"] == {
+            "$ref": "#/components/schemas/" + model
+        }
 
 
 def test_snapshot_failure_can_report_resolved_commits_without_invented_manifest_hashes() -> None:

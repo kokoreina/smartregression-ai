@@ -1,0 +1,15 @@
+FROM python:3.14.3-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+RUN pip install --no-cache-dir uv==0.12.23
+COPY pyproject.toml uv.lock README.md ./
+COPY backend/src ./backend/src
+RUN uv sync --frozen --no-editable
+COPY alembic.ini ./
+COPY migrations ./migrations
+COPY deploy/local ./deploy/local
+RUN mkdir /app/var && chown -R 10001:10001 /app/var
+USER 10001:10001
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app/backend/src
+EXPOSE 8000

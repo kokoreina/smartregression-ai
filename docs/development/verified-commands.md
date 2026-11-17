@@ -1,5 +1,28 @@
 # Lệnh đã đối chiếu với repository
 
+## Sprint 3 phases 3–8 — 2026-11-15
+
+Current commands/results: [handoff](sprint-3-phase-3-8-handoff.md) and
+[local operations](sprint-3-local-operations.md). These supersede the old pending
+browser/project statements below for the recorded local baseline only. Browser
+acceptance used dedicated Playwright/Chromium, real PostgreSQL/SMTP and labelled
+synthetic GitHub input; real Gemini/offline evidence is recorded separately.
+No main CI/public staging/independent acceptance is implied.
+
+## Sprint 3 auth/app shell — đợt 2, 2026-11-15
+
+Lệnh dùng `.venv` locked, PostgreSQL harness, auth SMTP smoke, frontend SSR và các
+giới hạn nằm trong [bàn giao đợt 2](sprint-3-phase-2-handoff.md). Không áp kết quả
+đợt 1 cho auth hoặc xem SMTP request 202 là inbox receipt. Product/legacy route
+gating đã có code; chưa public deploy. Browser và email thật ghi riêng.
+
+## Sprint 3 web — đợt 1, 2026-11-15
+
+Lệnh, môi trường dùng lại và kết quả thực tế tại baseline `5a30a7a` cùng local web
+changes nằm trong [bàn giao đợt 1](sprint-3-phase-1-handoff.md#3-kiểm-chứng-thực-tế).
+Backend/consumer/HTTP pass không thay thế nghiệm thu trình duyệt; gate browser và
+hai lượt diễn tập còn chờ kết quả thao tác của Huy. Không gọi Gemini mới trong đợt này.
+
 ## Task 3.15 contracts — 2026-11-10
 
 Commands, reused environment, tests/consumer compatibility and actual results:

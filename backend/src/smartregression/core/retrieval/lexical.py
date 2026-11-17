@@ -110,6 +110,15 @@ def tokenize(value: str) -> tuple[str, ...]:
     return tuple(sorted(terms))
 
 
+def distinct_score(matched: set[str], query: set[str], symbol: str | None, path: str) -> float:
+    """Shared lexical weighting; a score is a match count, never dependency evidence."""
+    return float(
+        len(matched)
+        + 4 * int((symbol or "").casefold() in query)
+        + 2 * int(path.rsplit(".", 1)[0].replace("/", ".").casefold() in query)
+    )
+
+
 def _lines(raw: bytes) -> list[bytes]:
     # Only CR, LF and CRLF are physical line boundaries; never Unicode/VT/FF.
     parts = re.split(rb"(\r\n|\r|\n)", raw)
@@ -244,8 +253,7 @@ def search_lexical(
         matched = query.intersection(value.terms)
         if not matched:
             continue
-        score = len(matched) + 4 * int((value.symbol or "").casefold() in query)
-        score += 2 * int(chunk.path.rsplit(".", 1)[0].replace("/", ".").casefold() in query)
+        score = distinct_score(matched, query, value.symbol, chunk.path)
         items.append(
             RetrievalItem(
                 snapshot=identity,

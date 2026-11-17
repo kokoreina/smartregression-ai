@@ -9,11 +9,16 @@ description = "Bootstrap contracts, API and CLI for SmartRegression AI"
 readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = [
+    "email-validator>=2.3,<3",
     "fastapi>=0.119,<1",
     "google-genai==3.0.0",
+    "httpx>=0.28,<1",
     "psycopg[binary]>=3.3.7,<3.4",
+    "pwdlib[argon2]>=0.3,<0.4",
     "pydantic>=2.12,<3",
     "sqlalchemy>=2.1.6,<2.2",
+    "tree-sitter==0.26.1",
+    "tree-sitter-javascript==0.25.0",
     "uvicorn>=0.37,<1",
 ]
 
@@ -22,8 +27,8 @@ smartregression = "smartregression.cli.main:main"
 
 [dependency-groups]
 dev = [
+    "aiosmtpd==1.4.6",
     "alembic>=1.20.1,<1.21",
-    "httpx>=0.28,<1",
     "pytest>=8.4,<10",
     "ruff>=0.14,<1",
 ]
@@ -34,6 +39,7 @@ packages = ["backend/src/smartregression"]
 [tool.pytest.ini_options]
 testpaths = ["backend/tests"]
 addopts = "-ra"
+pythonpath = ["."]
 
 [tool.ruff]
 target-version = "py314"
