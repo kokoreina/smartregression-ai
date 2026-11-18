@@ -5,6 +5,7 @@ import { productRequest, productDownload } from '../auth/authClient'
 import { FormNotice } from '../auth/AuthViews'
 import { GraphPreview } from './Explorer'
 import { SnapshotAi } from './SnapshotAi'
+import { ImpactOverview } from './ImpactOverview'
 
 type Scenario = components['schemas']['ScenarioView']
 type Page = components['schemas']['ScenarioViewPage']
@@ -39,7 +40,8 @@ export function ScenarioResult({ value }: { value: Scenario }) {
     <p>Scenario {value.id} · {new Date(value.created_at).toLocaleString('vi-VN')}</p>
     {value.analysis_kind === 'static_overlay' && <><p>Symbol mới: {value.added_symbols.length ? value.added_symbols.join(', ') : 'Không quan sát thấy'}</p><p>Symbol bỏ: {value.removed_symbols.length ? value.removed_symbols.join(', ') : 'Không quan sát thấy'}</p>
       <p>Graph: +{value.added_node_count ?? 'chưa đo'} node, −{value.removed_node_count ?? 'chưa đo'} node; +{value.added_edge_count ?? 'chưa đo'} edge, −{value.removed_edge_count ?? 'chưa đo'} edge.</p></>}
-    {value.impact && <><h3>Ảnh hưởng tiềm năng trong overlay</h3><p>{value.impact.direct.length} file trực tiếp · {value.impact.indirect.length} file gián tiếp · mẫu số {value.impact.denominator ?? 'N/A'} file phân tích được.</p><p>Phạm vi tiềm năng: {value.impact.percentages.potential == null ? 'N/A' : `${value.impact.percentages.potential}%`} — không phải xác suất gây lỗi.</p>
+    {value.impact && <><ImpactOverview key={value.id} value={value.impact} title="Ảnh hưởng tiềm năng trong overlay" />
+      <p>Phạm vi tiềm năng: {value.impact.percentages.potential == null ? 'N/A' : `${value.impact.percentages.potential}%`} — không phải xác suất gây lỗi.</p>
       <ul>{[...value.impact.direct, ...value.impact.indirect].map(file => <li key={file}>{file}</li>)}</ul><p>{value.impact.unresolved_count} quan hệ chưa giải được.</p></>}
     {value.analysis_kind === 'hypothesis' && <><p>Không tính % ảnh hưởng từ mô tả tự nhiên. Nội dung được lưu để đối chiếu; chưa tự gửi Gemini.</p><SnapshotAi key={value.id} projectId={value.project_id} commit={value.baseline} path={value.path} scenarioId={value.id} /></>}
     <ul>{value.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul>{error && <FormNotice error>{error}</FormNotice>}<button disabled={downloading} onClick={() => void download()}>Xuất scenario JSON đầy đủ</button>

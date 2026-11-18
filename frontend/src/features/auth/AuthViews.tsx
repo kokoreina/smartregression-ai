@@ -1,20 +1,22 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { accountApi, type CurrentUser } from './authClient'
+import { accountApi, AccountError, type CurrentUser } from './authClient'
 import { useAuth } from './authContext'
+import { ThemeToggle } from '../../components/ThemeToggle'
+import { RepositoryArtwork } from './RepositoryArtwork'
 
-export function FormNotice({ error = false, children }: { error?: boolean; children: ReactNode }) {
-  return <div className={`form-notice ${error ? 'is-error' : ''}`} role={error ? 'alert' : 'status'}>{children}</div>
+export function FormNotice({ error = false, children, id }: { error?: boolean; children: ReactNode; id?: string }) {
+  return <div id={id} className={`form-notice ${error ? 'is-error' : ''}`} role={error ? 'alert' : 'status'}>{children}</div>
 }
 
-export function PasswordField({ name = 'password', label = 'Mật khẩu', current = false, confirm = false }: {
-  name?: string; label?: string; current?: boolean; confirm?: boolean
+export function PasswordField({ name = 'password', label = 'Mật khẩu', current = false, confirm = false, invalid = false, describedBy }: {
+  name?: string; label?: string; current?: boolean; confirm?: boolean; invalid?: boolean; describedBy?: string
 }) {
   const [visible, setVisible] = useState(false)
   return <div className="field"><label htmlFor={name}>{label}</label>
     <div className="password-field"><input id={name} name={name} type={visible ? 'text' : 'password'} required
       minLength={current ? 1 : 12} maxLength={128} autoComplete={current ? 'current-password' : 'new-password'}
-      aria-describedby={current || confirm ? undefined : `${name}-hint`} />
+      aria-invalid={invalid || undefined} aria-describedby={describedBy ?? (current || confirm ? undefined : `${name}-hint`)} />
       <button type="button" aria-label={`${visible ? 'Ẩn' : 'Hiện'} ${label.toLowerCase()}`}
         aria-pressed={visible} onClick={() => setVisible(!visible)}>{visible ? 'Ẩn' : 'Hiện'}</button></div>
     {!current && !confirm && <small id={`${name}-hint`}>12–128 ký tự. Có thể dùng trình quản lý mật khẩu.</small>}
@@ -33,12 +35,14 @@ export function SessionGate({ verified = false }: { verified?: boolean }) {
 
 export function AuthFrame({ children }: { children: ReactNode }) {
   return <div className="auth-layout"><section className="auth-story" aria-label="SmartRegression">
-    <Link to="/" className="brand">SR<span>SmartRegression AI</span></Link>
+    <Link to="/" className="brand"><b className="brand-mark">SR</b><span>SmartRegression AI</span></Link>
+    <div className="auth-story-content">
     <p className="eyebrow">HIỂU REPO · HIỂU THAY ĐỔI</p>
-    <h1>Mỗi thay đổi.<br />Một góc nhìn rõ hơn.</h1>
+      <h2>Mỗi thay đổi.<br />Một góc nhìn rõ hơn.</h2>
     <p>Khám phá cấu trúc, quan hệ phụ thuộc và bằng chứng phân tích trong một không gian làm việc.</p>
-    <div className="story-lines" aria-hidden="true"><span>repository /</span><span>├── structure</span><span>├── dependencies</span><span>└── evidence</span></div>
-  </section><main id="main-content" className="auth-main">{children}</main></div>
+    <RepositoryArtwork />
+    </div><p className="auth-story-footer">Cấu trúc mã nguồn <span aria-hidden="true">/</span> Phân tích tác động <span aria-hidden="true">/</span> Bằng chứng</p>
+  </section><main id="main-content" className="auth-main"><div className="auth-appearance"><ThemeToggle /></div>{children}<p className="auth-main-footer">Không gian làm việc cho những thay đổi có cơ sở.</p></main></div>
 }
 
 type Kind = 'login' | 'register' | 'forgot' | 'verify' | 'reset' | 'check'
@@ -51,6 +55,7 @@ export function AuthForm({ kind }: { kind: Kind }) {
   const location = useLocation()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [credentialsRejected, setCredentialsRejected] = useState(false)
   const [message, setMessage] = useState('')
   const [token, setToken] = useState('')
   const inFlight = useRef(false)
@@ -87,7 +92,7 @@ export function AuthForm({ kind }: { kind: Kind }) {
     if ((kind === 'register' || kind === 'reset') && value('password') !== value('confirm')) {
       setError('Hai mật khẩu chưa khớp.'); form.querySelector<HTMLInputElement>('[name=confirm]')?.focus(); return
     }
-    setError(''); setMessage(''); setBusy(true); inFlight.current = true
+    setError(''); setCredentialsRejected(false); setMessage(''); setBusy(true); inFlight.current = true
     try {
       if (kind === 'login') {
         const user = await accountApi.login({ email: value('email'), password: value('password') })
@@ -106,26 +111,33 @@ export function AuthForm({ kind }: { kind: Kind }) {
         if (kind === 'verify' || kind === 'reset') { setToken(''); form.reset(); await refresh() }
       }
     } catch (cause) {
-      if (active.current) setError(cause instanceof Error ? cause.message : 'Yêu cầu chưa hoàn tất.')
+      if (active.current) {
+        setError(cause instanceof Error ? cause.message : 'Yêu cầu chưa hoàn tất.')
+        setCredentialsRejected(kind === 'login' && cause instanceof AccountError && cause.code === 'invalid_credentials')
+      }
     } finally { inFlight.current = false; if (active.current) setBusy(false) }
   }
 
   const needsLink = kind === 'verify' || kind === 'reset'
   return <AuthFrame><section className="auth-card" aria-labelledby="auth-title">
     <p className="eyebrow">TÀI KHOẢN SMARTREGRESSION</p><h1 id="auth-title">{headings[kind]}</h1>
+    {kind === 'login' && <p className="auth-intro">Tiếp tục khám phá mã nguồn và kết quả phân tích của bạn.</p>}
+    {kind === 'register' && <p className="auth-intro">Tạo không gian riêng cho dự án và các lượt phân tích.</p>}
     {kind === 'check' && <p>Yêu cầu đã được tiếp nhận. Kiểm tra Inbox và Spam. Tài khoản chỉ được xác thực sau khi bạn xác nhận liên kết trong email.</p>}
     {kind === 'verify' && <p>Bấm xác nhận bên dưới để sử dụng liên kết. Việc mở trang chưa xác thực tài khoản.</p>}
     {kind === 'forgot' && <p>Nếu email phù hợp với tài khoản, hệ thống sẽ thử gửi liên kết khôi phục.</p>}
     {state.kind === 'unavailable' && <FormNotice error>{state.message}</FormNotice>}
     {navigationMessage && <FormNotice>{navigationMessage}</FormNotice>}
-    {error && <FormNotice error>{error}</FormNotice>}{message && <FormNotice>{message}</FormNotice>}
+    {error && kind !== 'login' && <FormNotice error>{error}</FormNotice>}{message && <FormNotice>{message}</FormNotice>}
     {needsLink && !token && !message && <FormNotice error>Không có liên kết hợp lệ. Hãy mở lại liên kết từ email hoặc yêu cầu email mới.</FormNotice>}
     <form className="account-form" onSubmit={submit} aria-busy={busy}>
       {kind === 'register' && <div className="field"><label htmlFor="display_name">Tên hiển thị</label><input id="display_name" name="display_name" required maxLength={80} autoComplete="name" /></div>}
-      {!needsLink && <div className="field"><label htmlFor="email">Email</label><input key={email} id="email" name="email" type="email" defaultValue={email} required maxLength={254} autoComplete="username" readOnly={kind === 'check' && !!userEmail} /></div>}
-      {(kind === 'login' || kind === 'register' || kind === 'reset') && <PasswordField current={kind === 'login'} />}
+      {!needsLink && <div className="field"><label htmlFor="email">Email</label><input key={email} id="email" name="email" type="email" defaultValue={email} required maxLength={254} autoComplete="username" readOnly={kind === 'check' && !!userEmail} aria-invalid={credentialsRejected || undefined} aria-describedby={credentialsRejected ? 'auth-login-error' : undefined} /></div>}
+      {(kind === 'login' || kind === 'register' || kind === 'reset') && <PasswordField current={kind === 'login'} invalid={credentialsRejected} describedBy={credentialsRejected ? 'auth-login-error' : undefined} />}
       {(kind === 'register' || kind === 'reset') && <PasswordField name="confirm" label="Nhập lại mật khẩu" confirm />}
+      {kind === 'login' && error && <FormNotice error id="auth-login-error">{error}</FormNotice>}
       <button className="primary-button" disabled={busy || (needsLink && !token)} type="submit">
+        {busy && <span className="auth-submit-spinner" aria-hidden="true" />}
         {busy ? 'Đang xử lý…' : ({ login: 'Đăng nhập', register: 'Tạo tài khoản', forgot: 'Yêu cầu liên kết khôi phục', verify: 'Xác nhận email', reset: 'Đặt lại mật khẩu', check: 'Yêu cầu gửi lại email' })[kind]}
       </button>
     </form>

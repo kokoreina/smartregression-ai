@@ -51,7 +51,7 @@ const SUPPORT_CONFIG: Record<
     label: 'Hỗ trợ kết luận',
     indicator: '✓',
     badgeClass: 'evidence-badge-supported',
-    description: 'Bằng chứng chứng minh được nhận định ảnh hưởng.',
+    description: 'Nhận định ảnh hưởng có bằng chứng hỗ trợ.',
   },
   unsupported: {
     label: 'Không hỗ trợ kết luận',

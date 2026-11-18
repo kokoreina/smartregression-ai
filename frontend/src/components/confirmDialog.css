@@ -1,0 +1,16 @@
+dialog.confirm-dialog.confirm-signout { width: 410px; max-width: calc(100vw - 32px); max-height: calc(100dvh - 40px); padding: 26px; border-radius: 18px; background: var(--surface); border: 1px solid var(--border-strong); box-shadow: var(--shadow-overlay); overflow: auto; }
+.confirm-signout-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.confirm-signout-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 13px; color: var(--primary); background: var(--selected-surface); border: 1px solid var(--accent-border); }
+.confirm-signout-icon svg { width: 24px; height: 24px; }
+.confirm-signout .confirm-dismiss { display: grid; place-items: center; min-width: 36px; min-height: 36px; padding: 7px; border: 0; color: var(--muted); background: transparent; }
+.confirm-signout .confirm-dismiss svg { width: 19px; height: 19px; }
+.confirm-signout .confirm-dismiss:hover { background: var(--surface-hover); color: var(--foreground); }
+.confirm-signout h2 { margin: 0 0 10px; font-size: 21px; font-weight: 600; letter-spacing: -.025em; line-height: 1.4; }
+.confirm-signout > p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.8; }
+.confirm-signout .dialog-actions { padding-top: 22px; margin-top: 22px; border-top: 1px solid var(--border); gap: 10px; }
+.confirm-signout .dialog-actions button { min-height: 42px; padding: 9px 18px; font-size: 13px; font-weight: 500; border-radius: 11px; }
+.confirm-signout .confirm-signout-action { color: var(--primary); border-color: var(--accent-border); background: var(--selected-surface); }
+.confirm-signout .confirm-signout-action:hover { background: color-mix(in srgb, var(--primary) 20%, var(--surface)); border-color: var(--primary); }
+dialog.confirm-signout::backdrop { background: rgb(5 10 18 / 56%); backdrop-filter: blur(3px); }
+@media (prefers-reduced-motion: no-preference) { dialog.confirm-signout[open] { animation: confirm-signout-open 160ms ease-out; } @keyframes confirm-signout-open { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } } }
+@media (max-width: 600px) { dialog.confirm-dialog.confirm-signout { padding: 22px; } .confirm-signout .dialog-actions button, .confirm-signout .confirm-dismiss { min-height: 44px; } }

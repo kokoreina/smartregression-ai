@@ -1246,6 +1246,28 @@ export interface components {
              */
             symbol?: string | null;
         };
+        /** ClassifiedReference */
+        ClassifiedReference: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "builtin" | "stdlib";
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "call" | "import";
+            /**
+             * Line
+             * @default 1
+             */
+            line?: number;
+            /** Path */
+            path: string;
+            /** Reference */
+            reference: string;
+        };
         /** CommitPair */
         CommitPair: {
             /** Base */
@@ -1258,6 +1280,23 @@ export interface components {
             schema_version?: "1.0.0";
             /** Target */
             target: string;
+        };
+        /** CoverageDiagnostics */
+        CoverageDiagnostics: {
+            /** Classified By Kind */
+            classified_by_kind: {
+                [key: string]: number;
+            };
+            /** Excluded Files */
+            excluded_files?: string[];
+            /** File Groups */
+            file_groups: {
+                [key: string]: string[];
+            };
+            /** Unresolved By Reason */
+            unresolved_by_reason: {
+                [key: string]: number;
+            };
         };
         /** CsrfToken */
         CsrfToken: {
@@ -1517,6 +1556,8 @@ export interface components {
         };
         /** ExplorerGraph */
         ExplorerGraph: {
+            /** Classified References */
+            classified_references?: components["schemas"]["ClassifiedReference"][];
             /** Commit */
             commit: string;
             /** Config Digest */
@@ -1630,6 +1671,7 @@ export interface components {
         GraphCoverage: {
             /** Analyzed Files */
             analyzed_files: string[];
+            diagnostics?: components["schemas"]["CoverageDiagnostics"] | null;
             /**
              * Status
              * @enum {string}

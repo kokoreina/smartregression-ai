@@ -61,11 +61,27 @@ class UnresolvedRelation(WebValue):
     line: int = 1
 
 
+class ClassifiedReference(WebValue):
+    path: str
+    reference: str
+    category: Literal["builtin", "stdlib"]
+    kind: Literal["call", "import"]
+    line: int = Field(default=1, ge=1)
+
+
+class CoverageDiagnostics(WebValue):
+    file_groups: dict[str, list[str]]
+    unresolved_by_reason: dict[str, int]
+    classified_by_kind: dict[str, int]
+    excluded_files: list[str] = Field(default_factory=list)
+
+
 class GraphCoverage(WebValue):
     status: Literal["complete", "partial"]
     analyzed_files: list[str]
     unparsed_files: list[str]
     unsupported_files: list[str]
+    diagnostics: CoverageDiagnostics | None = None
 
 
 class ExplorerGraph(WebValue):
@@ -77,6 +93,7 @@ class ExplorerGraph(WebValue):
     nodes: list[ExplorerNode]
     edges: list[ExplorerEdge]
     unresolved: list[UnresolvedRelation]
+    classified_references: list[ClassifiedReference] = Field(default_factory=list)
     coverage: GraphCoverage
 
     @model_validator(mode="after")

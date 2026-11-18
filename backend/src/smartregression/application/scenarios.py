@@ -16,6 +16,7 @@ from smartregression.contracts.scenarios import (
     ScenarioView,
     ScenarioViewPage,
 )
+from smartregression.core.explorer.coverage import update_diagnostics
 from smartregression.core.explorer.graph import build_graph, impact
 from smartregression.core.explorer.scenarios import compare_graphs, overlay
 from smartregression.core.retrieval.exclusions import contains_recognized_secret
@@ -82,7 +83,15 @@ class ScenarioService:
                     changed,
                     self.explorer.parse_javascript,
                     overlay_identity=(body.path, digest),
+                    known_paths=[entry.path for entry in snapshot.tree.entries],
                 )
+                graph.coverage.unsupported_files = sorted(
+                    set(graph.coverage.unsupported_files)
+                    | set(snapshot.graph.coverage.unsupported_files)
+                )
+                if graph.coverage.unsupported_files:
+                    graph.coverage.status = "partial"
+                update_diagnostics(graph, snapshot.excluded_paths)
                 delta = compare_graphs(snapshot.graph, graph)
                 summary = impact(graph, {body.path})
             except ValueError:

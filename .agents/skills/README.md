@@ -7,6 +7,11 @@ quyền và không thay thế [AGENTS.md](../../AGENTS.md), profile, rules, ADR 
 
 ## Danh mục
 
+Bổ sung theo yêu cầu người dùng ngày 17/11/2026:
+[evondevKit UI/UX](ui-ux/SKILL.md), bản ghim và MIT license ở
+[nguồn cài đặt](ui-ux/SOURCE.md). Bộ này bổ sung hướng dẫn thiết kế, không thay
+quy tắc repo hoặc quyền thao tác. Hướng giao diện của sản phẩm ở [DESIGN.md](../../DESIGN.md).
+
 | Skill | Dùng khi |
 | --- | --- |
 | [ux-research](ux-research/SKILL.md) | Lập kế hoạch usability test hoặc chuyển NFR thành nhiệm vụ đo được |

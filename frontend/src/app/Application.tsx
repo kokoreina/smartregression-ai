@@ -12,6 +12,9 @@ import { Explorer } from '../features/explorer/Explorer'
 import { WhatIf, SavedScenario } from '../features/explorer/Scenarios'
 import { Dashboard } from '../features/projects/Dashboard'
 import { SavedReports } from '../features/reports/SavedReports'
+import { WorkspaceIcon } from '../components/WorkspaceIcon'
+import { ThemeToggle } from '../components/ThemeToggle'
+import { ThemeController } from './theme'
 
 function NavigationFocus() {
   const { pathname } = useLocation()
@@ -31,8 +34,15 @@ function Shell() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [confirmLogout, setConfirmLogout] = useState(false)
+  const [navigationOpen, setNavigationOpen] = useState(false)
   const inFlight = useRef(false)
-  if (state.kind !== 'user') return null
+  useEffect(() => {
+    if (!navigationOpen) return
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setNavigationOpen(false) }
+    window.addEventListener('keydown', close)
+    return () => window.removeEventListener('keydown', close)
+  }, [navigationOpen])
+  const user = state.kind === 'user' ? state.user : null
   async function logout() {
     if (inFlight.current) return
     inFlight.current = true; setBusy(true); setError('')
@@ -40,19 +50,20 @@ function Shell() {
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Đăng xuất chưa hoàn tất.') }
     finally { inFlight.current = false; setBusy(false) }
   }
-  return <div className="workspace-shell"><aside className="workspace-sidebar">
-    <Link className="brand" to="/app">SR<span>SmartRegression</span></Link>
-    <p className="sidebar-label">KHÔNG GIAN LÀM VIỆC</p><nav aria-label="Điều hướng chính">
-      <NavLink to="/app" end>Tổng quan</NavLink><NavLink to="/app/projects">Dự án</NavLink><NavLink to="/app/account">Tài khoản</NavLink><Link to="/reports">Báo cáo offline</Link>
-    </nav><div className="sidebar-footer"><span className="avatar" aria-hidden="true">{state.user.display_name.slice(0, 1).toUpperCase()}</span>
-      <strong>{state.user.display_name}</strong><small>{state.user.email}</small>
-      <button disabled={busy} onClick={() => setConfirmLogout(true)}>{busy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button></div>
-  </aside><div className="workspace-content"><header className="workspace-header"><span>Không gian cá nhân</span>
-    <span className="status-pill">{state.user.verified ? 'Email đã xác thực' : 'Chờ xác thực email'}</span></header>
+  const sectionTitle = location.pathname === '/reports' ? 'Báo cáo đã lưu' : location.pathname.includes('/projects') ? 'Dự án' : location.pathname.includes('/account') ? 'Tài khoản' : 'Tổng quan'
+  return <div className={`workspace-shell${navigationOpen ? ' navigation-open' : ''}`}><aside id="workspace-navigation" className="workspace-sidebar">
+    <Link className="brand" to="/app"><b className="brand-mark">SR</b><span>SmartRegression<small>Phân tích mã nguồn</small></span></Link>
+    <nav aria-label="Điều hướng chính" onClick={() => setNavigationOpen(false)}>
+      <NavLink to="/app" end><WorkspaceIcon name="overview" />Tổng quan</NavLink><NavLink to="/app/projects"><WorkspaceIcon name="projects" />Dự án</NavLink><NavLink to="/reports"><WorkspaceIcon name="reports" />Báo cáo đã lưu</NavLink><NavLink to="/app/account"><WorkspaceIcon name="account" />Tài khoản</NavLink>
+    </nav><div className="sidebar-footer">{user ? <><div className="sidebar-person"><span className="avatar" aria-hidden="true">{user.display_name.slice(0, 1).toUpperCase()}</span>
+      <div><strong>{user.display_name}</strong><small>{user.email}</small></div></div>
+      <button disabled={busy} onClick={() => setConfirmLogout(true)}>{busy ? 'Đang đăng xuất…' : 'Đăng xuất'}</button></> : <><p>Đọc báo cáo trên máy mà không cần đăng nhập.</p><Link className="secondary-action" to="/login">Đăng nhập</Link></>}</div>
+  </aside><div className="workspace-content"><header className="workspace-header"><div className="workspace-breadcrumb"><button type="button" className="navigation-toggle" aria-label={navigationOpen ? 'Đóng điều hướng' : 'Mở điều hướng'} aria-controls="workspace-navigation" aria-expanded={navigationOpen} onClick={() => setNavigationOpen(value => !value)}><WorkspaceIcon name={navigationOpen ? 'close' : 'menu'} /></button><span>Không gian cá nhân</span><span aria-hidden="true">/</span><strong>{sectionTitle}</strong></div>
+    <div className="workspace-header-actions"><ThemeToggle /><span className="status-pill"><span className="status-dot" />{user ? user.verified ? 'Email đã xác thực' : 'Chờ xác thực email' : 'Chế độ đọc file'}</span></div></header>
     <main id="main-content" className="workspace-main">{error && <FormNotice error>{error}</FormNotice>}<div className="route-content" key={location.pathname}><Outlet /></div></main></div>
-    <ConfirmDialog open={confirmLogout} title="Đăng xuất khỏi phiên này?" confirmLabel="Đăng xuất"
+    <ConfirmDialog open={confirmLogout} title="Đăng xuất khỏi tài khoản?" confirmLabel="Đăng xuất" appearance="signout"
       onClose={() => setConfirmLogout(false)} onConfirm={() => { setConfirmLogout(false); void logout() }}>
-      Phiên hiện tại sẽ bị thu hồi. Bạn có thể đăng nhập lại bất cứ lúc nào.
+      Bạn sẽ trở về trang đăng nhập. Chỉ phiên đăng nhập này kết thúc; bạn có thể quay lại bất cứ lúc nào.
     </ConfirmDialog></div>
 }
 
@@ -80,7 +91,7 @@ export function ApplicationRoutes({ local }: { local: boolean | null }) {
     <Route path="/verify-email" element={<AuthForm key="verify" kind="verify" />} />
     <Route path="/reset-password" element={<AuthForm key="reset" kind="reset" />} />
     <Route path="/check-email" element={<AuthForm key="check" kind="check" />} />
-    <Route path="/reports" element={<SavedReports />} />
+    <Route element={<Shell />}><Route path="/reports" element={<SavedReports />} /></Route>
     <Route element={<SessionGate />}><Route path="/app" element={<Shell />}>
       <Route element={<SessionGate verified />}><Route index element={<Home />} />
         <Route path="projects" element={<Projects />} />
@@ -107,5 +118,5 @@ export function Application() {
       .catch(() => { if (!controller.signal.aborted) setLocal(import.meta.env.DEV && ['localhost', '127.0.0.1'].includes(window.location.hostname)) })
     return () => controller.abort()
   }, [])
-  return <BrowserRouter><AuthProvider><ApplicationRoutes local={local} /></AuthProvider></BrowserRouter>
+  return <><ThemeController /><BrowserRouter><AuthProvider><ApplicationRoutes local={local} /></AuthProvider></BrowserRouter></>
 }

@@ -8,6 +8,7 @@ from typing import Protocol
 from smartregression.application.auth import AuthFailure
 from smartregression.application.repository_errors import public_repository_error
 from smartregression.contracts.snapshots import ExplorerSnapshot, SourceRange
+from smartregression.core.explorer.coverage import update_diagnostics
 from smartregression.core.explorer.graph import (
     PARSER_CONFIG,
     build_graph,
@@ -75,12 +76,19 @@ class ExplorerService:
                         current.repository_url.removeprefix("https://github.com/").lower().encode()
                     ).hexdigest()
                 )
-                graph = build_graph(repository_id, commit, sources, self.parse_javascript)
+                graph = build_graph(
+                    repository_id,
+                    commit,
+                    sources,
+                    self.parse_javascript,
+                    known_paths=[entry.path for entry in entries],
+                )
                 graph.coverage.unsupported_files = sorted(
                     set(graph.coverage.unsupported_files) | set(unsupported)
                 )
                 if unsupported:
                     graph.coverage.status = "partial"
+                update_diagnostics(graph, excluded)
                 snapshot = ExplorerSnapshot(graph=graph, tree=tree, excluded_paths=sorted(excluded))
             self.store.save(owner, project, snapshot, sources)
             return snapshot

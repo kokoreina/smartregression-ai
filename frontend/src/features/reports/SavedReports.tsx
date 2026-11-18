@@ -1,11 +1,12 @@
 import { useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { RepositoryResult } from '../repositories/RepositoryAnalysis'
 import { loadRepositoryReport, type LoadedRepositoryReport } from '../repositories/repositoryReport'
 import { loadStageReportFromFile } from './stageReport'
 import { StageReportView } from './StageReportView'
 import type { components } from '../../types/generated'
 import { FormNotice } from '../auth/AuthViews'
+import { WorkspaceIcon } from '../../components/WorkspaceIcon'
+import './savedReports.css'
 
 type Stage = components['schemas']['StageAnalysisReport']
 type PortableScenario = { title: string; path: string; baseline: string; mode: string; created_at: string; description: string; direct: string[]; indirect: string[]; limitations: string[]; ai: { summary: string; findings: { path: string; explanation: string; ids: string[] }[] }[] }
@@ -49,14 +50,20 @@ export function SavedReports() {
   const [raw, setRaw] = useState('')
   const [filename, setFilename] = useState('report.json')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [dragging, setDragging] = useState(false)
+  const dragDepth = useRef(0)
+  const picker = useRef<HTMLInputElement>(null)
   const sequence = useRef(0)
+  const hasReport = !!(repository || stage || savedScenario)
+  const reportType = savedScenario ? 'Kịch bản thay đổi' : stage ? 'Báo cáo phân tích theo giai đoạn' : 'Báo cáo repository'
   function download() {
     const url = URL.createObjectURL(new Blob([raw], { type: 'application/json' }))
     const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click(); setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
   async function open(file: File) {
     const id = ++sequence.current
-    setError('')
+    setError(''); setLoading(true); setRepository(null); setStage(null); setScenario(null); setRaw('')
     try {
       if (file.size > 16 * 1024 * 1024) throw new Error('Báo cáo vượt giới hạn 16 MiB.')
       const content = await file.text()
@@ -68,12 +75,26 @@ export function SavedReports() {
       else repo = await loadRepositoryReport(file)
       if (id !== sequence.current) return
       setRepository(repo); setStage(canonical); setScenario(proposed); setRaw(content); setFilename(file.name)
-    } catch (cause) { if (id === sequence.current) setError(cause instanceof Error ? cause.message : 'Không mở được JSON.') }
+    } catch (cause) { if (id === sequence.current) setError(cause instanceof SyntaxError ? 'Không đọc được file JSON hợp lệ.' : cause instanceof Error ? cause.message : 'Không mở được JSON.') }
+    finally { if (id === sequence.current) setLoading(false) }
   }
-  return <main id="main-content" className="workspace-main"><Link to="/app">← Về ứng dụng</Link><h1>Mở báo cáo đã lưu</h1><p>Đọc file trên máy, không gọi GitHub hoặc Gemini. File import là dữ liệu do người dùng cung cấp, chưa được server xác thực.</p><label>Chọn báo cáo JSON<input type="file" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void open(file) }} /></label>{error && <FormNotice error>{error}</FormNotice>}
-    {(repository || stage || savedScenario) && <><p className="notice">Báo cáo đã lưu · nguồn: file local. Thời điểm xuất khác thời điểm phân tích.</p><div className="dialog-actions"><button onClick={download}>Tải lại JSON gốc</button><button onClick={() => window.print()}>In / Lưu PDF</button></div></>}
+  function drop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault(); dragDepth.current = 0; setDragging(false)
+    if (loading) return
+    const files = event.dataTransfer.files
+    if (files.length !== 1) { setError('Mỗi lần chỉ mở một file báo cáo.'); return }
+    if (files[0]) void open(files[0])
+  }
+  return <section className="saved-reports-page" aria-labelledby="saved-reports-title"><div className="reports-heading"><div><h1 id="saved-reports-title">Báo cáo đã lưu</h1><p>Mở và đọc lại kết quả phân tích từ file JSON trên máy.</p></div><span className="reports-local-label">File trên máy</span></div>
+    <input ref={picker} hidden type="file" aria-label="Chọn báo cáo JSON" accept=".json,application/json" onChange={event => { const file = event.target.files?.[0]; event.target.value = ''; if (file) void open(file) }} />
+    {!hasReport && <div className="report-import-panel" aria-busy={loading}><div className={`report-import-main${dragging ? ' is-dragging' : ''}`} role="region" aria-label="Vùng mở báo cáo" onDrop={drop} onDragOver={event => { if (event.dataTransfer.types.includes('Files')) { event.preventDefault(); event.dataTransfer.dropEffect = 'copy' } }} onDragEnter={event => { if (event.dataTransfer.types.includes('Files')) { event.preventDefault(); dragDepth.current += 1; setDragging(true) } }} onDragLeave={event => { if (event.dataTransfer.types.includes('Files')) { dragDepth.current = Math.max(0, dragDepth.current - 1); if (!dragDepth.current) setDragging(false) } }}><span className="report-file-symbol"><WorkspaceIcon name="reports" /></span><h2>{loading ? 'Đang đọc báo cáo…' : dragging ? 'Thả file để mở' : 'Kéo thả file JSON'}</h2><p>Xem lại kết quả, bằng chứng và phạm vi phân tích đã xuất từ SmartRegression.</p><button className="primary-button" disabled={loading} onClick={() => picker.current?.click()}>{loading ? 'Đang kiểm tra file…' : 'Chọn file JSON'}</button><span className="report-size-hint">Một file .json · Tối đa 16 MiB</span>{loading && <p role="status">Đang kiểm tra cấu trúc và phiên bản báo cáo.</p>}</div>
+      <div className="report-format-guide"><h3>Các loại báo cáo hỗ trợ</h3><dl><div><dt>Phân tích repository</dt><dd>So sánh commit, file thay đổi và kết quả phân tích.</dd></div><div><dt>Phân tích theo giai đoạn</dt><dd>Trạng thái xử lý, ảnh hưởng và bằng chứng.</dd></div><div><dt>Kịch bản thay đổi</dt><dd>Giả thuyết hoặc kết quả overlay tĩnh đã lưu.</dd></div></dl></div></div>}
+    {error && <FormNotice error>{error} Hãy chọn lại một báo cáo JSON được hỗ trợ.</FormNotice>}
+    {!hasReport && <p className="report-import-note">File được đọc trong trình duyệt, không gọi GitHub hoặc Gemini. Nội dung import chưa được server xác thực.</p>}
+    {hasReport && <><div className="report-open-toolbar"><div className="report-open-identity"><WorkspaceIcon name="reports" /><div><strong>{filename}</strong><span>{reportType} · Nguồn: file trên máy</span></div></div><div className="report-open-actions"><button onClick={() => picker.current?.click()}>Mở file khác</button><button onClick={download}>Tải JSON gốc</button><button onClick={() => window.print()}>In / Lưu PDF</button></div></div><p className="report-import-note">Thời điểm xuất khác thời điểm phân tích. File import chưa được server xác thực.</p><div className="saved-report-content">
     {repository && <RepositoryResult result={repository.result} saved exportedAt={repository.exportedAt} onDownload={download} />}
     {stage && <StageReportView report={stage} />}
     {savedScenario && <section className="auth-card"><h2>{savedScenario.title}</h2><p>{savedScenario.mode === 'description' ? 'GIẢ THUYẾT' : 'OVERLAY TĨNH'} · chưa chạy source</p><p>{savedScenario.path} · {savedScenario.baseline}</p><p>Tạo scenario: {savedScenario.created_at}</p><details><summary>Đầu vào đã lưu</summary><pre className="source-range">{savedScenario.description}</pre></details><h3>Ảnh hưởng tiềm năng</h3>{savedScenario.mode === 'description' ? <p>Chưa có số liệu static.</p> : <><p>Trực tiếp: {savedScenario.direct.join(', ') || 'Không quan sát thấy'}</p><p>Gián tiếp: {savedScenario.indirect.join(', ') || 'Không quan sát thấy'}</p></>}<ul>{savedScenario.limitations.map(item => <li key={item}>{item}</li>)}</ul>{savedScenario.ai.map((item, index) => <article key={index}><h3>Gemini đã lưu</h3><p>{item.summary}</p>{item.findings.map((finding, i) => <p key={i}><strong>{finding.path}</strong>: {finding.explanation}<br />Bằng chứng: {finding.ids.join(', ')}</p>)}</article>)}</section>}
-  </main>
+    </div></>}
+  </section>
 }
