@@ -73,15 +73,17 @@ class TestSmtp:
 
 
 def main():
-    from backend.tests.unit.test_repository_web import FILES, remote
+    from backend.tests.unit.test_repository_web import FILES, TARGET, remote
 
     from smartregression.adapters.parsers.javascript import parse_javascript
+    from smartregression.adapters.storage.assistant_store import PostgresAssistantStore
     from smartregression.adapters.storage.explorer_store import PostgresExplorerStore
     from smartregression.adapters.storage.note_store import PostgresNoteStore
     from smartregression.adapters.storage.scenario_store import PostgresScenarioStore
     from smartregression.adapters.storage.web_ai_store import PostgresAiStore
     from smartregression.application.explorer import ExplorerService
     from smartregression.application.notes import NoteService
+    from smartregression.application.repo_assistant import RepositoryAssistantService
     from smartregression.application.scenarios import ScenarioService
     from smartregression.application.web_ai import WebAiService
     from smartregression.contracts.repository import NarrativeResult
@@ -161,6 +163,15 @@ def main():
             with migrator.begin() as conn:
                 conn.execute(
                     text(
+                        "GRANT SELECT,INSERT,UPDATE,DELETE ON "
+                        "smartregression.web_assistant_threads,"
+                        "smartregression.web_assistant_messages,smartregression.web_repo_watches,"
+                        "smartregression.web_change_notifications,"
+                        "smartregression.web_github_deliveries TO " + '"' + name + '"'
+                    )
+                )
+                conn.execute(
+                    text(
                         'GRANT SELECT,INSERT,DELETE ON smartregression.web_reporting_views TO "'
                         + name
                         + '"'
@@ -217,6 +228,7 @@ def main():
                     return result
 
                 value._json = complete_tree
+                value.resolve_branch = lambda branch: TARGET
                 yield value
 
             def publish(execution, repository):
@@ -257,6 +269,9 @@ def main():
                 note_service=notes,
                 scenario_service=scenarios,
                 web_ai_service=ai,
+                repo_assistant_service=RepositoryAssistantService(
+                    PostgresAssistantStore(engine), explorer, projects, factory, ai
+                ),
                 reporting_service=__import__(
                     "smartregression.composition", fromlist=["product_reporting_service"]
                 ).product_reporting_service(auth),

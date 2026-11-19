@@ -2,6 +2,13 @@
 
 **An LLM- and RAG-Based Change Impact Analysis and Regression Test Selection System.**
 
+**Repository assistant (2026-11-19):** giải thích repository theo commit, hỏi đáp
+có trích dẫn, theo dõi nhánh và thông báo thay đổi theo vùng mã. Thành viên clone
+về máy mới xem [hướng dẫn chạy local và điền Gemini API key](docs/development/team-local-setup.md).
+File mẫu là `backend/.env.example`; điền key riêng vào `backend/.env` được Git ignore.
+API key và quota AI trong ứng dụng là hai cấu hình riêng. Xem
+[bàn giao và giới hạn](docs/development/repo-assistant-handoff-20261119.md).
+
 **Sprint 3 local product (2026-11-15):** accounts, personal projects, durable runs,
 Python/JavaScript explorer, static calls/impact, immutable what-if/A-B, notes/resume,
 reading/search, consent-bound Gemini, dashboards and JSON/CSV/browser PDF are

@@ -116,6 +116,14 @@ def migrated(engines):
         )
         connection.execute(
             sa.text(
+                "GRANT SELECT,INSERT,UPDATE,DELETE ON smartregression.web_assistant_threads,"
+                "smartregression.web_assistant_messages,smartregression.web_repo_watches,"
+                "smartregression.web_change_notifications,smartregression.web_github_deliveries "
+                "TO smartregression_runtime"
+            )
+        )
+        connection.execute(
+            sa.text(
                 "GRANT SELECT,INSERT,DELETE ON smartregression.web_reporting_views "
                 "TO smartregression_runtime"
             )

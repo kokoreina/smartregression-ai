@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import type { components } from '../../types/generated'
 import { AccountError, productRequest } from '../auth/authClient'
 import { FormNotice } from '../auth/AuthViews'
@@ -7,6 +7,7 @@ import './projects.css'
 import { ProjectRuns } from './Runs'
 import { ResumeLink } from '../explorer/Notes'
 import { Explorer } from '../explorer/Explorer'
+import { RepositoryAssistant } from '../assistant/RepositoryAssistant'
 
 type Project = components['schemas']['Project']
 type Page = components['schemas']['ProjectPage']
@@ -28,6 +29,7 @@ function errorMessage(error: unknown): string {
 }
 
 export function Projects() {
+  const navigate = useNavigate()
   const [items, setItems] = useState<Project[]>([])
   const [cursor, setCursor] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -59,8 +61,9 @@ export function Projects() {
     if (flight.current) return
     flight.current = true; setBusy(true); setError('')
     try {
-      await productRequest<Project>('/projects', 'POST', { title, repository_url: url, description })
+      const created = await productRequest<Project>('/projects', 'POST', { title, repository_url: url, description })
       setTitle(''); setUrl(''); setDescription(''); setShowCreate(false); setArchived(false); setLoading(true); setItems([]); setCursor(null); setRefresh(value => value + 1)
+      navigate(`/app/projects/${created.id}?section=assistant`)
     } catch (cause) { setError(errorMessage(cause)) }
     finally { flight.current = false; setBusy(false) }
   }
@@ -150,7 +153,8 @@ export function ProjectDetail() {
     {!project || project.id !== projectId ? !error && <p role="status">Đang tải dự án…</p> : <><div className="project-heading"><div>{project.archived && <p className="eyebrow">Dự án đã lưu trữ</p>}<h1>{project.title}</h1>
       <p className="repository-url">{project.repository_url.replace('https://github.com/', '')}</p></div>
       <Link className="secondary-action" to={`/app/projects/${project.id}/what-if`}>Thử thay đổi · What-if</Link></div>
-      <nav className="project-sections" aria-label="Các phần của dự án">{[['explorer', 'Khám phá mã nguồn'], ['runs', 'Phân tích & lịch sử'], ['activity', 'Hoạt động'], ['settings', 'Cài đặt']].map(([value, label]) => <button key={value} type="button" aria-pressed={section === value} onClick={() => setSearchParams(previous => { const next = new URLSearchParams(previous); next.set('section', value ?? 'explorer'); return next })}>{label}</button>)}</nav>
+      <nav className="project-sections" aria-label="Các phần của dự án">{[['explorer', 'Khám phá mã nguồn'], ['assistant', 'Trợ lý & thay đổi'], ['runs', 'Phân tích & lịch sử'], ['activity', 'Hoạt động'], ['settings', 'Cài đặt']].map(([value, label]) => <button key={value} type="button" aria-pressed={section === value} onClick={() => setSearchParams(previous => { const next = new URLSearchParams(previous); next.set('section', value ?? 'explorer'); return next })}>{label}</button>)}</nav>
+      {section === 'assistant' && <RepositoryAssistant key={project.id} projectId={project.id} repositoryUrl={project.repository_url} archived={project.archived} />}
       {section === 'explorer' && <Explorer embedded />}
       {section === 'runs' && <><ResumeLink projectId={project.id} /><ProjectRuns key={project.id} projectId={project.id} archived={project.archived} /></>}
       {section === 'settings' && <form className="auth-card project-create" onSubmit={event => { event.preventDefault(); void mutate('update') }} aria-busy={busy}>

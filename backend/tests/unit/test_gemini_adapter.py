@@ -126,7 +126,7 @@ def test_output_failures_are_typed(text, finish, error):
         (401, "provider_auth"),
         (403, "provider_permission"),
         (429, "provider_quota"),
-        (503, "provider_transport"),
+        (503, "provider_unavailable"),
     ],
 )
 def test_sdk_errors_redacted_without_retry(status, error, caplog):

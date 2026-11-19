@@ -7,6 +7,7 @@ versioned migrations contain frozen DDL rather than importing evolving metadata.
 import sqlalchemy as sa
 from sqlalchemy.dialects.postgresql import JSONB
 
+from smartregression.adapters.storage.assistant_schema import add_assistant_tables
 from smartregression.adapters.storage.auth_schema import add_auth_tables
 from smartregression.adapters.storage.explorer_schema import add_explorer_tables
 from smartregression.adapters.storage.note_schema import add_note_tables
@@ -26,6 +27,7 @@ add_explorer_tables(metadata)
 add_note_tables(metadata)
 add_scenario_tables(metadata)
 add_reporting_tables(metadata)
+add_assistant_tables(metadata)
 _SHA = "^([0-9a-f]{40}|[0-9a-f]{64})$"
 _DIGEST = "^[0-9a-f]{64}$"
 _STATES = "('not_implemented','not_run','completed','partial','failed')"

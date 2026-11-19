@@ -57,3 +57,7 @@ trong `required` của schema vẫn optional, phù hợp với JSON đầu vào 
 Không dùng ép kiểu qua unknown để che lỗi contract. Cross-field validators (dòng,
 commit, evidence/test references) do backend thực hiện, không được diễn đạt đầy đủ
 bằng OpenAPI hoặc TypeScript.
+
+Repository assistant, conversations and remote-change monitoring use the
+[repository assistant API](repository-assistant.md). Existing report versions
+remain separate from these owner-scoped product contracts.

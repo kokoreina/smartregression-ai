@@ -76,7 +76,10 @@
               "reading_guide",
               "search",
               "file",
-              "folder"
+              "folder",
+              "overview",
+              "chat",
+              "changes"
             ],
             "title": "Action",
             "type": "string"
@@ -511,6 +514,194 @@
         "title": "AssistanceAiRequest",
         "type": "object"
       },
+      "AssistantFact": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "text"
+        ],
+        "title": "AssistantFact",
+        "type": "object"
+      },
+      "AssistantMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "ai": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AiJob"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "question": {
+            "title": "Question",
+            "type": "string"
+          },
+          "reply": {
+            "$ref": "#/components/schemas/AssistantReply"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "thread_id": {
+            "format": "uuid",
+            "title": "Thread Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "thread_id",
+          "question",
+          "reply",
+          "created_at"
+        ],
+        "title": "AssistantMessage",
+        "type": "object"
+      },
+      "AssistantReply": {
+        "additionalProperties": false,
+        "properties": {
+          "commit": {
+            "pattern": "^[0-9a-f]{40}$",
+            "title": "Commit",
+            "type": "string"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/GraphCoverage"
+          },
+          "excerpts": {
+            "items": {
+              "$ref": "#/components/schemas/SourceRange"
+            },
+            "maxItems": 5,
+            "title": "Excerpts",
+            "type": "array"
+          },
+          "facts": {
+            "items": {
+              "$ref": "#/components/schemas/AssistantFact"
+            },
+            "maxItems": 24,
+            "title": "Facts",
+            "type": "array"
+          },
+          "kind": {
+            "enum": [
+              "overview",
+              "search",
+              "changes",
+              "no_evidence"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": [
+          "commit",
+          "kind",
+          "summary",
+          "coverage",
+          "limitations"
+        ],
+        "title": "AssistantReply",
+        "type": "object"
+      },
+      "AssistantThread": {
+        "additionalProperties": false,
+        "properties": {
+          "commit": {
+            "pattern": "^[0-9a-f]{40}$",
+            "title": "Commit",
+            "type": "string"
+          },
+          "config_digest": {
+            "title": "Config Digest",
+            "type": "string"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "project_id": {
+            "format": "uuid",
+            "title": "Project Id",
+            "type": "string"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "project_id",
+          "commit",
+          "config_digest",
+          "title",
+          "created_at"
+        ],
+        "title": "AssistantThread",
+        "type": "object"
+      },
       "AuthErrorResponse": {
         "additionalProperties": false,
         "properties": {
@@ -603,6 +794,50 @@
         "title": "CallPaths",
         "type": "object"
       },
+      "ChangeNotification": {
+        "additionalProperties": false,
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "read_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Read At"
+          },
+          "report": {
+            "$ref": "#/components/schemas/ChangeReport"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "created_at",
+          "read_at",
+          "report"
+        ],
+        "title": "ChangeNotification",
+        "type": "object"
+      },
       "ChangePayload": {
         "additionalProperties": false,
         "properties": {
@@ -626,6 +861,90 @@
           "files"
         ],
         "title": "ChangePayload",
+        "type": "object"
+      },
+      "ChangeReport": {
+        "additionalProperties": false,
+        "properties": {
+          "base": {
+            "pattern": "^[0-9a-f]{40}$",
+            "title": "Base",
+            "type": "string"
+          },
+          "base_coverage": {
+            "$ref": "#/components/schemas/GraphCoverage"
+          },
+          "branch": {
+            "title": "Branch",
+            "type": "string"
+          },
+          "changes": {
+            "items": {
+              "$ref": "#/components/schemas/ChangedComponent"
+            },
+            "maxItems": 1000,
+            "title": "Changes",
+            "type": "array"
+          },
+          "config_digest": {
+            "title": "Config Digest",
+            "type": "string"
+          },
+          "impacts_truncated": {
+            "title": "Impacts Truncated",
+            "type": "boolean"
+          },
+          "limitations": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Limitations",
+            "type": "array"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "scope": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Scope",
+            "type": "array"
+          },
+          "scope_impacts": {
+            "items": {
+              "$ref": "#/components/schemas/ScopeImpact"
+            },
+            "maxItems": 150,
+            "title": "Scope Impacts",
+            "type": "array"
+          },
+          "target": {
+            "pattern": "^[0-9a-f]{40}$",
+            "title": "Target",
+            "type": "string"
+          },
+          "target_coverage": {
+            "$ref": "#/components/schemas/GraphCoverage"
+          }
+        },
+        "required": [
+          "base",
+          "target",
+          "config_digest",
+          "branch",
+          "changes",
+          "scope",
+          "scope_impacts",
+          "impacts_truncated",
+          "base_coverage",
+          "target_coverage",
+          "limitations"
+        ],
+        "title": "ChangeReport",
         "type": "object"
       },
       "ChangedComponent": {
@@ -2521,6 +2840,66 @@
         "title": "Login",
         "type": "object"
       },
+      "MessageCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "default": "chat",
+            "enum": [
+              "chat",
+              "overview",
+              "changes"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "allow_excerpt_egress": {
+            "default": false,
+            "title": "Allow Excerpt Egress",
+            "type": "boolean"
+          },
+          "allow_metadata_egress": {
+            "default": false,
+            "title": "Allow Metadata Egress",
+            "type": "boolean"
+          },
+          "allow_model_fallback": {
+            "default": false,
+            "title": "Allow Model Fallback",
+            "type": "boolean"
+          },
+          "excerpts": {
+            "items": {
+              "$ref": "#/components/schemas/ExcerptRange"
+            },
+            "maxItems": 5,
+            "title": "Excerpts",
+            "type": "array"
+          },
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9_-]{8,100}$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "question": {
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          },
+          "use_llm": {
+            "default": false,
+            "title": "Use Llm",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "idempotency_key",
+          "question"
+        ],
+        "title": "MessageCreate",
+        "type": "object"
+      },
       "NarrativeEvidence": {
         "additionalProperties": false,
         "properties": {
@@ -2625,6 +3004,7 @@
                   "provider_rate_limit",
                   "provider_timeout",
                   "provider_transport",
+                  "provider_unavailable",
                   "provider_refusal",
                   "provider_empty",
                   "provider_truncated",
@@ -3274,6 +3654,7 @@
                   "provider_rate_limit",
                   "provider_timeout",
                   "provider_transport",
+                  "provider_unavailable",
                   "provider_refusal",
                   "provider_empty",
                   "provider_truncated",
@@ -4005,6 +4386,91 @@
           "commit"
         ],
         "title": "RepositoryTreeRequest",
+        "type": "object"
+      },
+      "RepositoryWatch": {
+        "additionalProperties": false,
+        "properties": {
+          "automatic": {
+            "title": "Automatic",
+            "type": "boolean"
+          },
+          "branch": {
+            "title": "Branch",
+            "type": "string"
+          },
+          "checked_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Checked At"
+          },
+          "error_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Code"
+          },
+          "interval_seconds": {
+            "title": "Interval Seconds",
+            "type": "integer"
+          },
+          "last_commit": {
+            "pattern": "^[0-9a-f]{40}$",
+            "title": "Last Commit",
+            "type": "string"
+          },
+          "next_check_at": {
+            "format": "date-time",
+            "title": "Next Check At",
+            "type": "string"
+          },
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Paths",
+            "type": "array"
+          },
+          "pending": {
+            "title": "Pending",
+            "type": "boolean"
+          },
+          "schema_version": {
+            "const": "1.0.0",
+            "default": "1.0.0",
+            "title": "Schema Version",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "branch",
+          "paths",
+          "automatic",
+          "interval_seconds",
+          "version",
+          "last_commit",
+          "checked_at",
+          "next_check_at",
+          "pending",
+          "error_code"
+        ],
+        "title": "RepositoryWatch",
         "type": "object"
       },
       "RetrievalItem": {
@@ -4829,6 +5295,48 @@
           "items"
         ],
         "title": "ScenarioViewPage",
+        "type": "object"
+      },
+      "ScopeImpact": {
+        "additionalProperties": false,
+        "properties": {
+          "chain": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 21,
+            "title": "Chain",
+            "type": "array"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/GraphEvidence"
+            },
+            "maxItems": 20,
+            "title": "Evidence",
+            "type": "array"
+          },
+          "path": {
+            "title": "Path",
+            "type": "string"
+          },
+          "relationship": {
+            "enum": [
+              "changed",
+              "direct",
+              "indirect"
+            ],
+            "title": "Relationship",
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "relationship",
+          "chain",
+          "evidence"
+        ],
+        "title": "ScopeImpact",
         "type": "object"
       },
       "SelectionManifest": {
@@ -6227,6 +6735,34 @@
         "title": "TestSuggestion",
         "type": "object"
       },
+      "ThreadCreate": {
+        "additionalProperties": false,
+        "properties": {
+          "commit": {
+            "pattern": "^[0-9a-f]{40}$",
+            "title": "Commit",
+            "type": "string"
+          },
+          "idempotency_key": {
+            "pattern": "^[A-Za-z0-9_-]{8,100}$",
+            "title": "Idempotency Key",
+            "type": "string"
+          },
+          "title": {
+            "default": "Hỏi về repository",
+            "maxLength": 120,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "commit",
+          "idempotency_key"
+        ],
+        "title": "ThreadCreate",
+        "type": "object"
+      },
       "TokenInput": {
         "additionalProperties": false,
         "properties": {
@@ -6557,6 +7093,48 @@
         "title": "ViewStateInput",
         "type": "object"
       },
+      "WatchInput": {
+        "additionalProperties": false,
+        "properties": {
+          "automatic": {
+            "default": false,
+            "title": "Automatic",
+            "type": "boolean"
+          },
+          "branch": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Branch",
+            "type": "string"
+          },
+          "interval_seconds": {
+            "default": 600,
+            "maximum": 86400.0,
+            "minimum": 300.0,
+            "title": "Interval Seconds",
+            "type": "integer"
+          },
+          "paths": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 20,
+            "title": "Paths",
+            "type": "array"
+          },
+          "version": {
+            "default": 0,
+            "minimum": 0.0,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "branch"
+        ],
+        "title": "WatchInput",
+        "type": "object"
+      },
       "WebCapabilities": {
         "additionalProperties": false,
         "properties": {
@@ -6683,6 +7261,30 @@
           "ai_status"
         ],
         "title": "WebRun",
+        "type": "object"
+      },
+      "WebhookReceipt": {
+        "additionalProperties": false,
+        "properties": {
+          "accepted": {
+            "title": "Accepted",
+            "type": "boolean"
+          },
+          "duplicate": {
+            "title": "Duplicate",
+            "type": "boolean"
+          },
+          "scheduled": {
+            "title": "Scheduled",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "accepted",
+          "duplicate",
+          "scheduled"
+        ],
+        "title": "WebhookReceipt",
         "type": "object"
       },
       "WorkflowReport": {
@@ -7712,6 +8314,27 @@
         "summary": "Capabilities"
       }
     },
+    "/api/v1/github/webhook": {
+      "post": {
+        "operationId": "webhook_api_v1_github_webhook_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WebhookReceipt"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Webhook",
+        "tags": [
+          "GitHub integration"
+        ]
+      }
+    },
     "/api/v1/projects": {
       "get": {
         "operationId": "listing_api_v1_projects_get",
@@ -8210,6 +8833,629 @@
         "summary": "Assistance Get",
         "tags": [
           "AI"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant/check": {
+      "post": {
+        "operationId": "check_api_v1_projects__project_id__assistant_check_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryWatch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Check",
+        "tags": [
+          "repository assistant"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant/notifications": {
+      "get": {
+        "operationId": "notifications_api_v1_projects__project_id__assistant_notifications_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ChangeNotification"
+                  },
+                  "title": "Response Notifications Api V1 Projects  Project Id  Assistant Notifications Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Notifications",
+        "tags": [
+          "repository assistant"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant/notifications/{notification_id}/read": {
+      "post": {
+        "operationId": "mark_read_api_v1_projects__project_id__assistant_notifications__notification_id__read_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "notification_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Notification Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Mark Read",
+        "tags": [
+          "repository assistant"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant/overview": {
+      "post": {
+        "operationId": "overview_api_v1_projects__project_id__assistant_overview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "commit",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "pattern": "^[0-9a-f]{40}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Commit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantReply"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Overview",
+        "tags": [
+          "repository assistant"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant/threads": {
+      "get": {
+        "operationId": "threads_api_v1_projects__project_id__assistant_threads_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssistantThread"
+                  },
+                  "title": "Response Threads Api V1 Projects  Project Id  Assistant Threads Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Threads",
+        "tags": [
+          "repository assistant"
+        ]
+      },
+      "post": {
+        "operationId": "create_thread_api_v1_projects__project_id__assistant_threads_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ThreadCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantThread"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create Thread",
+        "tags": [
+          "repository assistant"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant/threads/{thread_id}": {
+      "delete": {
+        "operationId": "delete_thread_api_v1_projects__project_id__assistant_threads__thread_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "thread_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Thread Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete Thread",
+        "tags": [
+          "repository assistant"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant/threads/{thread_id}/messages": {
+      "get": {
+        "operationId": "messages_api_v1_projects__project_id__assistant_threads__thread_id__messages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "thread_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Thread Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AssistantMessage"
+                  },
+                  "title": "Response Messages Api V1 Projects  Project Id  Assistant Threads  Thread Id  Messages Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Messages",
+        "tags": [
+          "repository assistant"
+        ]
+      },
+      "post": {
+        "operationId": "send_api_v1_projects__project_id__assistant_threads__thread_id__messages_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "thread_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Thread Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantMessage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Send",
+        "tags": [
+          "repository assistant"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant/threads/{thread_id}/preview": {
+      "post": {
+        "operationId": "preview_api_v1_projects__project_id__assistant_threads__thread_id__preview_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "thread_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Thread Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MessageCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AssistantReply"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Preview",
+        "tags": [
+          "repository assistant"
+        ]
+      }
+    },
+    "/api/v1/projects/{project_id}/assistant/watch": {
+      "get": {
+        "operationId": "watch_api_v1_projects__project_id__assistant_watch_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RepositoryWatch"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Watch Api V1 Projects  Project Id  Assistant Watch Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Watch",
+        "tags": [
+          "repository assistant"
+        ]
+      },
+      "put": {
+        "operationId": "save_watch_api_v1_projects__project_id__assistant_watch_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "project_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Project Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WatchInput"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RepositoryWatch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Watch",
+        "tags": [
+          "repository assistant"
         ]
       }
     },

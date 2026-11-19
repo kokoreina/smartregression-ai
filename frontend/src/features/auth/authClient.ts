@@ -45,6 +45,14 @@ const messages: Record<string, string> = {
   excerpt_limit: 'Tổng excerpt vượt 20 KiB. Hãy chọn ít nội dung hơn.',
   ai_context_limit: 'Context vượt ngân sách gửi AI. Hãy chọn file hoặc phạm vi nhỏ hơn.',
   no_evidence: 'Chưa có bằng chứng phù hợp. Hãy đổi từ khóa hoặc chọn snapshot/file khác.',
+  assistant_unavailable: 'Trợ lý chưa sẵn sàng. Hãy kiểm tra backend và migration dữ liệu.',
+  thread_not_found: 'Hội thoại không còn tồn tại hoặc bạn không có quyền truy cập.',
+  thread_config_mismatch: 'Hội thoại dùng phiên bản phân tích cũ. Hãy tạo hội thoại mới cho snapshot này.',
+  thread_limit: 'Dự án đã có 100 hội thoại. Hãy xóa hội thoại không cần giữ trước khi tạo thêm.',
+  message_limit: 'Hội thoại đã đủ 100 lượt. Hãy tạo hội thoại mới để tiếp tục.',
+  unknown_watch_path: 'Có đường dẫn theo dõi không tồn tại ở nhánh đã chọn. Hãy kiểm tra cây thư mục.',
+  watch_not_configured: 'Hãy lưu nhánh và vùng mã theo dõi trước khi kiểm tra thay đổi.',
+  change_report_not_available: 'Chưa có báo cáo thay đổi cho commit này. Hãy đồng bộ nhánh rồi mở thông báo tương ứng.',
   invalid_search_query: 'Truy vấn cần 1–600 ký tự và tối đa 10 kết quả.',
   sensitive_question: 'Nội dung có dấu hiệu thông tin nhạy cảm. Hãy loại bỏ trước khi gửi.',
   sensitive_input: 'Nội dung có dấu hiệu thông tin nhạy cảm. Hãy loại bỏ trước khi lưu phương án.',
@@ -87,15 +95,18 @@ async function request<T>(path: string, method = 'GET', body?: unknown, kind: 'j
   const started = generation
   try {
     const headers: Record<string, string> = {}
+    const acquiresSnapshot = (method === 'POST' && (path === '/projects' || path.endsWith('/snapshots') || path.endsWith('/assistant/overview') || path.endsWith('/assistant/threads')))
+      || (method === 'PUT' && path.endsWith('/assistant/watch'))
     if (method !== 'GET') {
       headers['Content-Type'] = 'application/json'
       headers['X-CSRF-Token'] = await token()
     }
     const response = await fetch(path.startsWith('/') ? `/api/v1${path}` : `/api/v1/auth/${path}`, {
-      method, credentials: 'same-origin', cache: 'no-store', headers, signal: AbortSignal.timeout(method === 'POST' && (path === '/projects' || path.endsWith('/snapshots')) ? 120000 : 30000),
+      method, credentials: 'same-origin', cache: 'no-store', headers, signal: AbortSignal.timeout(acquiresSnapshot ? 180000 : 30000),
       ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
     })
     if (response.ok && kind === 'blob') return await response.blob() as T
+    if (response.status === 204) return undefined as T
     const data: unknown = await response.json()
     if (!response.ok) {
       const code = typeof data === 'object' && data !== null && 'code' in data && typeof data.code === 'string'

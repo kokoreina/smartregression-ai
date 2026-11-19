@@ -3,10 +3,12 @@
 import asyncio
 import hashlib
 import json
+import logging
 import time
+from collections.abc import Callable
 from copy import deepcopy
 
-from google.genai import types
+from google.genai import errors, types
 from pydantic import ValidationError
 
 from smartregression.adapters.llm.budget import BudgetLedger
@@ -83,9 +85,16 @@ def validate_explanation(text: str, payload: dict) -> RepositoryExplanation:
 
 
 class GeminiRepositoryNarrator:
-    def __init__(self, provider: GeminiProvider, ledger: BudgetLedger) -> None:
+    def __init__(
+        self,
+        provider: GeminiProvider,
+        ledger: BudgetLedger,
+        *,
+        diagnostic: Callable[[dict], None] | None = None,
+    ) -> None:
         self.provider = provider
         self.ledger = ledger
+        self.diagnostic = diagnostic
 
     def explain(self, payload: dict, *, run_id: str) -> NarrativeResult:
         body = dict(
@@ -97,7 +106,11 @@ class GeminiRepositoryNarrator:
             generationConfig={
                 "temperature": 0,
                 "maxOutputTokens": 2048,
-                "thinkingConfig": {"thinkingLevel": "MINIMAL"},
+                "thinkingConfig": {
+                    "thinkingLevel": "LOW"
+                    if self.provider.settings.model == "gemini-3.8-flash"
+                    else "MINIMAL"
+                },
                 "responseMimeType": "application/json",
                 "responseJsonSchema": response_schema(payload),
             },
@@ -105,7 +118,7 @@ class GeminiRepositoryNarrator:
         packed = json.dumps(body, sort_keys=True).encode()
         digest = hashlib.sha256(packed).hexdigest()
         config = hashlib.sha256(
-            b"snapshot-assistance/4-v1beta-bounded-folder-schema-vietnamese"
+            ("snapshot-assistance/5-v1beta-vietnamese:" + self.provider.settings.model).encode()
         ).hexdigest()
         if len(packed) > 32768:
             return NarrativeResult(
@@ -146,7 +159,19 @@ class GeminiRepositoryNarrator:
                         status="failed", error_code="provider_budget", prompt_sha256=digest
                     )
                 # Retain full unknown reservation. Observed usage is not a billing invoice.
-                budget.reserve("generation", 7578)
+                # Flash 3.8: 8192 * $0.75/M + 2048 * $3.75/M, standard pricing
+                # through 2026-12-31. This is a bound, not the account's invoice.
+                if provider.settings.model == "gemini-3.8-flash":
+                    from datetime import UTC, datetime
+
+                    if datetime.now(UTC).date().isoformat() > "2026-12-31":
+                        return NarrativeResult(
+                            status="failed", error_code="provider_budget", prompt_sha256=digest
+                        )
+                    reservation = 13824
+                else:
+                    reservation = 7578
+                budget.reserve("generation", reservation)
                 generation = {k: v for k, v in body.items() if k != "model"}
                 async with asyncio.timeout(15):
                     response = await client.aio.models.generate_content(
@@ -190,6 +215,22 @@ class GeminiRepositoryNarrator:
                     ),
                 )
         except Exception as exc:
+            logging.getLogger(__name__).warning(
+                "Gemini narrative failure: type=%s http_status=%s",
+                type(exc).__name__,
+                exc.code if isinstance(exc, errors.APIError) else None,
+            )
+            if self.diagnostic is not None:
+                try:
+                    self.diagnostic(
+                        {
+                            "type": type(exc).__name__,
+                            "http_status": exc.code if isinstance(exc, errors.APIError) else None,
+                            "message": str(exc.message) if isinstance(exc, errors.APIError) else "",
+                        }
+                    )
+                except Exception:
+                    logging.getLogger(__name__).warning("Operator diagnostic recording failed.")
             code = (
                 "provider_invalid_output"
                 if isinstance(exc, (ValidationError, ValueError))

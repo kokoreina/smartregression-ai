@@ -25,6 +25,7 @@ from smartregression.contracts.workflow import (
 )
 
 MODEL = "gemini-3.5-flash-lite"
+WEB_MODEL = "gemini-3.8-flash"
 INSTRUCTIONS = (
     "Propose existing regression tests affected by the supplied change. "
     "Use only exact inventory test IDs and supplied evidence IDs. "
@@ -66,7 +67,7 @@ class GeminiSettings:
 
     def __post_init__(self) -> None:
         if (
-            self.model != MODEL
+            self.model not in {MODEL, WEB_MODEL}
             or self.api_version not in {"v1", "v1beta"}
             or not isinstance(self.timeout_seconds, (int, float))
             or isinstance(self.timeout_seconds, bool)
@@ -88,7 +89,8 @@ class PackedRequest:
 def pack_request(request: ProposalRequest, settings: GeminiSettings) -> PackedRequest:
     checked = ProposalRequest.model_validate_json(request.model_dump_json())
     if (
-        checked.provenance.provider != "gemini"
+        settings.model != MODEL
+        or checked.provenance.provider != "gemini"
         or checked.provenance.model != settings.model
         or checked.provenance.prompt_version != "proposal/1"
     ):
@@ -156,6 +158,8 @@ def _error_code(exc: Exception) -> ProviderError:
             ):
                 return "provider_rate_limit"
             return "provider_quota"
+        if code == 503:
+            return "provider_unavailable"
         if code is not None and code >= 500:
             return "provider_transport"
         if code == 408:

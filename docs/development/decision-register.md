@@ -114,3 +114,22 @@ Task đã giao rõ có thể cập nhật quyết định trong phạm vi đó m
 Quyết định kiến trúc mới dùng [ADR template](../templates/adr.md), liên kết vào bảng;
 đánh dấu nguồn cũ superseded khi có quyết định thay thế thực tế. Review mỗi sprint,
 không tự điền tên người duyệt hay ngày duyệt chưa xảy ra.
+
+## D22 — Repository assistant and GitHub monitoring, 19/11/2026
+
+Accepted for local implementation by the user after reading the proposal and
+requesting detailed execution. [ADR 0005](../architecture/decisions/0005-repository-assistant.md)
+records snapshot-bound conversations, explicit personal path scope, durable
+PostgreSQL watches, manual/polling checks and signed webhook transport. Python
+impact/pytest scope remains; private/cross-repo analysis is not enabled.
+
+The user selected Gemini 3.8 Flash for web AI and explicitly requested diagnosis
+and remediation of 503. Default remains 3.8; optional final-attempt 3.5 Flash-Lite
+fallback is disclosed and requires consent. Backoff admits every attempt against
+the original campaign; no hidden SDK retries or quota replenishment. The user
+delegated test-budget selection; separate acceptance/recovery caps retain all
+earlier records. This does not establish group/mentor acceptance or ongoing spend.
+
+Implementation, actual tests and operational limits are in the
+[handoff](repo-assistant-handoff-20261119.md). No Git publication/public deployment
+or external webhook installation is inferred from the local implementation task.

@@ -102,7 +102,9 @@ def add_web_ai_tables(metadata):
         ),
         sa.CheckConstraint("input_digest ~ '^[0-9a-f]{64}$'"),
         sa.CheckConstraint(
-            "action IN ('commit','hypothesis','reading_guide','search','file','folder')"
+            "action IN ('commit','hypothesis','reading_guide','search','file','folder',"
+            "'overview','chat','changes')",
+            name="ck_web_ai_assistant_actions",
         ),
         sa.CheckConstraint("status IN ('queued','running','completed','failed')"),
         sa.CheckConstraint("reservation_micro_usd BETWEEN 1 AND 20000"),

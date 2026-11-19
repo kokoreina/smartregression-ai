@@ -16,7 +16,17 @@ class AiJob(WebValue):
     context_hash: str | None = None
     provenance: dict = Field(default_factory=dict)
     status: Literal["queued", "running", "completed", "failed"]
-    action: Literal["commit", "hypothesis", "reading_guide", "search", "file", "folder"]
+    action: Literal[
+        "commit",
+        "hypothesis",
+        "reading_guide",
+        "search",
+        "file",
+        "folder",
+        "overview",
+        "chat",
+        "changes",
+    ]
     created_at: AwareDatetime
     finished_at: AwareDatetime | None
     result: NarrativeResult | None

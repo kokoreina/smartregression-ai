@@ -1,5 +1,10 @@
 # SmartRegression local operations
 
+Current checkout/startup (19/11/2026): `D:/C1.SE26/Repo`. Follow
+[repository assistant local operations](repo-assistant-local-operations.md) for
+current paths, migration head, Gemini 3.8 web configuration and the new worker.
+The phase-3 path/checkpoint below is retained as historical setup context.
+
 Use `D:/smart-regression-ai/var/main-preview`, branch
 `feat/web-repository-analysis`. Baseline HEAD is `5a30a7a`; the new web code is
 local and uncommitted. Do not run the older root checkout or reset the worktree.

@@ -33,7 +33,16 @@ def explanation(**change):
     return value
 
 
-def provider(tmp_path, *, output=None, count=500, timeout=False, observed_input=500, error=None):
+def provider(
+    tmp_path,
+    *,
+    output=None,
+    count=500,
+    timeout=False,
+    observed_input=500,
+    error=None,
+    model="gemini-3.5-flash-lite",
+):
     seen = []
 
     class Client:
@@ -53,7 +62,7 @@ def provider(tmp_path, *, output=None, count=500, timeout=False, observed_input=
             return SimpleNamespace(
                 text=json.dumps(output if output is not None else explanation()),
                 candidates=[SimpleNamespace(finish_reason="STOP")],
-                model_version="gemini-3.5-flash-lite",
+                model_version=model,
                 usage_metadata=SimpleNamespace(
                     prompt_token_count=observed_input,
                     candidates_token_count=100,
@@ -68,11 +77,44 @@ def provider(tmp_path, *, output=None, count=500, timeout=False, observed_input=
         async def aclose(self):
             pass
 
-    transport = GeminiProvider(lambda options: Client(), GeminiSettings(api_version="v1beta"))
+    transport = GeminiProvider(
+        lambda options: Client(), GeminiSettings(model=model, api_version="v1beta")
+    )
     narrator = GeminiRepositoryNarrator(
         transport, BudgetLedger(tmp_path / "budget.json", session_id="test")
     )
     return narrator, seen
+
+
+def test_flash_38_uses_low_thinking_and_model_specific_reservation(tmp_path):
+    narrator, seen = provider(tmp_path, model="gemini-3.8-flash")
+    result = narrator.explain(payload(), run_id="flash38")
+    assert result.status == "completed" and result.model == "gemini-3.8-flash"
+    body = seen[1][1]["config"].http_options.extra_body
+    assert body["generationConfig"]["thinkingConfig"] == {"thinkingLevel": "LOW"}
+    state = json.loads((tmp_path / "budget.json").read_text())
+    assert state["runs"][0]["entries"][1]["reserved_micro_usd"] == 13824
+
+
+def test_503_exposes_operator_diagnostic_without_automatically_repeating_generation(tmp_path):
+    error = errors.ServerError(
+        503,
+        {
+            "error": {
+                "code": 503,
+                "status": "UNAVAILABLE",
+                "message": "The model is experiencing high demand. Please try again later.",
+            }
+        },
+    )
+    narrator, seen = provider(tmp_path, error=error, model="gemini-3.8-flash")
+    diagnostics = []
+    narrator.diagnostic = diagnostics.append
+    result = narrator.explain(payload(), run_id="busy")
+    assert result.status == "failed" and result.error_code == "provider_unavailable"
+    assert len([call for call in seen if call[0] == "generate"]) == 1
+    assert diagnostics and diagnostics[0]["http_status"] == 503
+    assert "high demand" in diagnostics[0]["message"]
 
 
 def test_success_counts_exact_full_request_and_keeps_unknown_reservation(tmp_path):
