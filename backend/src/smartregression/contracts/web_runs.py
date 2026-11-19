@@ -8,6 +8,8 @@ from pydantic import AwareDatetime, Field, StringConstraints
 from smartregression.contracts.repository import GitHubCommit as Commit
 from smartregression.contracts.repository import RepositoryAnalysisResponse, WebValue
 
+RunStatus = Literal["queued", "running", "completed", "failed", "interrupted"]
+
 
 class RunCreate(WebValue):
     base: Commit
@@ -23,7 +25,7 @@ class WebRun(WebValue):
     base: Commit
     target: Commit
     config_digest: str
-    status: Literal["queued", "running", "completed", "failed", "interrupted"]
+    status: RunStatus
     started_at: AwareDatetime
     finished_at: AwareDatetime | None
     error_code: str | None

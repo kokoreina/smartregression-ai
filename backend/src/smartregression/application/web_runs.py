@@ -9,7 +9,7 @@ from smartregression.contracts.repository import (
     RepositoryAnalysisRequest,
     RepositoryAnalysisResponse,
 )
-from smartregression.contracts.web_runs import RunCreate, RunPage, SavedRunReport, WebRun
+from smartregression.contracts.web_runs import RunCreate, RunPage, RunStatus, SavedRunReport, WebRun
 
 CONFIG = {"web_analysis": "1", "graph_policy": "target_imports", "languages": ["python"]}
 CONFIG_DIGEST = hashlib.sha256(b"smartregression-web-static-python-v1").hexdigest()
@@ -21,7 +21,15 @@ class WebRunStore(Protocol):
     ) -> tuple[WebRun, bool]: ...
     def start(self, owner: str, project: str, identity: str) -> bool: ...
     def get(self, owner: str, project: str, identity: str) -> WebRun: ...
-    def list(self, owner: str, project: str, cursor: str | None, limit: int) -> RunPage: ...
+    def list(
+        self,
+        owner: str,
+        project: str,
+        cursor: str | None,
+        limit: int,
+        *,
+        status: RunStatus | None = None,
+    ) -> RunPage: ...
     def save_static(
         self, owner: str, project: str, identity: str, payload: RepositoryAnalysisResponse
     ) -> None: ...

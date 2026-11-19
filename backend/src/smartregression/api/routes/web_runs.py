@@ -8,7 +8,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request
 from smartregression.api.project_dependencies import product_csrf, verified_owner
 from smartregression.application.auth import AuthFailure, User
 from smartregression.application.web_runs import WebRunService
-from smartregression.contracts.web_runs import RunCreate, RunPage, SavedRunReport, WebRun
+from smartregression.contracts.web_runs import RunCreate, RunPage, RunStatus, SavedRunReport, WebRun
 
 Owner = Annotated[User, Depends(verified_owner)]
 
@@ -42,8 +42,9 @@ def web_run_router():
         runs: Service,
         cursor: str | None = Query(None, max_length=256),
         limit: int = Query(25, ge=1, le=100),
+        status: RunStatus | None = None,
     ):
-        return runs.store.list(user.id, str(project_id), cursor, limit)
+        return runs.store.list(user.id, str(project_id), cursor, limit, status=status)
 
     @router.get("/{run_id}", response_model=WebRun)
     def detail(project_id: UUID, run_id: UUID, user: Owner, runs: Service):

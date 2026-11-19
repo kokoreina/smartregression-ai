@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import type { components } from '../../types/generated'
 import { productRequest, productDownload } from '../auth/authClient'
 import { FormNotice } from '../auth/AuthViews'
@@ -21,6 +21,20 @@ async function download(saved: Saved) {
 }
 
 export function ProjectRuns({ projectId, archived }: { projectId: string; archived: boolean }) {
+  const [params, setParams] = useSearchParams()
+  const value = params.get('runStatus') ?? ''
+  const status = Object.hasOwn(states, value) ? value : ''
+  return <><label htmlFor="history-status">Lọc trạng thái lịch sử</label>
+    <select id="history-status" value={status} onChange={event => setParams(previous => {
+      const next = new URLSearchParams(previous)
+      if (event.target.value) next.set('runStatus', event.target.value)
+      else next.delete('runStatus')
+      return next
+    })}><option value="">Tất cả trạng thái</option>{Object.entries(states).map(([key, label]) => <option key={key} value={key}>{label}</option>)}</select>
+    <ProjectRunsContent key={`${projectId}:${status}`} projectId={projectId} archived={archived} status={status} /></>
+}
+
+function ProjectRunsContent({ projectId, archived, status }: { projectId: string; archived: boolean; status: string }) {
   const [runs, setRuns] = useState<Run[]>([])
   const [base, setBase] = useState('')
   const [target, setTarget] = useState('')
@@ -34,19 +48,23 @@ export function ProjectRuns({ projectId, archived }: { projectId: string; archiv
   const request = useRef<{ key: string; base: string; target: string } | null>(null)
   useEffect(() => {
     let cancelled = false
+    let refreshing = false
     async function refresh() {
+      if (refreshing) return
+      refreshing = true
       try {
-        const result = await productRequest<Page>(`/projects/${projectId}/runs`)
+        const result = await productRequest<Page>(`/projects/${projectId}/runs${status ? `?status=${encodeURIComponent(status)}` : ''}`)
         if (!cancelled) {
-          setRuns(old => [...result.items, ...old.filter(run => !result.items.some(item => item.id === run.id))])
+          setRuns(old => ['queued', 'running'].includes(status) ? result.items : [...result.items, ...old.filter(run => !result.items.some(item => item.id === run.id))])
           if (!initialized.current) { setCursor(result.next_cursor ?? null); initialized.current = true }
         }
       } catch (cause) { if (!cancelled) setError(cause instanceof Error ? cause.message : 'Không tải được lịch sử.') }
+      finally { refreshing = false }
     }
     void refresh()
     const timer = window.setInterval(() => void refresh(), 4000)
     return () => { cancelled = true; window.clearInterval(timer) }
-  }, [projectId])
+  }, [projectId, status])
 
   async function inspect() {
     if (inFlight.current) return
@@ -62,7 +80,7 @@ export function ProjectRuns({ projectId, archived }: { projectId: string; archiv
     if (!cursor || inFlight.current) return
     inFlight.current = true; setBusy(true); setError('')
     try {
-      const page = await productRequest<Page>(`/projects/${projectId}/runs?cursor=${encodeURIComponent(cursor)}`)
+      const page = await productRequest<Page>(`/projects/${projectId}/runs?cursor=${encodeURIComponent(cursor)}${status ? `&status=${encodeURIComponent(status)}` : ''}`)
       setRuns(old => [...old, ...page.items.filter(item => !old.some(run => run.id === item.id))]); setCursor(page.next_cursor ?? null)
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Chưa tải được trang lịch sử.') }
     finally { inFlight.current = false; setBusy(false) }
@@ -75,7 +93,7 @@ export function ProjectRuns({ projectId, archived }: { projectId: string; archiv
     if (!request.current || request.current.base !== base || request.current.target !== target) request.current = { key: crypto.randomUUID(), base, target }
     try {
       const result = await productRequest<Run>(`/projects/${projectId}/runs`, 'POST', { base, target, idempotency_key: request.current.key })
-      setRuns(old => [result, ...old.filter(run => run.id !== result.id)])
+      if (!status || result.status === status) setRuns(old => [result, ...old.filter(run => run.id !== result.id)])
       setNotice('Yêu cầu đã được lưu. Phân tích tĩnh không gọi Gemini hoặc chạy test.')
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Chưa tạo được phân tích.') }
     finally { inFlight.current = false; setBusy(false) }

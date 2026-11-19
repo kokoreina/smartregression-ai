@@ -130,12 +130,17 @@ class PostgresWebRunStore:
                 is not None
             )
 
-    def list(self, owner, project, cursor=None, limit=25):
+    def list(self, owner, project, cursor=None, limit=25, *, status=None):
         decoded = decode_cursor(cursor)
         params = dict(owner=owner, project=project, limit=limit + 1)
         clause = ""
+        if status is not None:
+            if status not in {"queued", "running", "completed", "failed", "interrupted"}:
+                raise AuthFailure("invalid_run_status", 422)
+            clause += " AND status=:status"
+            params["status"] = status
         if decoded:
-            clause = " AND (started_at,id)<(:stamp,CAST(:cursor_id AS uuid))"
+            clause += " AND (started_at,id)<(:stamp,CAST(:cursor_id AS uuid))"
             params.update(stamp=decoded[0], cursor_id=decoded[1])
         with database_transaction(self.engine) as connection:
             tx = BoundProjectStore(connection)

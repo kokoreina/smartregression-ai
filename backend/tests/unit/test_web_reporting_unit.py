@@ -29,3 +29,14 @@ def test_filter_timezones_and_asof_are_validated():
         normalize_filter(None, None, None, None, "not/a/timezone", now)
     with pytest.raises(AuthFailure, match="invalid_report_filter"):
         normalize_filter(None, now, now - timedelta(days=1), None, "UTC", now)
+
+
+def test_filter_maximum_range_is_exact_not_rounded_down_to_days():
+    from datetime import UTC, datetime, timedelta
+
+    from smartregression.application.auth import AuthFailure
+
+    now = datetime(2026, 11, 19, tzinfo=UTC)
+    assert normalize_filter(None, now - timedelta(days=366), now, None, "UTC", now)
+    with pytest.raises(AuthFailure, match="invalid_report_filter"):
+        normalize_filter(None, now - timedelta(days=366, seconds=1), now, None, "UTC", now)

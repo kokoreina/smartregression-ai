@@ -4961,6 +4961,7 @@ export interface operations {
             query?: {
                 cursor?: string | null;
                 limit?: number;
+                status?: ("queued" | "running" | "completed" | "failed" | "interrupted") | null;
             };
             header?: never;
             path: {

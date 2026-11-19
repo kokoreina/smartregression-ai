@@ -20,7 +20,7 @@ def normalize_filter(project, start, end, status, timezone, now=None):
             or not end.tzinfo
             or start >= end
             or end > now
-            or (end - start).days > 366
+            or end - start > timedelta(days=366)
         ):
             raise ValueError("range")
         return ReportFilter(

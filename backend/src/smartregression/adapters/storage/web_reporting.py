@@ -1,5 +1,6 @@
 """One repeatable-read snapshot backs dashboard, drilldown and CSV export."""
 
+import hashlib
 from datetime import timedelta
 from uuid import uuid4
 
@@ -9,8 +10,55 @@ from smartregression.adapters.storage.project_store import BoundProjectStore
 from smartregression.adapters.storage.web_run_store import PostgresWebRunStore
 from smartregression.application.auth import AuthFailure
 from smartregression.application.web_reporting import csv_text
+from smartregression.contracts.repository import RepositoryAnalysisResponse
 from smartregression.contracts.web_reporting import Dashboard, UsagePage, UsageRecord
 from smartregression.contracts.web_runs import RunPage, WebRun
+
+IMPACT_COLUMNS = (
+    "analysis_status",
+    "impact_stage_status",
+    "changed_file_count",
+    "direct_file_count",
+    "indirect_file_count",
+    "impact_scope",
+)
+
+
+def report_impact_columns(row):
+    """Freeze counts from the saved run report, never from today's explorer cache."""
+    if row["payload"] is None:
+        return {}
+    try:
+        response = RepositoryAnalysisResponse.model_validate(row["payload"])
+        if hashlib.sha256(response.model_dump_json().encode()).hexdigest() != row["payload_digest"]:
+            raise ValueError("digest")
+    except ValueError:
+        raise AuthFailure("report_integrity_failed", 503) from None
+    report = response.report
+    changes, impact = report.stages.changes, report.stages.impact
+    changed = {c.path for c in changes.data.components} if changes.data is not None else None
+    direct = indirect = None
+    if impact.data is not None and changed is not None:
+        direct = {c.path for c in impact.data.candidates if c.relationship == "direct"} - changed
+        indirect = (
+            {c.path for c in impact.data.candidates if c.relationship == "indirect"}
+            - changed
+            - direct
+        )
+    return dict(
+        zip(
+            IMPACT_COLUMNS,
+            [
+                report.analysis_status,
+                impact.status,
+                len(changed) if changed is not None else None,
+                len(direct) if direct is not None else None,
+                len(indirect) if indirect is not None else None,
+                "saved_static_report",
+            ],
+            strict=True,
+        )
+    )
 
 
 class PostgresWebReporting:
@@ -152,6 +200,7 @@ class PostgresWebReporting:
                     UsageRecord.model_validate(dict(row)).model_dump(mode="json")
                     for row in usage_rows[:10000]
                 ],
+                "impact": {str(row["id"]): report_impact_columns(row) for row in rows[:10000]},
             }
             tx.execute(
                 "INSERT INTO smartregression.web_reporting_views "
@@ -224,6 +273,11 @@ class PostgresWebReporting:
                 "finished_at",
                 "as_of",
                 "timezone",
+                "view_id",
+                "filter_start",
+                "filter_end",
+                "filter_status",
+                *IMPACT_COLUMNS,
             ]
         ]
         filters = payload["dashboard"]["filters"]
@@ -241,6 +295,14 @@ class PostgresWebReporting:
                     row["finished_at"],
                     filters["as_of"],
                     filters["timezone"],
+                    identity,
+                    filters["start"],
+                    filters["end"],
+                    filters["status"],
+                    *[
+                        payload.get("impact", {}).get(row["id"], {}).get(key)
+                        for key in IMPACT_COLUMNS
+                    ],
                 ]
             )
         with database_transaction(self.engine) as conn:
