@@ -28,7 +28,7 @@ from smartregression.core.git.snapshots import validate_snapshot_paths
 from smartregression.core.impact.dependency_graph import build_dependency_graph
 
 PARSER_CONFIG = hashlib.sha256(
-    b"explorer-python-lexical-reexports-diagnostics-v3-js-ts0261-grammar0250"
+    b"explorer-python-submodule-imports-v4-js-ts0261-grammar0250"
     + "|".join(sorted(BUILTINS | STDLIB)).encode()
 ).hexdigest()
 
@@ -211,6 +211,18 @@ def build_graph(
         aliases = {}
         for imported in facts.imports:
             target = resolve(path, imported.reference, set(parsed))
+            if path.endswith(".py"):
+                for local, exported in imported.bindings:
+                    if exported == "*":
+                        continue
+                    binding = python_resolver.import_binding(path, imported, local, exported)
+                    if binding.kind == "module":
+                        edge(
+                            file_nodes[path],
+                            file_nodes[binding.path],
+                            "imports",
+                            evidence(path, imported.line),
+                        )
             if path.endswith(".py") and not target and imported.bindings:
                 suffix = "" if imported.reference.endswith(".") else "."
                 submodules = [

@@ -6,7 +6,7 @@ import { CoverageDetails } from './CoverageDetails'
 type Impact = components['schemas']['ImpactSummary']
 const groups = [['changed', 'File thay đổi'], ['direct', 'Ảnh hưởng trực tiếp'], ['indirect', 'Ảnh hưởng gián tiếp']] as const
 
-export function ImpactOverview({ value, onChoose, title = 'Ảnh hưởng tiềm năng theo phân tích tĩnh' }: { value: Impact; onChoose?: (path: string) => void; title?: string }) {
+export function ImpactOverview({ value, onChoose, title = 'Ảnh hưởng tiềm năng theo phân tích tĩnh', assumedChange = false }: { value: Impact; onChoose?: (path: string) => void; title?: string; assumedChange?: boolean }) {
   const id = useId()
   const [chosen, setChosen] = useState('')
   const targets = [...value.direct, ...value.indirect].filter(path => (value.paths[path]?.length ?? 0) > 1)
@@ -14,11 +14,12 @@ export function ImpactOverview({ value, onChoose, title = 'Ảnh hưởng tiềm
   const chain = target ? value.paths[target] : null
   return <section className="impact-overview" aria-labelledby={`${id}-heading`}>
     <h3 id={`${id}-heading`}>{title}</h3>
+    {assumedChange && <p>Đang giả định file đã chọn thay đổi; không phải kết quả so sánh hai commit.</p>}
     <p className="impact-overview-intro">So với {value.denominator == null ? 'số file chưa xác định' : `${value.denominator} file phân tích được`} trong snapshot.</p>
     <dl className="impact-comparison">{groups.map(([key, label]) => {
       const count = value.counts[key]
       const percentage = value.percentages[key]
-      return <div key={key} className={`impact-comparison-row impact-group-${key}`}><dt>{label}</dt><dd><strong>{count == null ? 'Chưa đo' : `${count} file`}</strong><span>{percentage == null ? 'Chưa có tỷ lệ' : `${percentage}%`}</span></dd>
+      return <div key={key} className={`impact-comparison-row impact-group-${key}`}><dt>{key === 'changed' && assumedChange ? 'File giả định thay đổi' : label}</dt><dd><strong>{count == null ? 'Chưa đo' : `${count} file`}</strong><span>{percentage == null ? 'Chưa có tỷ lệ' : `${percentage}%`}</span></dd>
         {percentage != null && <div className="impact-comparison-track" aria-hidden="true"><span style={{ width: `${Math.max(0, Math.min(100, percentage))}%` }} /></div>}
       </div>
     })}</dl>

@@ -89,23 +89,46 @@ class PythonResolver:
             binding = self.bindings.get((path, current, name))
             if binding:
                 item, exported = binding
-                destination = self.resolve(path, item.reference, self.files)
-                if destination and exported != "*" and self.declared(destination, exported):
-                    return self.lookup(destination, "", exported, seen, allow_builtin=False)
-                if exported != "*":
-                    suffix = "" if item.reference.endswith(".") else "."
-                    module = self.resolve(path, item.reference + suffix + exported, self.files)
-                    if module:
-                        return Resolution("module", module, name)
-                if destination:
-                    if exported == "*":
-                        return Resolution("module", destination, item.module_name or name)
-                    return self.lookup(destination, "", exported, seen, allow_builtin=False)
-                if self.stdlib(item.reference):
-                    return Resolution("stdlib", "", item.reference)
-                return Resolution("unknown")
+                return self.import_binding(path, item, name, exported, seen)
         if allow_builtin and name in BUILTINS:
             return Resolution("builtin", "", name)
+        return Resolution("unknown")
+
+    def import_binding(
+        self,
+        path: str,
+        item: ImportFact,
+        name: str,
+        exported: str,
+        seen: frozenset[tuple[str, str, str]] = frozenset(),
+    ) -> Resolution:
+        """Resolve the import itself, independently of later local rebinding."""
+        destination = self.resolve(path, item.reference, self.files)
+        # A package importing its own child must not recurse into this binding.
+        self_binding = destination == path and not item.scope and exported == name
+        if (
+            destination
+            and exported != "*"
+            and not self_binding
+            and self.declared(destination, exported)
+        ):
+            resolved = self.lookup(destination, "", exported, seen, allow_builtin=False)
+            return (
+                Resolution("module", resolved.path, ".".join([name, *resolved.name.split(".")[1:]]))
+                if resolved.kind == "module"
+                else resolved
+            )
+        if exported != "*":
+            suffix = "" if item.reference.endswith(".") else "."
+            module = self.resolve(path, item.reference + suffix + exported, self.files)
+            if module:
+                return Resolution("module", module, name)
+        if destination:
+            if exported == "*":
+                return Resolution("module", destination, item.module_name or name)
+            return self.lookup(destination, "", exported, seen, allow_builtin=False)
+        if self.stdlib(item.reference):
+            return Resolution("stdlib", "", item.reference)
         return Resolution("unknown")
 
     def call(self, path: str, scope: str | None, expression: str) -> Resolution:
