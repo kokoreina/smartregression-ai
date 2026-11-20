@@ -17,6 +17,11 @@ function RunTable({ items }: { items: Page['items'] }) {
   return <div className="table-scroll"><table><thead><tr><th>Run</th><th>Commit</th><th>Tĩnh / AI</th><th>Bắt đầu</th></tr></thead><tbody>{items.map(run => <tr key={run.id}><td><Link to={`/app/projects/${run.project_id}/runs/${run.id}`}>{run.id.slice(0, 12)}</Link></td><td>{run.base.slice(0, 8)} → {run.target.slice(0, 8)}</td><td>{run.status} / {run.ai_status}</td><td>{new Date(run.started_at).toLocaleString()}</td></tr>)}</tbody></table></div>
 }
 
+function UsageTable({ items }: { items: Usage['items'] }) {
+  if (!items.length) return <p>Chưa có yêu cầu AI trong bộ lọc.</p>
+  return <div className="table-scroll"><table><thead><tr><th>Yêu cầu</th><th>Loại / trạng thái</th><th>Chi phí đã biết</th><th>Giữ chỗ chưa quyết toán</th></tr></thead><tbody>{items.map(item => <tr key={item.id}><td>{item.id.slice(0, 12)}</td><td>{item.action} / {item.status}</td><td>{item.actual_micro_usd == null ? 'Chưa biết' : `${(item.actual_micro_usd / 1e6).toFixed(6)} USD`}</td><td>{item.actual_micro_usd == null ? `${(item.reservation_micro_usd / 1e6).toFixed(6)} USD` : 'Đã quyết toán'}</td></tr>)}</tbody></table></div>
+}
+
 function download(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
   const anchor = document.createElement('a'); anchor.href = url; anchor.download = filename; anchor.click()
@@ -39,6 +44,7 @@ export function Dashboard() {
   const [usage, setUsage] = useState<Usage | null>(null)
   const [usageOffset, setUsageOffset] = useState(0)
   const [printRows, setPrintRows] = useState<Page['items']>([])
+  const [printUsage, setPrintUsage] = useState<Usage['items']>([])
   const flight = useRef(false)
   useEffect(() => {
     let active = true
@@ -69,7 +75,7 @@ export function Dashboard() {
         start: new Date(Date.now() - Number(days) * 86400000).toISOString(),
         timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       })
-      setSummary(value); setRows(null); setOffset(0); setUsageOffset(0); setPrintRows([]); setParams({ view: value.snapshot_id })
+      setSummary(value); setRows(null); setOffset(0); setUsageOffset(0); setPrintRows([]); setPrintUsage([]); setParams({ view: value.snapshot_id })
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Chưa tạo được tổng quan.') }
     finally { flight.current = false; setBusy(false) }
   }
@@ -90,7 +96,14 @@ export function Dashboard() {
         const page = await productRequest<Page>(`/reporting/views/${current.snapshot_id}/runs?offset=${index}&limit=100`)
         items.push(...page.items)
       }
-      flushSync(() => setPrintRows(items))
+      const usageItems: Usage['items'] = []
+      for (let index = 0; index < 10000; index += 100) {
+        const page = await productRequest<Usage>(`/reporting/views/${current.snapshot_id}/usage?offset=${index}&limit=100`)
+        usageItems.push(...page.items)
+        if (!page.next_cursor) break
+        if (index === 9900) throw new Error('Usage vượt giới hạn bản in 10000 dòng.')
+      }
+      flushSync(() => { setPrintRows(items); setPrintUsage(usageItems) })
       window.print()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Chưa chuẩn bị được bản in.') }
     finally { flight.current = false; setBusy(false) }
@@ -107,7 +120,7 @@ export function Dashboard() {
       <DashboardCharts summary={current} />
       <div className="dialog-actions dashboard-actions"><button disabled={busy || current.total_runs > 10000} onClick={() => void csv()}>Xuất toàn bộ CSV theo bộ lọc</button><button disabled={busy || current.total_runs > 10000} onClick={() => void print()}>In / Lưu PDF</button></div>
       <section className="auth-card" id="dashboard-runs"><h2>Run trong snapshot</h2><div className="screen-only"><RunTable items={rows?.items ?? []} /></div><div className="print-only"><RunTable items={printRows} /></div>{rows?.items.length === 0 && <p>Không có run khớp bộ lọc.</p>}<div className="dialog-actions dashboard-actions"><button disabled={offset === 0} onClick={() => setOffset(value => Math.max(0, value - 25))}>Trang trước</button><button disabled={!rows?.next_cursor} onClick={() => setOffset(value => value + 25)}>Trang tiếp</button></div></section>
-      <section id="dashboard-usage" className="auth-card"><h2>Usage AI cùng snapshot</h2>{usage?.items.length ? <div className="table-scroll"><table><thead><tr><th>Yêu cầu</th><th>Loại / trạng thái</th><th>Chi phí đã biết</th><th>Giữ chỗ chưa quyết toán</th></tr></thead><tbody>{usage.items.map(item => <tr key={item.id}><td>{item.id.slice(0, 12)}</td><td>{item.action} / {item.status}</td><td>{item.actual_micro_usd == null ? 'Chưa biết' : `${(item.actual_micro_usd / 1e6).toFixed(6)} USD`}</td><td>{item.actual_micro_usd == null ? `${(item.reservation_micro_usd / 1e6).toFixed(6)} USD` : 'Đã quyết toán'}</td></tr>)}</tbody></table></div> : <p>Chưa có yêu cầu AI trong bộ lọc.</p>}<div className="dialog-actions dashboard-actions"><button disabled={usageOffset === 0} onClick={() => setUsageOffset(value => Math.max(0, value - 25))}>Usage trước</button><button disabled={!usage?.next_cursor} onClick={() => setUsageOffset(value => value + 25)}>Usage tiếp</button></div></section>
+      <section id="dashboard-usage" className="auth-card"><h2>Usage AI cùng snapshot</h2><div className="screen-only"><UsageTable items={usage?.items ?? []} /></div><div className="print-only"><UsageTable items={printUsage} /></div><div className="dialog-actions dashboard-actions"><button disabled={usageOffset === 0} onClick={() => setUsageOffset(value => Math.max(0, value - 25))}>Usage trước</button><button disabled={!usage?.next_cursor} onClick={() => setUsageOffset(value => value + 25)}>Usage tiếp</button></div></section>
       <ul className="report-limitations">{current.limitations.map(item => <li key={item}>{item}</li>)}</ul><p>Snapshot hết hạn sau 24 giờ; refresh dữ liệu bằng nút Cập nhật tổng quan.</p>
     </>}
   </section>

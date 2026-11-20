@@ -71,3 +71,19 @@ def test_version_comparison_rejects_wrong_repository_or_config():
     second = build_graph("two", "b" * 40, {"a.js": "export function a(){}"}, parse_javascript)
     with pytest.raises(ValueError, match="comparison_identity_mismatch"):
         compare_graphs(first, second)
+    with pytest.raises(ValueError, match="comparison_identity_mismatch"):
+        compare_graphs(first, first.model_copy(update={"config_digest": "f" * 64}))
+
+
+def test_equal_versions_have_no_delta_and_removed_evidence_keeps_base_sha():
+    base = build_graph("one", "a" * 40, {"old.py": "def gone(): pass\n"}, parse_javascript)
+    equal = compare_graphs(base, base)
+    assert equal.total_added_nodes == equal.total_removed_nodes == 0
+    target = build_graph("one", "b" * 40, {"new.py": "def added(): pass\n"}, parse_javascript)
+    delta = compare_graphs(base, target)
+    assert delta.removed_nodes and delta.added_nodes
+    assert delta.base_commit == "a" * 40 and delta.target_commit == "b" * 40
+    removed = [node.evidence for node in delta.removed_nodes if node.symbol]
+    added = [node.evidence for node in delta.added_nodes if node.symbol]
+    assert removed and all(proof.commit == "a" * 40 for proof in removed)
+    assert added and all(proof.commit == "b" * 40 for proof in added)

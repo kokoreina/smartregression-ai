@@ -18,7 +18,7 @@ function DeltaView({ value }: { value: Delta }) {
     <p>Node: +{value.total_added_nodes} / −{value.total_removed_nodes} / {value.retained_node_count} giữ lại. Edge: +{value.total_added_edges} / −{value.total_removed_edges} / {value.retained_edge_count} giữ lại.</p>
     {value.truncated && <FormNotice>Danh sách đã giới hạn; tổng số phía trên tính trên toàn scope phân tích.</FormNotice>}
     <h4>Thêm</h4><ul>{value.added_nodes.map(node => <li key={node.id}>{node.path}{node.symbol ? ` · ${node.symbol}` : ''}{node.evidence?.source_kind === 'overlay' ? ' · overlay giả lập' : ''}</li>)}</ul>
-    <h4>Bỏ</h4><ul>{value.removed_nodes.map(node => <li key={node.id}>{node.path}{node.symbol ? ` · ${node.symbol}` : ''} · bằng chứng base</li>)}</ul>
+    <h4>Bỏ</h4><ul>{value.removed_nodes.map(node => <li key={node.id}>{node.path}{node.symbol ? ` · ${node.symbol}` : ''}{node.evidence?.source_kind === 'overlay' ? ' · overlay phương án A' : ' · bằng chứng base'}</li>)}</ul>
     <ul>{value.limitations.map((item, index) => <li key={index}>{item}</li>)}</ul>
   </section>
 }
@@ -93,18 +93,20 @@ export function WhatIf() {
   async function compare(event: React.FormEvent, versions = false) {
     event.preventDefault()
     if (flight.current) return
-    flight.current = true; setBusy(true); setError(''); setGraphs(null)
+    flight.current = true; setBusy(true); setError(''); setGraphs(null); setComparison(null); setDelta(null)
     try {
       if (versions) {
-        setDelta(await productRequest<Delta>(`/projects/${projectId}/graph-comparisons`, 'POST', { base: versionBase, target: versionTarget }))
+        const value = await productRequest<Delta>(`/projects/${projectId}/graph-comparisons`, 'POST', { base: versionBase, target: versionTarget })
         const [a, b] = await Promise.all([productRequest<Graph>(`/projects/${projectId}/snapshots/${versionBase}/graph`), productRequest<Graph>(`/projects/${projectId}/snapshots/${versionTarget}/graph`)])
+        setDelta(value)
         setGraphs({ labelA: `Base ${versionBase}`, labelB: `Target ${versionTarget}`, a, b })
       } else {
-        const value = await productRequest<Comparison>(`/projects/${projectId}/scenario-comparisons`, 'POST', { left, right }); setComparison(value)
+        const value = await productRequest<Comparison>(`/projects/${projectId}/scenario-comparisons`, 'POST', { left, right })
         if (value.comparison_kind !== 'hypotheses') {
           const [a, b] = await Promise.all([productRequest<Graph>(`/projects/${projectId}/scenarios/${left}/graph`), productRequest<Graph>(`/projects/${projectId}/scenarios/${right}/graph`)])
           setGraphs({ labelA: `Scenario A ${left}`, labelB: `Scenario B ${right}`, a, b })
         }
+        setComparison(value)
       }
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'Không so sánh được. Cần cùng baseline/config và loại phân tích.') }
     finally { flight.current = false; setBusy(false) }

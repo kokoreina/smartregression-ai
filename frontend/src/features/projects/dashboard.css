@@ -23,10 +23,11 @@
   @page { size:A4 landscape; margin:12mm; }
   .workspace-sidebar,.workspace-header,.skip-link,.local-demo-link,.dashboard-filters,.dashboard-actions,.demo-return { display:none!important; }
   .workspace-shell,.workspace-content,.workspace-main { display:block!important; margin:0!important; padding:0!important; width:100%!important; }
+  .workspace-shell,.workspace-content { min-height:0!important; border:0!important; border-radius:0!important; box-shadow:none!important; }
   .auth-card { box-shadow:none!important; border:1px solid #999; break-inside:avoid; }
   .table-scroll,.dashboard-chart ul { overflow:visible; max-height:none; }
   table { font-size:9pt; } tr { break-inside:avoid; } thead { display:table-header-group; }
   a { color:#111; text-decoration:none; } h1,h2,h3 { break-after:avoid; }
   .screen-only { display:none; } .print-only { display:block; }
-  #dashboard-runs { break-inside:auto; }
+  #dashboard-runs,#dashboard-usage { break-inside:auto; }
 }

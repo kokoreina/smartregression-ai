@@ -103,22 +103,22 @@ for (const kind of ['static_overlay', 'hypothesis']) {
 }
 
 async function fixture(page, options = {}) {
-  const calls = { snapshots: [], impact: [], ai: 0 }
+  const calls = { snapshots: [], impact: [], states: [], aiBodies: [], ai: 0 }
   await page.route('**/api/v1/**', async route => {
     const request = route.request()
     const url = new URL(request.url())
     const path = url.pathname.replace('/api/v1', '')
     const commit = path.includes(previous) ? previous : latest
     const respond = (body, status = 200) => route.fulfill({ status, json: body })
-    if (path.includes('/ai') && request.method() === 'POST') calls.ai++
-    if (path.includes('/assistance/ai') && request.method() === 'GET') return respond([])
+    if (path.includes('/ai') && request.method() === 'POST') { calls.ai++; calls.aiBodies.push(request.postDataJSON()); return respond({ code: 'ai_quota_exhausted' }, 403) }
+    if (path.includes('/assistance/ai') && request.method() === 'GET') return respond(options.aiJobs ?? [])
     if (path === '/capabilities') return respond({ local_demo: false })
     if (path === '/auth/me') return respond({ schema_version: '1.0.0', id: projectId, email: 'fixture@example.com', display_name: 'Kiểm thử UI · DEMO', verified: true })
     if (path === '/auth/csrf') return respond({ token: 'synthetic-csrf-token' })
     if (path === `/projects/${projectId}`) return respond({ schema_version: '1.0.0', id: projectId, title: 'Repository kiểm thử · DEMO', description: 'Dữ liệu giả dành riêng cho regression UI.', repository_url: repository, archived: false, version: 1, created_at: '2026-11-17T00:00:00Z', updated_at: '2026-11-17T00:00:00Z' })
     if (path.endsWith('/view-state')) {
       if (options.failSavedState) return respond({ code: 'project_storage_unavailable' }, 503)
-      if (request.method() === 'PUT') return respond({ ...request.postDataJSON(), version: 2 })
+      if (request.method() === 'PUT') { calls.states.push(request.postDataJSON()); return respond({ ...request.postDataJSON(), version: 2 }) }
       return respond(options.savedState ?? null)
     }
     if (path.endsWith('/repository')) return respond({ schema_version: '1.0.0', repository_url: repository, full_name: 'example/ui-fixture', default_branch: 'main', commits: [{ sha: latest, message: 'Synthetic latest commit', date: '2026-11-17T00:00:00Z' }] })
@@ -132,18 +132,99 @@ async function fixture(page, options = {}) {
     if (path.endsWith('/graph')) return options.failGraph
       ? respond({ code: 'explorer_unavailable' }, 503)
       : respond({ repository_id: 'example/ui-fixture', commit, config_digest: 'c'.repeat(64), coverage: options.coverage ?? coverage, nodes: [{ id: '1'.repeat(64), path: 'app.py', kind: 'file', label: 'app.py', symbol: null, evidence: null }, { id: '2'.repeat(64), path: 'utils.py', kind: 'file', label: 'utils.py', symbol: null, evidence: null }], edges: [], total_nodes: 2, total_edges: 0, truncated: false })
-    if (path.endsWith('/hotspots')) return options.failHotspots ? respond({ code: 'explorer_unavailable' }, 503) : respond({ cycles: [], fan_in: {}, fan_out: {}, cross_module_edges: [] })
+    if (path.endsWith('/hotspots')) return options.failHotspots ? respond({ code: 'explorer_unavailable' }, 503) : respond(options.hotspots ?? { cycles: [], fan_in: {}, fan_out: {}, cross_module_edges: [] })
     if (path.endsWith('/nodes')) return respond([])
     if (path.endsWith('/impact')) {
       calls.impact.push(url.searchParams.get('path'))
       return options.failImpact ? respond({ code: 'explorer_unavailable' }, 503) : respond(options.impact ?? { changed: [url.searchParams.get('path')], direct: ['utils.py'], indirect: [], denominator: 2, percentages: { changed: 50, direct: 50, indirect: 0 }, counts: { changed: 1, direct: 1, indirect: 0 }, unknown_changed_count: 0, paths: {}, coverage, unresolved_count: 0, interpretation: 'potential_static_impact' })
     }
-    if (path.endsWith('/reading-guide')) return respond({ entrypoint_status: 'unknown', steps: [], limitations: [] })
+    if (path.endsWith('/reading-guide')) return respond(options.guide ?? { entrypoint_status: 'unknown', steps: [], limitations: [] })
+    if (path.endsWith('/search')) return respond({ status: 'no_evidence', query: request.postDataJSON().query, items: [], indexed_chunks: 2, truncated: false, limitations: ['Lexical fixture · DEMO'] })
+    if (path.endsWith('/notes') && options.notes) return respond({ items: options.notes, next_cursor: null })
     if (path.endsWith('/notes') || path.endsWith('/activity') || path.endsWith('/runs')) return respond({ items: [], next_cursor: null })
     return respond({ code: 'not_found' }, 404)
   })
   return calls
 }
+
+test('AI requires explicit metadata consent and quota errors never remove static facts or retry on reload', async ({ page }) => {
+  const calls = await fixture(page)
+  await page.goto(projectPath)
+  await page.getByRole('button', { name: 'app.py', exact: true }).click()
+  const panel = page.locator('.snapshot-ai')
+  await panel.locator('summary').first().click()
+  const submit = panel.getByRole('button', { name: 'Yêu cầu Gemini', exact: true })
+  await expect(submit).toBeDisabled()
+  await panel.getByRole('checkbox', { name: 'Tôi đồng ý gửi metadata:', exact: false }).check()
+  await submit.click()
+  await expect(panel.getByRole('alert')).toBeVisible()
+  expect(calls.ai).toBe(1)
+  expect(calls.aiBodies[0]).toMatchObject({ commit: latest, path: 'app.py', allow_metadata_egress: true, allow_excerpt_egress: false, excerpts: [] })
+  await expect(page.locator('.selected-path')).toHaveText('app.py')
+  await page.reload()
+  await expect(page.locator('.selected-path')).toHaveText('app.py')
+  expect(calls.ai).toBe(1)
+})
+
+test('saved AI text is escaped and only matching-SHA citations navigate', async ({ page }) => {
+  const calls = await fixture(page, { aiJobs: [{ id: 'saved-fixture', action: 'file', created_at: '2026-11-19T00:00:00Z', status: 'completed', provenance: { observations: [
+    { id: 'matching-proof', path: 'utils.py', commit: latest, line_start: 1, line_end: 1 },
+    { id: 'wrong-sha-proof', path: 'app.py', commit: previous, line_start: 1, line_end: 1 },
+  ] }, result: { status: 'completed', model: 'Fixture · DEMO', data: { summary: '<img src=x onerror=window.__aiXss=1>', findings: [{ path: 'utils.py', explanation: 'Synthetic explanation', evidence_ids: ['matching-proof', 'wrong-sha-proof'] }], limitations: ['Fixture only'] } } }] })
+  await page.goto(projectPath)
+  const panel = page.locator('.snapshot-ai')
+  await panel.locator('summary').first().click()
+  await expect(panel.getByText('<img src=x onerror=window.__aiXss=1>', { exact: true })).toBeVisible()
+  expect(await page.evaluate(() => window.__aiXss)).toBeUndefined()
+  await expect(panel.getByRole('button', { name: 'Bằng chứng wrong-sha-', exact: true })).toHaveCount(0)
+  await panel.getByRole('button', { name: 'Bằng chứng matching-p', exact: true }).click()
+  await expect(page).toHaveURL(new RegExp(`commit=${latest}.*path=utils.py`))
+  expect(calls.ai).toBe(0)
+})
+
+test('hotspot scope is the full snapshot and clicking a cycle focuses the selected file', async ({ page }) => {
+  await fixture(page, { savedState: { commit: latest, version: 1, tab: 'graph', path: null, expanded_paths: [], focus_only: false }, hotspots: { cycles: [['app.py', 'utils.py']], fan_in: { 'app.py': 1, 'utils.py': 1 }, fan_out: { 'app.py': 1, 'utils.py': 1 }, cross_module_edges: [] } })
+  await page.goto(projectPath)
+  const details = page.getByText('Hotspots cấu trúc', { exact: true }).locator('..')
+  await details.locator('summary').click()
+  await expect(details).toContainText('Phạm vi hotspot: 2 file')
+  await details.getByRole('button', { name: 'utils.py', exact: true }).first().click()
+  await expect(page.locator('.selected-path')).toHaveText('utils.py')
+  await expect(page.getByRole('checkbox', { name: 'Focus vào file đã chọn', exact: true })).toBeChecked()
+  await expect(page.locator('.impact-overview')).toContainText('So với 2 file')
+})
+
+test('reading guide citations and no-match search keep file and SHA without AI calls', async ({ page }) => {
+  const evidence = { id: 'e'.repeat(64), path: 'utils.py', commit: latest, kind: 'source_range', line_start: 1, line_end: 1, source_kind: 'git', overlay_digest: null }
+  const calls = await fixture(page, { guide: { commit: latest, entrypoint_status: 'unknown', steps: [{ category: 'module', path: 'utils.py', reason: 'Synthetic fixture', evidence }], limitations: ['Static evidence only'] } })
+  await page.goto(projectPath)
+  const details = page.getByText('Lộ trình đọc tĩnh', { exact: true }).locator('..')
+  await details.locator('summary').click()
+  await details.getByRole('button', { name: 'utils.py', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await expect(page).toHaveURL(new RegExp(`commit=${latest}.*path=utils.py`))
+  await page.getByLabel('Tìm chức năng trong snapshot').fill('no-evidence-fixture')
+  await page.getByRole('button', { name: 'Tìm bằng chứng', exact: true }).click()
+  await expect(page.getByText('Không có bằng chứng khớp từ khóa trong phạm vi đã lập chỉ mục.')).toBeVisible()
+  expect(calls.ai).toBe(0)
+})
+
+test('resume debounces view state without saving AI drafts and stale notes stay escaped', async ({ page }) => {
+  const title = '<img src=x onerror="window.__noteXss=1">'
+  const calls = await fixture(page, { notes: [{ id: '33333333-3333-4333-8333-333333333333', kind: 'pin', title, body: 'Literal fixture text', path: 'gone.py', commit: previous, stale: true, version: 1 }] })
+  await page.goto(projectPath)
+  await page.getByRole('button', { name: 'utils.py', exact: true }).first().click()
+  await page.getByText('Ghi chú và ghim (1)', { exact: true }).click()
+  await expect(page.getByText(`Ghim: ${title}`, { exact: true })).toBeVisible()
+  await expect(page.getByText('Đường dẫn này không còn ở snapshot đang xem; mở liên kết để quay lại SHA gốc.')).toBeVisible()
+  expect(await page.evaluate(() => window.__noteXss)).toBeUndefined()
+  await page.getByLabel('Tiêu đề ghi chú').fill('Unsaved note draft')
+  await page.getByText('Gemini — giải thích có bằng chứng', { exact: true }).click()
+  await page.getByLabel('Câu hỏi hoặc từ khóa').fill('Unsaved AI draft')
+  await expect.poll(() => calls.states.some(state => state.path === 'utils.py')).toBe(true)
+  expect(JSON.stringify(calls.states)).not.toContain('Unsaved')
+  expect(calls.ai).toBe(0)
+})
 
 test('opening a project shows the tree and file impact without entering a SHA', async ({ page }) => {
   const calls = await fixture(page)
