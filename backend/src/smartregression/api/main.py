@@ -35,12 +35,17 @@ def create_app(
     note_service: NoteService | None = None,
     scenario_service: ScenarioService | None = None,
     reporting_service=None,
+    repo_assistant_service=None,
     mode: str | None = None,
 ) -> FastAPI:
     from smartregression.api.routes.auth import auth_router
     from smartregression.api.routes.explorer import explorer_router
     from smartregression.api.routes.notes import note_router
     from smartregression.api.routes.projects import project_router
+    from smartregression.api.routes.repo_assistant import (
+        github_webhook_router,
+        repo_assistant_router,
+    )
     from smartregression.api.routes.repositories import repository_router
     from smartregression.api.routes.scenarios import scenario_router
     from smartregression.api.routes.web_ai import web_ai_router
@@ -88,6 +93,14 @@ def create_app(
                 from smartregression.composition import product_reporting_service
 
                 app.state.reporting_service = product_reporting_service(app.state.auth_service)
+                from smartregression.composition import product_repo_assistant_service
+
+                app.state.repo_assistant_service = product_repo_assistant_service(
+                    app.state.auth_service,
+                    app.state.explorer_service,
+                    app.state.project_service,
+                    app.state.web_ai_service,
+                )
             yield
 
     app = FastAPI(title="SmartRegression AI", version="0.1.0", lifespan=lifespan)
@@ -99,9 +112,12 @@ def create_app(
     app.state.note_service = note_service
     app.state.scenario_service = scenario_service
     app.state.reporting_service = reporting_service
+    app.state.repo_assistant_service = repo_assistant_service
     app.include_router(router)
     app.include_router(auth_router())
     app.include_router(project_router())
+    app.include_router(repo_assistant_router())
+    app.include_router(github_webhook_router())
     app.include_router(web_run_router())
     app.include_router(web_ai_router())
     app.include_router(explorer_router())

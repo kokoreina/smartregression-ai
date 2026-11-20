@@ -218,6 +218,7 @@ class ProposalRuntime:
                     last = result
                     if result.status == "completed" or result.error_code not in {
                         "provider_transport",
+                        "provider_unavailable",
                         "provider_timeout",
                         "provider_rate_limit",
                     }:

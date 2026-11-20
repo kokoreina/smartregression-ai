@@ -38,6 +38,11 @@ def test_foundation_and_inventory_have_scoped_keys_and_foreign_keys():
             "web_view_states",
             "web_scenarios",
             "web_reporting_views",
+            "web_assistant_threads",
+            "web_assistant_messages",
+            "web_repo_watches",
+            "web_change_notifications",
+            "web_github_deliveries",
         )
     }
     runs = metadata.tables["smartregression.analysis_runs"]
@@ -66,8 +71,9 @@ def test_migration_chain_has_one_head_and_ordered_revisions():
     root = Path(__file__).resolve().parents[3]
     config = Config(str(root / "alembic.ini"))
     script = ScriptDirectory.from_config(config)
-    assert script.get_heads() == ["20261115_15"]
+    assert script.get_heads() == ["20261119_16"]
     assert [(r.revision, r.down_revision) for r in script.walk_revisions()] == [
+        ("20261119_16", "20261115_15"),
         ("20261115_15", "20261115_14"),
         ("20261115_14", "20261115_13"),
         ("20261115_13", "20261115_12"),

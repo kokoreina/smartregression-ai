@@ -75,6 +75,11 @@ def snapshot_rows(connection):
         "web_view_states",
         "web_scenarios",
         "web_reporting_views",
+        "web_assistant_threads",
+        "web_assistant_messages",
+        "web_repo_watches",
+        "web_change_notifications",
+        "web_github_deliveries",
     ):
         rows = connection.execute(
             sql.SQL("SELECT row_to_json(t)::text FROM smartregression.{} t").format(
@@ -450,7 +455,7 @@ def execute():
         evidence["checks"]["actual_lexical_query_after_restore"] = True
         evidence["checks"]["artifact_restore_digest_and_catalog"] = True
         evidence["backup_sha256"] = hashlib.sha256(dump).hexdigest()
-        evidence["checks"]["revision_head"] = "20261115_15"
+        evidence["checks"]["revision_head"] = "20261119_16"
         evidence["passed"] = True
     except subprocess.TimeoutExpired:
         evidence["error_code"] = "storage_verification_timeout"

@@ -98,21 +98,24 @@ def published_repository_service(auth):
 
 
 def product_ai_service(auth, runs, *, recover=True):
-    import os
 
     from smartregression.adapters.llm.budget import BudgetLedger
-    from smartregression.adapters.llm.gemini import GeminiSettings
+    from smartregression.adapters.llm.gemini import WEB_MODEL, GeminiSettings
     from smartregression.adapters.llm.repository_summary import GeminiRepositoryNarrator
     from smartregression.adapters.storage.web_ai_store import PostgresAiStore
     from smartregression.application.web_ai import WebAiService
     from smartregression.contracts.repository import NarrativeResult
     from smartregression.gemini_config import GeminiCredential, credential_environment
 
-    def explain(context, identity, batch, campaign):
+    def explain(context, identity, batch, campaign, *, model=None):
         try:
             if not re.fullmatch(r"[a-z0-9-]{1,80}", campaign) or batch not in {1, 2}:
                 raise ValueError("invalid_ai_campaign")
-            secret_file = os.environ.get("SMARTREGRESSION_GEMINI_ENV_FILE")
+            if model not in {None, WEB_MODEL, "gemini-3.5-flash-lite"}:
+                raise ValueError("invalid_ai_model")
+            from smartregression.auth_config import web_environment
+
+            secret_file = web_environment().get("SMARTREGRESSION_GEMINI_ENV_FILE")
             credential = GeminiCredential.from_environment(
                 credential_environment(Path(secret_file) if secret_file else None)
             )
@@ -121,7 +124,8 @@ def product_ai_service(auth, runs, *, recover=True):
                 raise ValueError("unsafe_workspace")
             root.mkdir(parents=True, exist_ok=True)
             transport = gemini_provider(
-                api_key=credential.api_key, settings=GeminiSettings(api_version="v1beta")
+                api_key=credential.api_key,
+                settings=GeminiSettings(model=model or WEB_MODEL, api_version="v1beta"),
             )
             narrator = GeminiRepositoryNarrator(
                 transport,
@@ -169,9 +173,21 @@ def product_explorer_service(auth):
     )
 
 
+def product_repo_assistant_service(auth, explorer, projects, ai):
+    from smartregression.adapters.storage.assistant_store import PostgresAssistantStore
+    from smartregression.application.repo_assistant import RepositoryAssistantService
+
+    return RepositoryAssistantService(
+        PostgresAssistantStore(auth.store.engine),
+        explorer,
+        projects,
+        repository_web_service().source_factory,
+        ai,
+    )
+
+
 def repository_web_service(*, publisher=None) -> RepositoryService:
     """Lazy local-web dependencies; no network or secret loading on application import."""
-    import os
     from contextlib import contextmanager
     from tempfile import TemporaryDirectory
 
@@ -188,6 +204,8 @@ def repository_web_service(*, publisher=None) -> RepositoryService:
 
     @contextmanager
     def source_factory(url: str) -> Iterator[GithubRepository]:
+        from smartregression.auth_config import web_environment
+
         root.mkdir(parents=True, exist_ok=True)
         if any(p.is_symlink() or p.is_junction() for p in (root, *root.parents)):
             raise ValueError("unsafe_workspace")
@@ -195,20 +213,28 @@ def repository_web_service(*, publisher=None) -> RepositoryService:
             TemporaryDirectory(dir=root) as workspace,
             httpx.Client(trust_env=False, follow_redirects=False, timeout=20) as client,
         ):
-            yield GithubRepository(url, Path(workspace), client)
+            yield GithubRepository(
+                url,
+                Path(workspace),
+                client,
+                token=web_environment().get("SMARTREGRESSION_GITHUB_TOKEN") or None,
+            )
 
     class LazyNarrator:
         def explain(self, payload: dict, *, run_id: str) -> NarrativeResult:
-            from smartregression.adapters.llm.gemini import GeminiSettings
+            from smartregression.adapters.llm.gemini import WEB_MODEL, GeminiSettings
 
             try:
-                secret_file = os.environ.get("SMARTREGRESSION_GEMINI_ENV_FILE")
+                from smartregression.auth_config import web_environment
+
+                secret_file = web_environment().get("SMARTREGRESSION_GEMINI_ENV_FILE")
                 credential = GeminiCredential.from_environment(
                     credential_environment(Path(secret_file) if secret_file else None)
                 )
                 root.mkdir(parents=True, exist_ok=True)
                 transport = gemini_provider(
-                    api_key=credential.api_key, settings=GeminiSettings(api_version="v1beta")
+                    api_key=credential.api_key,
+                    settings=GeminiSettings(model=WEB_MODEL, api_version="v1beta"),
                 )
                 return GeminiRepositoryNarrator(
                     transport,

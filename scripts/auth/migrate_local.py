@@ -108,6 +108,15 @@ def main():
                     "TO smartregression_web_runtime"
                 )
             )
+            connection.execute(
+                text(
+                    "GRANT SELECT,INSERT,UPDATE,DELETE ON smartregression.web_assistant_threads,"
+                    "smartregression.web_assistant_messages,smartregression.web_repo_watches,"
+                    "smartregression.web_change_notifications,"
+                    "smartregression.web_github_deliveries "
+                    "TO smartregression_web_runtime"
+                )
+            )
     print("Owned development database backed up, migrated and runtime grants verified.")
 
 

@@ -23,6 +23,15 @@ AND NOT EXISTS (SELECT 1 FROM smartregression.web_ai_requests a
 AND NOT EXISTS (SELECT 1 FROM smartregression.web_view_states v
     WHERE v.owner_id=s.owner_id AND v.project_id=s.project_id AND v.commit=s.commit
     AND v.updated_at>=:cutoff)
+AND NOT EXISTS (SELECT 1 FROM smartregression.web_assistant_threads t
+    WHERE t.owner_id=s.owner_id AND t.project_id=s.project_id
+    AND t.commit=s.commit AND t.config_digest=s.config_digest)
+AND NOT EXISTS (SELECT 1 FROM smartregression.web_repo_watches w
+    WHERE w.owner_id=s.owner_id AND w.project_id=s.project_id AND w.last_commit=s.commit)
+AND NOT EXISTS (SELECT 1 FROM smartregression.web_change_notifications n
+    WHERE n.owner_id=s.owner_id AND n.project_id=s.project_id
+    AND (n.report->>'base'=s.commit OR n.report->>'target'=s.commit)
+    AND n.report->>'config_digest'=s.config_digest)
 """
 
 

@@ -73,8 +73,19 @@ class PostgresAiStore:
                     "SELECT g.*,c.max_calls AS global_calls,c.cap_micro_usd AS gl"
                     "obal_cap FROM smartregression.web_ai_grants g JOIN smartregr"
                     "ession.web_ai_campaigns c ON c.id=g.campaign_id WHERE g.owne"
-                    "r_id=:owner ORDER BY g.campaign_id",
+                    "r_id=:owner "
+                    + (
+                        "AND g.campaign_id=:restricted_campaign "
+                        if scope and scope.get("campaign")
+                        else ""
+                    )
+                    + "ORDER BY g.campaign_id",
                     owner=owner,
+                    **(
+                        {"restricted_campaign": scope["campaign"]}
+                        if scope and scope.get("campaign")
+                        else {}
+                    ),
                 )
                 .mappings()
                 .all()

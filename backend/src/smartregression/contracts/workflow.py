@@ -141,6 +141,7 @@ ProviderError = Literal[
     "provider_rate_limit",
     "provider_timeout",
     "provider_transport",
+    "provider_unavailable",
     "provider_refusal",
     "provider_empty",
     "provider_truncated",

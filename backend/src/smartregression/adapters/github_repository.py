@@ -7,6 +7,7 @@ import re
 import time
 import zipfile
 from pathlib import Path
+from urllib.parse import quote
 
 import httpx
 
@@ -20,11 +21,21 @@ from smartregression.core.git.snapshots import TreeEntry, validate_snapshot_path
 
 
 class GithubRepository:
-    def __init__(self, url: str, workspace: Path, client: httpx.Client) -> None:
+    def __init__(
+        self, url: str, workspace: Path, client: httpx.Client, *, token: str | None = None
+    ) -> None:
         self.url = RepositoryLookup(repository_url=url).repository_url
         self.slug = self.url.removeprefix("https://github.com/")
         self.repository = workspace
         self.client = client
+        if token is not None and (
+            not token
+            or token != token.strip()
+            or len(token) > 2000
+            or any(ord(c) < 32 for c in token)
+        ):
+            raise ValueError("invalid_github_credential")
+        self._token = token
         self.deadline = time.monotonic() + 75
         self._entries: dict[str, tuple[TreeEntry, ...]] = {}
         self._blobs: dict[str, bytes] = {}
@@ -42,6 +53,11 @@ class GithubRepository:
                     "Accept": "application/vnd.github+json",
                     "User-Agent": "SmartRegression-AI",
                     "Accept-Encoding": "identity",
+                    **(
+                        {"Authorization": f"Bearer {self._token}"}
+                        if self._token and not archive
+                        else {}
+                    ),
                 },
                 timeout=min(20, self.deadline - time.monotonic()),
                 follow_redirects=False,
@@ -101,6 +117,18 @@ class GithubRepository:
                 for c in commits[:10]
             ],
         )
+
+    def resolve_branch(self, branch: str) -> str:
+        from smartregression.contracts.repo_assistant import WatchInput
+
+        WatchInput(branch=branch)
+        if not self._verified_public:
+            self._public()
+        result = self._json(f"repos/{self.slug}/git/ref/heads/{quote(branch, safe='')}")
+        value = result.get("object", {})
+        if value.get("type") != "commit" or not re.fullmatch("[0-9a-f]{40}", value.get("sha", "")):
+            raise ValueError("github_invalid_response")
+        return value["sha"]
 
     def tree(self, sha: str) -> RepositoryTree:
         """List the pinned Git tree without reading blobs, archives or submodules."""
